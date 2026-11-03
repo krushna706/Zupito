@@ -5,7 +5,7 @@ import ProductCard from "../../components/ProductCard";
 
 // ================== PREVIEW CATALOG ==================
 // Demo values; replace with approved product API data.
-const previewProducts = [
+export const previewProducts = [
     {
         _id: "preview-smartphone",
         name: "Everyday Smartphone",

@@ -4,13 +4,16 @@ import { ToastContainer } from "react-toastify";
 
 import WebsiteLayout from "./layouts/WebsiteLayout";
 
+// Public website
+import HomePage from "./website/Home/HomePage";
+import Products from "./website/Products/Products";
+
 // Shared components
 import NotFound from "./components/NotFound";
 
 import "./css/website.css";
 
-// Public website
-import HomePage from "./website/Home/HomePage";
+
 
 // ================== SCROLL TO TOP ==================
 function ScrollToTop() {
@@ -40,6 +43,7 @@ function App() {
                 <Route element={<WebsiteLayout />}>
                 
                     <Route path="/" element={<HomePage />} />
+                    <Route path="products" element={<Products />} />
 
                     <Route path="*" element={<NotFound />} />
                 </Route>

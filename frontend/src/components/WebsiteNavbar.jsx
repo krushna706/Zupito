@@ -4,10 +4,12 @@ import { Menu, MenuItem } from "@mui/material";
 
 import ProductSearchBar from "./ProductSearchBar";
 import { appConfig } from "../config/appConfig";
+import { useCart } from "../context/CartContext";
 
 
 // ================== WEBSITE NAVBAR ==================
-function WebsiteNavbar({ user = null, cartCount = 0 }) {
+function WebsiteNavbar({ user = null }) {
+    const { cartCount } = useCart();
     const location = useLocation();
 
     const [profileAnchor, setProfileAnchor] = useState(null);

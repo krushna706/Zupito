@@ -9,6 +9,9 @@ import NotFound from "./components/NotFound";
 
 import "./css/website.css";
 
+// Public website
+import HomePage from "./website/Home/HomePage";
+
 // ================== SCROLL TO TOP ==================
 function ScrollToTop() {
     const { pathname } = useLocation();
@@ -35,8 +38,8 @@ function App() {
             <Routes>
                 {/* Public website */}
                 <Route element={<WebsiteLayout />}>
-                    {/* Home sections will be connected here */}
-                    <Route path="/" element={null} />
+                
+                    <Route path="/" element={<HomePage />} />
 
                     <Route path="*" element={<NotFound />} />
                 </Route>

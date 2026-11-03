@@ -1,0 +1,33 @@
+# ===== EXISTING FRONTEND SETUP =====
+# Run from the Zupito project root.
+
+cd frontend
+npm install
+
+
+# ===== ROUTING AND API =====
+
+npm install react-router-dom                  # Page routing and shared layouts
+npm install axios                             # Backend API requests
+
+
+# ===== NOTIFICATIONS =====
+
+npm install react-toastify                    # Shared success and error messages
+
+
+# ===== STYLING AND ICONS =====
+
+npm install bootstrap                         # Responsive grid and utilities
+npm install @fortawesome/fontawesome-free     # Website and panel icons
+
+
+# ===== UI COMPONENTS =====
+
+npm install @mui/material @emotion/react @emotion/styled
+
+
+# ===== DEVELOPMENT PREVIEW =====
+# Run after the starter imports and base files are connected.
+
+npm run dev

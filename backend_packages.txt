@@ -1,0 +1,67 @@
+# ===== FIRST-TIME SETUP =====
+# Run from the Zupito project root.
+
+cd backend
+npm init -y
+
+
+# ===== SERVER AND DATABASE =====
+
+npm install express                           # API server and routing
+npm install mongoose                          # MongoDB models and queries
+
+
+# ===== VALIDATION AND CONFIGURATION =====
+
+npm install joi                               # Request validation
+npm install dotenv                            # Load backend environment variables
+
+
+# ===== AUTHENTICATION =====
+
+npm install jsonwebtoken                      # Generate and verify JWTs
+npm install bcrypt                            # Hash and compare passwords
+npm install cookie-parser                     # Read authentication cookies
+
+
+# ===== ACCESS AND SECURITY =====
+
+npm install cors                              # Allowed frontend origins
+npm install helmet                            # Security response headers
+npm install express-rate-limit                # Limit repeated requests
+
+
+# ===== IMAGE UPLOADS =====
+
+npm install multer                            # Handle multipart uploads
+npm install file-type                         # Verify uploaded file contents
+npm install cloudinary                        # Store and delete images
+
+
+# ===== PAYMENTS, IMPORTS AND INVOICES =====
+
+npm install razorpay                          # Payment and cancellation refund integration
+npm install csv-parse                          # Parse inventory CSV uploads
+npm install pdfkit                            # Generate order invoice PDFs
+
+
+# ===== DEVELOPMENT =====
+
+npm install --save-dev nodemon                 # Restart backend during development
+
+
+# ===== PACKAGE CONFIGURATION =====
+
+npm pkg set type="commonjs"
+npm pkg set main="server.js"
+npm pkg set scripts.dev="nodemon server.js"
+npm pkg set scripts.start="node server.js"
+npm pkg delete scripts.test
+
+
+# ===== RUN BACKEND =====
+
+npm run dev
+
+# Production startup:
+# npm start

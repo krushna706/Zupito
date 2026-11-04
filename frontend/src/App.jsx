@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
 import WebsiteLayout from "./layouts/WebsiteLayout";
+import AccountLayout from "./layouts/AccountLayout";
 
 // Public Website
 import HomePage from "./website/Home/HomePage";
@@ -16,6 +17,11 @@ import OrderConfirmation from "./website/Checkout/OrderConfirmation";
 import About from "./website/About";
 import Contact from "./website/Contact";
 import Policies from "./website/Policies";
+
+// Customer Account
+import Profile from "./user/Profile";
+import Addresses from "./user/Addresses";
+import Complaints from "./user/Complaints";
 
 // Shared Components
 import NotFound from "./components/NotFound";
@@ -46,8 +52,8 @@ function App() {
             <ToastContainer position="top-right" autoClose={3000} />
 
             <Routes>
-                {/* Public Website */}
                 <Route element={<WebsiteLayout />}>
+                    {/* Public Website */}
                     <Route path="/" element={<HomePage />} />
                     <Route path="products" element={<Products />} />
                     <Route path="products/:productId" element={<ProductDetails />} />
@@ -58,6 +64,13 @@ function App() {
                     <Route path="about" element={<About />} />
                     <Route path="contact" element={<Contact />} />
                     <Route path="policies" element={<Policies />} />
+
+                    {/* Customer Account */}
+                    <Route path="account" element={<AccountLayout />}>
+                        <Route index element={<Profile />} />
+                        <Route path="addresses" element={<Addresses />} />
+                        <Route path="complaints" element={<Complaints />} />
+                    </Route>
 
                     <Route path="*" element={<NotFound />} />
                 </Route>

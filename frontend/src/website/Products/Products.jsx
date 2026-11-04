@@ -2,15 +2,12 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-    Drawer,
-    IconButton,
-    MenuItem,
-    Pagination,
-    TextField,
-    useMediaQuery,
+    Drawer, IconButton, MenuItem, Pagination,
+    TextField, useMediaQuery,
 } from "@mui/material";
 
 import ProductCard from "../../components/ProductCard";
+import ProductFilters from "./ProductFilters";
 import { productCatalog } from "../../data/productCatalog";
 import {
     getAvailableStock,
@@ -18,7 +15,6 @@ import {
     getProductView,
     hasProductVariants,
 } from "../../utils/productVariants";
-import ProductFilters from "./ProductFilters";
 
 // ================== CATALOG CONFIGURATION ==================
 const PAGE_SIZE = 30;
@@ -44,10 +40,7 @@ const categories = [
 
 const categoryGroups = {
     electronics: ["mobiles", "laptops", "headphones"],
-    fashion: [
-        "mens-wear", "womens-wear", "kids-wear",
-        "footwear", "watches", "backpacks",
-    ],
+    fashion: ["mens-wear", "womens-wear", "kids-wear", "footwear", "watches", "backpacks"],
     grocery: ["daily-essentials", "snacks-drinks"],
     travel: ["backpacks", "trolley-bags", "travel-accessories"],
 };
@@ -60,28 +53,20 @@ const groupTitles = {
 };
 
 const collections = {
-    featured: [
-        "smartphone", "headphones", "shirt", "shoes",
-        "watch", "backpack", "laptop", "kitchen",
-    ],
-    "daily-essentials": [
-        "pantry", "personal-care", "snacks", "kitchen",
-    ],
+    featured: ["smartphone", "headphones", "shirt", "shoes", "watch", "backpack", "laptop", "kitchen"],
+    "daily-essentials": ["pantry", "personal-care", "snacks", "kitchen"],
 };
 
-// Preview order only; live data will provide sales and listing dates.
 const bestSellingOrder = [
-    "headphones", "shoes", "watch", "smartphone",
-    "backpack", "snacks", "shirt", "personal-care",
-    "pantry", "dress", "laptop", "kitchen",
+    "headphones", "shoes", "watch", "smartphone", "backpack", "snacks",
+    "shirt", "personal-care", "pantry", "dress", "laptop", "kitchen",
     "kids", "beauty", "trolley", "travel",
 ];
 
 const newestOrder = [
-    "laptop", "dress", "beauty", "trolley",
-    "travel", "kids", "kitchen", "watch",
-    "smartphone", "headphones", "shirt", "shoes",
-    "backpack", "snacks", "personal-care", "pantry",
+    "laptop", "dress", "beauty", "trolley", "travel", "kids",
+    "kitchen", "watch", "smartphone", "headphones", "shirt",
+    "shoes", "backpack", "snacks", "personal-care", "pantry",
 ];
 
 const sortOptions = [
@@ -94,22 +79,22 @@ const sortOptions = [
 ];
 
 const catalog = productCatalog;
+const categoryIds = new Set(categories.map((item) => item.id));
 
 const catalogPrices = catalog.flatMap((product) => (
     hasProductVariants(product)
         ? product.variants.map((variant) => variant.price)
         : [product.price]
-)).filter((price) => Number.isFinite(price));
+)).filter(Number.isFinite);
 
 const priceBounds = [0, Math.max(1000, ...catalogPrices)];
-const categoryIds = new Set(categories.map((category) => category.id));
 
-const getOrder = (ids) => new Map(
-    ids.map((id, index) => [`preview-${id}`, index])
+const getRanks = (items) => new Map(
+    items.map((id, index) => [`preview-${id}`, index])
 );
 
-const salesRanks = getOrder(bestSellingOrder);
-const newestRanks = getOrder(newestOrder);
+const salesRanks = getRanks(bestSellingOrder);
+const newestRanks = getRanks(newestOrder);
 
 const readPrice = (value, fallback) => {
     if (value === null || value.trim() === "") return fallback;
@@ -121,28 +106,23 @@ const readPrice = (value, fallback) => {
         : fallback;
 };
 
-// Match words against one variant at a time, not all variants combined.
 const matchesSearch = (product, variant, words) => {
-    if (words.length === 0) return true;
+    if (!words.length) return true;
 
     const view = getProductView(product, variant);
     if (!view) return false;
 
-    const categoryName = categories.find(
-        (category) => category.id === product.category
-    )?.name;
-
-    const searchableText = [
+    const text = [
         product.name,
         product.brand,
-        categoryName,
+        categories.find((item) => item.id === product.category)?.name,
         groupTitles[product.group],
         view.variantLabel,
         view.packLabel,
         ...Object.values(view.selectedOptions),
     ].filter(Boolean).join(" ").toLowerCase();
 
-    return words.every((word) => searchableText.includes(word));
+    return words.every((word) => text.includes(word));
 };
 
 const selectVariant = (product, candidates, sort) => {
@@ -156,39 +136,33 @@ const selectVariant = (product, candidates, sort) => {
         (variant) => getAvailableStock(variant) > 0
     );
 
-    const pool = available.length > 0 ? available : candidates;
+    const pool = available.length ? available : candidates;
     const direction = sort === "price-asc" ? 1 : -1;
 
-    return [...pool].sort((first, second) => (
-        direction * (first.price - second.price)
-    ))[0] ?? null;
+    return [...pool].sort(
+        (first, second) => direction * (first.price - second.price)
+    )[0] ?? null;
 };
 
 // ================== PRODUCTS PAGE ==================
 function Products() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const desktopFilters = useMediaQuery("(min-width: 992px)");
+    const desktopFilters = useMediaQuery("(min-width:992px)");
 
-    const query = (
-        searchParams.get("search")
-        || searchParams.get("q")
-        || ""
-    ).trim();
-
-    const searchWords = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const query = (searchParams.get("search") || searchParams.get("q") || "").trim();
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
     const categoryParam = searchParams.get("category") || "";
+
     const requestedCategories = categoryParam.split(",").map(
         (id) => id.trim()
     ).filter(Boolean);
 
-    const selectedCategories = [
-        ...new Set(
-            requestedCategories.flatMap((id) => (
-                categoryGroups[id] || (categoryIds.has(id) ? [id] : [])
-            ))
-        ),
-    ];
+    const selectedCategories = [...new Set(
+        requestedCategories.flatMap(
+            (id) => categoryGroups[id] || (categoryIds.has(id) ? [id] : [])
+        )
+    )];
 
     const hasUnknownCategory = requestedCategories.some(
         (id) => !categoryGroups[id] && !categoryIds.has(id)
@@ -200,52 +174,32 @@ function Products() {
     );
 
     const requestedSort = searchParams.get("sort");
-    const sort = sortOptions.some(
-        (option) => option.value === requestedSort
-    ) ? requestedSort : "recommended";
+    const sort = sortOptions.some((item) => item.value === requestedSort)
+        ? requestedSort : "recommended";
 
-    const minimumPrice = readPrice(
-        searchParams.get("minPrice"),
-        priceBounds[0]
-    );
-
-    const maximumPrice = readPrice(
-        searchParams.get("maxPrice"),
-        priceBounds[1]
-    );
-
+    const minPrice = readPrice(searchParams.get("minPrice"), priceBounds[0]);
+    const maxPrice = readPrice(searchParams.get("maxPrice"), priceBounds[1]);
     const requestedRating = Number(searchParams.get("rating"));
-    const minimumRating = [2, 3, 4].includes(requestedRating)
-        ? requestedRating
-        : 0;
+    const minRating = [2, 3, 4].includes(requestedRating) ? requestedRating : 0;
 
     const filters = {
         categories: selectedCategories,
-        priceRange: [
-            Math.min(minimumPrice, maximumPrice),
-            Math.max(minimumPrice, maximumPrice),
-        ],
-        minRating: minimumRating,
+        priceRange: [Math.min(minPrice, maxPrice), Math.max(minPrice, maxPrice)],
+        minRating,
         inStockOnly: searchParams.get("inStock") === "true",
     };
 
-    // Category counts follow search and collection, not selected filters.
+    // Search each product against its own matching variants.
     const scopedProducts = catalog.flatMap((product) => {
         if (collection && !collectionIds) return [];
+        if (collectionIds && !collectionIds.includes(product._id)) return [];
 
-        if (collectionIds && !collectionIds.includes(product._id)) {
-            return [];
-        }
-
-        const variants = hasProductVariants(product)
-            ? product.variants
-            : [null];
-
+        const variants = hasProductVariants(product) ? product.variants : [null];
         const candidates = variants.filter(
-            (variant) => matchesSearch(product, variant, searchWords)
+            (variant) => matchesSearch(product, variant, words)
         );
 
-        return candidates.length > 0 ? [{ product, candidates }] : [];
+        return candidates.length ? [{ product, candidates }] : [];
     });
 
     const filterCategories = categories.map((category) => ({
@@ -258,153 +212,106 @@ function Products() {
     const filteredProducts = scopedProducts.flatMap(({ product, candidates }) => {
         if (hasUnknownCategory) return [];
 
-        if (
-            selectedCategories.length > 0
-            && !selectedCategories.includes(product.category)
-        ) {
+        if (selectedCategories.length && !selectedCategories.includes(product.category)) {
             return [];
         }
 
-        if (
-            minimumRating > 0
-            && (
-                !Number.isFinite(product.rating)
-                || product.rating < minimumRating
-                || !(product.ratingCount > 0)
-            )
-        ) {
-            return [];
-        }
+        if (minRating > 0 && (
+            !Number.isFinite(product.rating) ||
+            product.rating < minRating ||
+            !(product.ratingCount > 0)
+        )) return [];
 
         const eligible = candidates.filter((variant) => {
             const view = getProductView(product, variant);
 
-            return view
-                && Number.isFinite(view.price)
-                && view.price >= filters.priceRange[0]
-                && view.price <= filters.priceRange[1]
-                && (!filters.inStockOnly || view.stock > 0);
+            return view &&
+                Number.isFinite(view.price) &&
+                view.price >= filters.priceRange[0] &&
+                view.price <= filters.priceRange[1] &&
+                (!filters.inStockOnly || view.stock > 0);
         });
 
-        if (eligible.length === 0) return [];
+        if (!eligible.length) return [];
 
-        const selectedVariant = selectVariant(product, eligible, sort);
-        const view = getProductView(product, selectedVariant);
+        const variant = selectVariant(product, eligible, sort);
+        const view = getProductView(product, variant);
 
         return view ? [{ product, view }] : [];
     });
 
-    const sortedProducts = [...filteredProducts].sort((first, second) => {
+    const sortedProducts = [...filteredProducts].sort((a, b) => {
         switch (sort) {
             case "price-asc":
-                return first.view.price - second.view.price;
-
+                return a.view.price - b.view.price;
             case "price-desc":
-                return second.view.price - first.view.price;
-
+                return b.view.price - a.view.price;
             case "top-rated":
-                return (
-                    (second.view.rating || 0) - (first.view.rating || 0)
-                    || (second.view.ratingCount || 0) - (first.view.ratingCount || 0)
-                );
-
+                return (b.view.rating || 0) - (a.view.rating || 0)
+                    || (b.view.ratingCount || 0) - (a.view.ratingCount || 0);
             case "best-selling":
-                return (
-                    (salesRanks.get(first.product._id) ?? Infinity)
-                    - (salesRanks.get(second.product._id) ?? Infinity)
-                );
-
+                return (salesRanks.get(a.product._id) ?? Infinity)
+                    - (salesRanks.get(b.product._id) ?? Infinity);
             case "newest":
-                return (
-                    (newestRanks.get(first.product._id) ?? Infinity)
-                    - (newestRanks.get(second.product._id) ?? Infinity)
-                );
-
+                return (newestRanks.get(a.product._id) ?? Infinity)
+                    - (newestRanks.get(b.product._id) ?? Infinity);
             default:
                 return 0;
         }
     });
 
-    const totalPages = Math.max(
-        1,
-        Math.ceil(sortedProducts.length / PAGE_SIZE)
-    );
-
+    const totalPages = Math.max(1, Math.ceil(sortedProducts.length / PAGE_SIZE));
     const requestedPage = Number(searchParams.get("page"));
-
-    const currentPage = Number.isInteger(requestedPage)
-        && requestedPage > 0
-        ? Math.min(requestedPage, totalPages)
-        : 1;
+    const currentPage = Number.isInteger(requestedPage) && requestedPage > 0
+        ? Math.min(requestedPage, totalPages) : 1;
 
     const startIndex = (currentPage - 1) * PAGE_SIZE;
-    const visibleProducts = sortedProducts.slice(
-        startIndex,
-        startIndex + PAGE_SIZE
-    );
+    const visibleProducts = sortedProducts.slice(startIndex, startIndex + PAGE_SIZE);
 
-    const activeFilterCount =
-        selectedCategories.length
-        + Number(
-            filters.priceRange[0] !== priceBounds[0]
-            || filters.priceRange[1] !== priceBounds[1]
-        )
-        + Number(minimumRating > 0)
+    const activeFilterCount = selectedCategories.length
+        + Number(filters.priceRange[0] !== priceBounds[0]
+            || filters.priceRange[1] !== priceBounds[1])
+        + Number(minRating > 0)
         + Number(filters.inStockOnly);
 
     let pageTitle = "All Products";
 
-    if (query) {
-        pageTitle = `Results for “${query}”`;
-    } else if (groupTitles[categoryParam]) {
-        pageTitle = groupTitles[categoryParam];
-    } else if (selectedCategories.length === 1) {
+    if (query) pageTitle = `Results for “${query}”`;
+    else if (groupTitles[categoryParam]) pageTitle = groupTitles[categoryParam];
+    else if (selectedCategories.length === 1) {
         pageTitle = categories.find(
             (category) => category.id === selectedCategories[0]
         )?.name || pageTitle;
-    } else if (collection === "featured") {
-        pageTitle = "Featured Products";
-    } else if (collection === "daily-essentials") {
-        pageTitle = "Daily Essentials";
-    } else if (sort === "best-selling") {
-        pageTitle = "Top Selling";
-    } else if (sort === "newest") {
-        pageTitle = "New Arrivals";
-    }
+    } else if (collection === "featured") pageTitle = "Featured Products";
+    else if (collection === "daily-essentials") pageTitle = "Daily Essentials";
+    else if (sort === "best-selling") pageTitle = "Top Selling";
+    else if (sort === "newest") pageTitle = "New Arrivals";
 
     const updateFilters = (changes) => {
         setSearchParams((previous) => {
             const next = new URLSearchParams(previous);
 
+            const update = (key, value) => {
+                if (value === null || value === "") next.delete(key);
+                else next.set(key, String(value));
+            };
+
             if (changes.categories !== undefined) {
-                if (changes.categories.length > 0) {
-                    next.set("category", changes.categories.join(","));
-                } else {
-                    next.delete("category");
-                }
+                update("category", changes.categories.join(","));
             }
 
             if (changes.priceRange !== undefined) {
                 const [min, max] = changes.priceRange;
-
-                if (min === priceBounds[0]) next.delete("minPrice");
-                else next.set("minPrice", String(min));
-
-                if (max === priceBounds[1]) next.delete("maxPrice");
-                else next.set("maxPrice", String(max));
+                update("minPrice", min === priceBounds[0] ? null : min);
+                update("maxPrice", max === priceBounds[1] ? null : max);
             }
 
             if (changes.minRating !== undefined) {
-                if (changes.minRating > 0) {
-                    next.set("rating", String(changes.minRating));
-                } else {
-                    next.delete("rating");
-                }
+                update("rating", changes.minRating || null);
             }
 
             if (changes.inStockOnly !== undefined) {
-                if (changes.inStockOnly) next.set("inStock", "true");
-                else next.delete("inStock");
+                update("inStock", changes.inStockOnly ? "true" : null);
             }
 
             next.delete("page");
@@ -416,20 +323,17 @@ function Products() {
         setSearchParams((previous) => {
             const next = new URLSearchParams(previous);
 
-            [
-                "category", "minPrice", "maxPrice",
-                "rating", "inStock", "page",
-            ].forEach((key) => next.delete(key));
+            ["category", "minPrice", "maxPrice", "rating", "inStock", "page"]
+                .forEach((key) => next.delete(key));
 
             return next;
         }, { replace: true });
     };
 
     const changeSort = (event) => {
-        const value = event.target.value;
-
         setSearchParams((previous) => {
             const next = new URLSearchParams(previous);
+            const value = event.target.value;
 
             if (value === "recommended") next.delete("sort");
             else next.set("sort", value);
@@ -467,23 +371,17 @@ function Products() {
             <div className="container-fluid website-shell">
                 <nav className="products-breadcrumb" aria-label="Breadcrumb">
                     <Link to="/">Home</Link>
-                    <i
-                        className="fa-solid fa-chevron-right"
-                        aria-hidden="true"
-                    />
+                    <i className="fa-solid fa-chevron-right" aria-hidden="true" />
                     <span aria-current="page">Products</span>
                 </nav>
 
                 <div className="products-page-header">
                     <div className="products-page-heading">
                         <h1>{pageTitle}</h1>
-
                         <p aria-live="polite" aria-atomic="true">
                             {sortedProducts.length === 0
                                 ? "No products found"
-                                : `Showing ${startIndex + 1}–${
-                                    startIndex + visibleProducts.length
-                                } of ${sortedProducts.length} products`}
+                                : `Showing ${startIndex + 1}–${startIndex + visibleProducts.length} of ${sortedProducts.length} products`}
                         </p>
                     </div>
 
@@ -496,14 +394,9 @@ function Products() {
                                 aria-haspopup="dialog"
                                 aria-expanded={drawerOpen}
                             >
-                                <i
-                                    className="fa-solid fa-sliders"
-                                    aria-hidden="true"
-                                />
+                                <i className="fa-solid fa-sliders" aria-hidden="true" />
                                 Filters
-                                {activeFilterCount > 0 && (
-                                    <span>{activeFilterCount}</span>
-                                )}
+                                {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
                             </button>
                         )}
 
@@ -514,33 +407,12 @@ function Products() {
                             value={sort}
                             onChange={changeSort}
                             className="products-sort"
-                            sx={{
-                                minWidth: 180,
-                                "& .MuiOutlinedInput-root": {
-                                    fontFamily: "inherit",
-                                    fontSize: "0.875rem",
-                                    borderRadius: "10px",
-                                    backgroundColor: "#ffffff",
-                                },
-                                "& .MuiInputLabel-root": {
-                                    fontFamily: "inherit",
-                                },
-                                "& .MuiOutlinedInput-root.Mui-focused fieldset": {
-                                    borderColor: "var(--color-accent)",
-                                },
-                                "& .MuiInputLabel-root.Mui-focused": {
-                                    color: "var(--color-primary)",
-                                },
-                            }}
                         >
                             {sortOptions.map((option) => (
                                 <MenuItem
                                     key={option.value}
                                     value={option.value}
-                                    sx={{
-                                        fontFamily: "inherit",
-                                        fontSize: "0.875rem",
-                                    }}
+                                    className="products-sort-option"
                                 >
                                     {option.label}
                                 </MenuItem>
@@ -551,10 +423,7 @@ function Products() {
 
                 <div className="products-layout">
                     {desktopFilters && (
-                        <aside
-                            className="products-sidebar"
-                            aria-label="Product filters"
-                        >
+                        <aside className="products-sidebar" aria-label="Product filters">
                             {filterContent}
                         </aside>
                     )}
@@ -576,43 +445,24 @@ function Products() {
                                 {totalPages > 1 && (
                                     <div className="products-pagination">
                                         <Pagination
+                                            className="products-pagination-control"
                                             count={totalPages}
                                             page={currentPage}
                                             onChange={changePage}
                                             shape="rounded"
                                             siblingCount={0}
-                                            sx={{
-                                                "& .MuiPaginationItem-root": {
-                                                    fontFamily: "inherit",
-                                                    color: "var(--color-primary)",
-                                                },
-                                                "& .MuiPaginationItem-root.Mui-selected": {
-                                                    backgroundColor:
-                                                        "var(--color-accent-soft)",
-                                                    border: "1px solid var(--color-accent)",
-                                                    "&:hover": {
-                                                        backgroundColor: "#ffe0c6",
-                                                    },
-                                                },
-                                            }}
                                         />
                                     </div>
                                 )}
                             </>
                         ) : (
                             <div className="products-empty">
-                                <i
-                                    className="fa-solid fa-magnifying-glass"
-                                    aria-hidden="true"
-                                />
+                                <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
                                 <h2>No products found</h2>
-                                <p>
-                                    Try another search or adjust your filters.
-                                </p>
+                                <p>Try another search or adjust your filters.</p>
 
                                 <div className="products-empty-actions">
-                                    {(activeFilterCount > 0
-                                        || hasUnknownCategory) && (
+                                    {(activeFilterCount > 0 || hasUnknownCategory) && (
                                         <button
                                             type="button"
                                             className="products-filter-button"
@@ -622,10 +472,7 @@ function Products() {
                                         </button>
                                     )}
 
-                                    <Link
-                                        to="/products"
-                                        className="home-categories-view-all"
-                                    >
+                                    <Link to="/products" className="home-categories-view-all">
                                         Browse All Products
                                     </Link>
                                 </div>
@@ -642,27 +489,20 @@ function Products() {
                     onClose={() => setDrawerOpen(false)}
                     slotProps={{
                         paper: {
+                            className: "products-drawer-paper",
                             role: "dialog",
                             "aria-modal": true,
                             "aria-label": "Product filters",
-                            sx: {
-                                width: "min(340px, 90vw)",
-                                padding: "16px",
-                            },
                         },
                     }}
                 >
                     <div className="products-drawer-header">
                         <span>Refine products</span>
-
                         <IconButton
                             aria-label="Close filters"
                             onClick={() => setDrawerOpen(false)}
                         >
-                            <i
-                                className="fa-solid fa-xmark"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-solid fa-xmark" aria-hidden="true" />
                         </IconButton>
                     </div>
 

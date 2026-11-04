@@ -1,3 +1,4 @@
+
 /* ===== BRAND AND DESIGN TOKENS ===== */
 
 :root {
@@ -13,7 +14,6 @@
     --color-background: #ffffff;
     --color-surface: #f6f7f9;
     --color-border: #e5e7eb;
-
 
     --color-success: #18794e;
     --color-warning: #925b00;
@@ -45,7 +45,7 @@
 
     --bs-body-font-family: var(--font-family);
     --bs-body-color: var(--color-text);
-    --bs-body-bg: var(--color-background);
+    --bs-body-bg: var(--color-surface);
     --bs-border-color: var(--color-border);
     --bs-primary: var(--color-primary);
     --bs-primary-rgb: 7, 27, 69;
@@ -76,7 +76,7 @@ body {
     font-size: var(--font-size-body);
     line-height: 1.6;
     color: var(--color-text);
-    background-color: var(--color-background);
+    background-color: var(--color-surface);
 }
 
 #root {

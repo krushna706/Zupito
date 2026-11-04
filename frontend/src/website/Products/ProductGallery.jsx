@@ -1,249 +1,176 @@
-import { useEffect, useRef, useState } from "react";
 
-// ================== GALLERY ==================
-function ProductGallery({
-    productId,
-    name = "Product",
-    image,
-    images = [],
-}) {
-    const galleryImages = [...new Set(
-        [image, ...images].filter(
-            (source) => typeof source === "string" && source.trim()
-        )
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
+// ================== PRODUCT GALLERY ==================
+function ProductGallery({ productId, name = "Product", image, images = [] }) {
+    const sources = [...new Set(
+        [image, ...images].filter((src) => typeof src === "string" && src.trim())
     )];
 
-    // Reset the gallery when the product or image list changes.
-    const galleryKey = JSON.stringify([productId, galleryImages]);
-
-    return (
-        <Gallery
-            key={galleryKey}
-            name={name}
-            images={galleryImages}
-        />
-    );
+    return <Gallery key={JSON.stringify([productId, sources])} name={name} images={sources} />;
 }
 
-// ================== GALLERY CONTENT ==================
 function Gallery({ name, images }) {
     const count = images.length;
-    const multipleImages = count > 1;
-
-    const [position, setPosition] = useState(multipleImages ? 1 : 0);
-    const [animate, setAnimate] = useState(true);
+    const multiple = count > 1;
+    const [position, setPosition] = useState(multiple ? 1 : 0);
+    const [instant, setInstant] = useState(false);
     const [hovered, setHovered] = useState(false);
     const [focused, setFocused] = useState(false);
     const [zoomed, setZoomed] = useState(false);
     const [reducedMotion, setReducedMotion] = useState(false);
-    const [zoomOrigin, setZoomOrigin] = useState("50% 50%");
 
+    const trackRef = useRef(null);
+    const viewportRef = useRef(null);
+    const thumbnailsRef = useRef([]);
     const movingRef = useRef(false);
     const touchRef = useRef(null);
     const lastInteractionRef = useRef(0);
-    const thumbnailRefs = useRef([]);
 
-    const activeIndex = multipleImages
-        ? (position - 1 + count) % count
-        : 0;
+    const activeIndex = multiple ? (position - 1 + count) % count : 0;
+    const slides = multiple ? [images[count - 1], ...images, images[0]] : images;
 
-    const slides = multipleImages
-        ? [images[count - 1], ...images, images[0]]
-        : images;
+    useLayoutEffect(() => {
+        trackRef.current?.style.setProperty("--gallery-offset", `${-position * 100}%`);
+    }, [position]);
 
     useEffect(() => {
-        const preference = window.matchMedia(
-            "(prefers-reduced-motion: reduce)"
-        );
+        const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const update = () => setReducedMotion(media.matches);
 
-        const updatePreference = () => {
-            setReducedMotion(preference.matches);
-        };
-
-        updatePreference();
-        preference.addEventListener("change", updatePreference);
-
-        return () => {
-            preference.removeEventListener("change", updatePreference);
-        };
+        update();
+        media.addEventListener("change", update);
+        return () => media.removeEventListener("change", update);
     }, []);
 
     useEffect(() => {
-        const thumbnail = thumbnailRefs.current[activeIndex];
-        const list = thumbnail?.parentElement;
+        const item = thumbnailsRef.current[activeIndex];
+        const list = item?.parentElement;
+        if (!item || !list) return;
 
-        if (!thumbnail || !list) return;
+        const top = item.offsetTop - list.offsetTop;
+        const left = item.offsetLeft - list.offsetLeft;
 
-        // Scroll only the thumbnail list, not the page.
-        const top = thumbnail.offsetTop - list.offsetTop;
-        const left = thumbnail.offsetLeft - list.offsetLeft;
-
-        if (top < list.scrollTop) {
-            list.scrollTop = top;
-        } else if (
-            top + thumbnail.offsetHeight
-            > list.scrollTop + list.clientHeight
-        ) {
-            list.scrollTop =
-                top + thumbnail.offsetHeight - list.clientHeight;
+        if (top < list.scrollTop) list.scrollTop = top;
+        else if (top + item.offsetHeight > list.scrollTop + list.clientHeight) {
+            list.scrollTop = top + item.offsetHeight - list.clientHeight;
         }
 
-        if (left < list.scrollLeft) {
-            list.scrollLeft = left;
-        } else if (
-            left + thumbnail.offsetWidth
-            > list.scrollLeft + list.clientWidth
-        ) {
-            list.scrollLeft =
-                left + thumbnail.offsetWidth - list.clientWidth;
+        if (left < list.scrollLeft) list.scrollLeft = left;
+        else if (left + item.offsetWidth > list.scrollLeft + list.clientWidth) {
+            list.scrollLeft = left + item.offsetWidth - list.clientWidth;
         }
     }, [activeIndex]);
 
-    const finishMovement = () => {
-        if (position === 0) {
-            setAnimate(false);
-            setPosition(count);
-        } else if (position === count + 1) {
-            setAnimate(false);
-            setPosition(1);
+    const finishSlide = () => {
+        if (position === 0 || position === count + 1) {
+            setInstant(true);
+            setPosition(position === 0 ? count : 1);
         } else {
             movingRef.current = false;
         }
     };
 
-    // Restore transitions after the invisible loop reset.
     useEffect(() => {
-        if (animate) return;
+        if (!instant) return;
 
         let secondFrame;
-        const firstFrame = window.requestAnimationFrame(() => {
-            secondFrame = window.requestAnimationFrame(() => {
-                setAnimate(true);
+        const firstFrame = requestAnimationFrame(() => {
+            secondFrame = requestAnimationFrame(() => {
+                setInstant(false);
                 movingRef.current = false;
             });
         });
 
         return () => {
-            window.cancelAnimationFrame(firstFrame);
-            window.cancelAnimationFrame(secondFrame);
+            cancelAnimationFrame(firstFrame);
+            cancelAnimationFrame(secondFrame);
         };
-    }, [animate]);
+    }, [instant]);
 
-    // Fallback also handles reduced motion and missing transition events.
     useEffect(() => {
-        if (!movingRef.current || !animate) return;
+        if (!movingRef.current || instant) return;
 
-        const timer = window.setTimeout(() => {
+        const timeout = setTimeout(() => {
             if (position === 0 || position === count + 1) {
-                setAnimate(false);
+                setInstant(true);
                 setPosition(position === 0 ? count : 1);
             } else {
                 movingRef.current = false;
             }
         }, reducedMotion ? 0 : 700);
 
-        return () => window.clearTimeout(timer);
-    }, [position, count, animate, reducedMotion]);
+        return () => clearTimeout(timeout);
+    }, [position, instant, count, reducedMotion]);
 
     useEffect(() => {
-        if (
-            !multipleImages
-            || hovered
-            || focused
-            || zoomed
-            || reducedMotion
-        ) {
-            return;
-        }
+        if (!multiple || hovered || focused || zoomed || reducedMotion) return;
 
-        const timer = window.setInterval(() => {
+        const interval = setInterval(() => {
             if (
-                document.hidden
-                || movingRef.current
-                || touchRef.current
-                || Date.now() - lastInteractionRef.current < 5000
-            ) {
-                return;
-            }
+                document.hidden || movingRef.current || touchRef.current ||
+                Date.now() - lastInteractionRef.current < 5000
+            ) return;
 
             movingRef.current = true;
-            setPosition((current) => current + 1);
+            setPosition((value) => value + 1);
         }, 4500);
 
-        return () => window.clearInterval(timer);
-    }, [
-        multipleImages,
-        hovered,
-        focused,
-        zoomed,
-        reducedMotion,
-    ]);
+        return () => clearInterval(interval);
+    }, [multiple, hovered, focused, zoomed, reducedMotion]);
 
     const moveSlide = (direction) => {
-        if (!multipleImages || movingRef.current) return;
+        if (!multiple || movingRef.current) return;
 
-        lastInteractionRef.current = Date.now();
         movingRef.current = true;
+        lastInteractionRef.current = Date.now();
         setZoomed(false);
-        setPosition((current) => current + direction);
+        setPosition((value) => value + direction);
     };
 
     const selectSlide = (index) => {
-        if (movingRef.current || index === activeIndex) return;
+        if (movingRef.current || activeIndex === index) return;
 
-        lastInteractionRef.current = Date.now();
         movingRef.current = true;
+        lastInteractionRef.current = Date.now();
         setZoomed(false);
         setPosition(index + 1);
     };
 
-    const handleTouchStart = (event) => {
-        if (zoomed || !multipleImages || event.touches.length !== 1) {
-            return;
-        }
+    const onTouchStart = (event) => {
+        if (zoomed || !multiple || event.touches.length !== 1) return;
 
         lastInteractionRef.current = Date.now();
-
         touchRef.current = {
             x: event.touches[0].clientX,
             y: event.touches[0].clientY,
         };
     };
 
-    const handleTouchEnd = (event) => {
+    const onTouchEnd = (event) => {
         const start = touchRef.current;
         touchRef.current = null;
-
         if (!start || !event.changedTouches.length) return;
 
-        const distanceX = event.changedTouches[0].clientX - start.x;
-        const distanceY = event.changedTouches[0].clientY - start.y;
+        const x = event.changedTouches[0].clientX - start.x;
+        const y = event.changedTouches[0].clientY - start.y;
 
-        if (
-            Math.abs(distanceX) > 45
-            && Math.abs(distanceX) > Math.abs(distanceY) * 1.25
-        ) {
-            moveSlide(distanceX < 0 ? 1 : -1);
+        if (Math.abs(x) > 45 && Math.abs(x) > Math.abs(y) * 1.25) {
+            moveSlide(x < 0 ? 1 : -1);
         }
     };
 
-    const handleZoomMovement = (event) => {
+    const moveZoom = (event) => {
         if (!zoomed || event.pointerType !== "mouse") return;
 
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const x = Math.max(
-            0,
-            Math.min(100, ((event.clientX - bounds.left) / bounds.width) * 100)
-        );
-        const y = Math.max(
-            0,
-            Math.min(100, ((event.clientY - bounds.top) / bounds.height) * 100)
-        );
+        const rect = event.currentTarget.getBoundingClientRect();
+        const x = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+        const y = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
 
-        setZoomOrigin(`${x}% ${y}%`);
+        event.currentTarget.style.setProperty("--gallery-zoom-origin", `${x}% ${y}%`);
     };
 
-    if (count === 0) {
+    if (!count) {
         return (
             <div className="product-gallery-empty">
                 <i className="fa-regular fa-image" aria-hidden="true" />
@@ -267,39 +194,22 @@ function Gallery({ name, images }) {
                 }
             }}
             onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                    setZoomed(false);
-                }
+                if (event.key === "Escape") setZoomed(false);
             }}
         >
-            {multipleImages && (
-                <div
-                    className="product-gallery-thumbnails"
-                    role="group"
-                    aria-label="Choose product image"
-                >
+            {multiple && (
+                <div className="product-gallery-thumbnails" role="group" aria-label="Choose product image">
                     {images.map((source, index) => (
                         <button
                             key={source}
-                            ref={(element) => {
-                                thumbnailRefs.current[index] = element;
-                            }}
+                            ref={(element) => { thumbnailsRef.current[index] = element; }}
                             type="button"
-                            className={`product-gallery-thumbnail ${
-                                index === activeIndex ? "is-active" : ""
-                            }`}
+                            className={`product-gallery-thumbnail ${index === activeIndex ? "is-active" : ""}`}
                             aria-label={`Show image ${index + 1} of ${count}`}
                             aria-pressed={index === activeIndex}
                             onClick={() => selectSlide(index)}
                         >
-                            <img
-                                src={source}
-                                alt=""
-                                width="80"
-                                height="80"
-                                loading="lazy"
-                                draggable={false}
-                            />
+                            <img src={source} alt="" width="80" height="80" loading="lazy" draggable={false} />
                         </button>
                     ))}
                 </div>
@@ -307,53 +217,38 @@ function Gallery({ name, images }) {
 
             <div className="product-gallery-main">
                 <div
-                    className={`product-gallery-viewport ${
-                        zoomed ? "is-zoomed" : ""
-                    }`}
+                    ref={viewportRef}
+                    className={`product-gallery-viewport ${zoomed ? "is-zoomed" : ""}`}
                     tabIndex={0}
                     role="group"
                     aria-label="Product image viewer"
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
-                    onTouchCancel={() => {
-                        touchRef.current = null;
-                    }}
-                    onPointerMove={handleZoomMovement}
+                    onTouchStart={onTouchStart}
+                    onTouchEnd={onTouchEnd}
+                    onTouchCancel={() => { touchRef.current = null; }}
+                    onPointerMove={moveZoom}
                     onKeyDown={(event) => {
                         if (event.target !== event.currentTarget) return;
 
-                        if (event.key === "ArrowLeft") {
+                        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
                             event.preventDefault();
-                            moveSlide(-1);
-                        }
-
-                        if (event.key === "ArrowRight") {
-                            event.preventDefault();
-                            moveSlide(1);
+                            moveSlide(event.key === "ArrowLeft" ? -1 : 1);
                         }
                     }}
                 >
                     <div
-                        className="product-gallery-track"
-                        style={{
-                            transform: `translate3d(-${position * 100}%, 0, 0)`,
-                            transition: animate && !reducedMotion
-                                ? "transform 550ms cubic-bezier(0.22, 1, 0.36, 1)"
-                                : "none",
-                        }}
+                        ref={trackRef}
+                        className={`product-gallery-track ${instant || reducedMotion ? "is-instant" : ""}`}
                         onTransitionEnd={(event) => {
                             if (
-                                event.target === event.currentTarget
-                                && event.propertyName === "transform"
-                            ) {
-                                finishMovement();
-                            }
+                                event.target === event.currentTarget &&
+                                event.propertyName === "transform"
+                            ) finishSlide();
                         }}
                     >
                         {slides.map((source, index) => (
                             <div
                                 key={`${index}-${source}`}
-                                className="product-gallery-slide"
+                                className={`product-gallery-slide ${index === position ? "is-current" : ""}`}
                                 aria-hidden={index !== position}
                             >
                                 <img
@@ -361,38 +256,30 @@ function Gallery({ name, images }) {
                                     alt={`${name} — image ${activeIndex + 1}`}
                                     draggable={false}
                                     decoding="async"
-                                    style={{
-                                        transform: zoomed && index === position
-                                            ? "scale(1.8)"
-                                            : "scale(1)",
-                                        transformOrigin: zoomOrigin,
-                                    }}
                                 />
                             </div>
                         ))}
                     </div>
                 </div>
 
-                    <button
-                        type="button"
-                        className="product-gallery-zoom"
-                        aria-label={zoomed ? "Zoom out" : "Zoom in"}
-                        aria-pressed={zoomed}
-                        onClick={() => {
-                            setZoomOrigin("50% 50%");
-                            setZoomed((current) => !current);
-                            lastInteractionRef.current = Date.now();
-                        }}
-                    >
-                        <i
-                            className={`fa-solid ${
-                                zoomed
-                                    ? "fa-magnifying-glass-minus"
-                                    : "fa-magnifying-glass-plus"
-                            }`}
-                            aria-hidden="true"
-                        />
-                    </button>
+                <button
+                    type="button"
+                    className="product-gallery-zoom"
+                    aria-label={zoomed ? "Zoom out" : "Zoom in"}
+                    aria-pressed={zoomed}
+                    onClick={() => {
+                        viewportRef.current?.style.setProperty("--gallery-zoom-origin", "50% 50%");
+                        setZoomed((current) => !current);
+                        lastInteractionRef.current = Date.now();
+                    }}
+                >
+                    <i
+                        className={`fa-solid ${
+                            zoomed ? "fa-magnifying-glass-minus" : "fa-magnifying-glass-plus"
+                        }`}
+                        aria-hidden="true"
+                    />
+                </button>
             </div>
         </section>
     );

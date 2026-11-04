@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
@@ -8,13 +9,12 @@ import WebsiteLayout from "./layouts/WebsiteLayout";
 import HomePage from "./website/Home/HomePage";
 import Products from "./website/Products/Products";
 import ProductDetails from "./website/Products/ProductDetails";
+import Cart from "./website/Cart/Cart";
 
 // Shared components
 import NotFound from "./components/NotFound";
 
 import "./css/website.css";
-
-
 
 // ================== SCROLL TO TOP ==================
 function ScrollToTop() {
@@ -42,10 +42,10 @@ function App() {
             <Routes>
                 {/* Public website */}
                 <Route element={<WebsiteLayout />}>
-                
                     <Route path="/" element={<HomePage />} />
                     <Route path="products" element={<Products />} />
                     <Route path="products/:productId" element={<ProductDetails />} />
+                    <Route path="cart" element={<Cart />} />
 
                     <Route path="*" element={<NotFound />} />
                 </Route>

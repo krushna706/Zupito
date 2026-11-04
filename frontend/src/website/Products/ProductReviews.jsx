@@ -1,28 +1,10 @@
 
 import { useEffect, useMemo, useState } from "react";
-import {
-    Box,
-    Button,
-    MenuItem,
-    Pagination,
-    Rating,
-    TextField,
-} from "@mui/material";
+import { Button, MenuItem, Pagination, Rating, TextField } from "@mui/material";
 
 const PAGE_SIZE = 3;
 
-const colors = {
-    primary: "var(--color-primary)",
-    accent: "var(--color-accent)",
-    muted: "var(--color-muted)",
-    text: "var(--color-text)",
-    border: "var(--color-border)",
-    background: "var(--website-page-bg, #ffffff)",
-    soft: "#fff8f2",
-    stars: "#c47b0b",
-};
-
-// Sample reviews for UI preview.
+// Sample feedback for product previews.
 const sampleComments = {
     "preview-smartphone": [
         "Storage options are clearly listed and the phone is great for everyday tasks.",
@@ -151,9 +133,7 @@ const formatDate = (value) => {
 
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) return "";
-
-    return date.toLocaleDateString("en-IN", {
+    return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("en-IN", {
         day: "numeric",
         month: "short",
         year: "numeric",
@@ -176,16 +156,15 @@ function ProductReviews({ product }) {
 
     const reviews = useMemo(() => {
         if (Array.isArray(product?.reviews)) {
-            return product.reviews.filter((review) => {
-                const rating = Number(review.rating);
-                return Number.isInteger(rating) && rating >= 1 && rating <= 5;
-            });
+            return product.reviews.filter((review) => (
+                Number.isInteger(Number(review.rating)) &&
+                Number(review.rating) >= 1 &&
+                Number(review.rating) <= 5
+            ));
         }
 
-        const comments = sampleComments[product?._id] || [];
-
-        return comments.map((comment, index) => ({
-            id: `${product._id}-review-${index + 1}`,
+        return (sampleComments[product?._id] || []).map((comment, index) => ({
+            id: `${product._id}-${index}`,
             author: sampleReviewers[index].name,
             rating: sampleReviewers[index].rating,
             title: sampleReviewers[index].title,
@@ -194,60 +173,39 @@ function ProductReviews({ product }) {
         }));
     }, [product]);
 
-    const ratingCounts = useMemo(() => (
-        [5, 4, 3, 2, 1].map((stars) => ({
-            stars,
-            count: reviews.filter(
-                (review) => Number(review.rating) === stars
-            ).length,
-        }))
-    ), [reviews]);
-
     const filteredReviews = useMemo(() => {
         const result = reviews.filter((review) => (
             ratingFilter === 0 || Number(review.rating) === ratingFilter
         ));
 
         return [...result].sort((a, b) => {
-            if (sort === "highest") {
-                return Number(b.rating) - Number(a.rating);
-            }
+            if (sort === "highest") return Number(b.rating) - Number(a.rating);
+            if (sort === "lowest") return Number(a.rating) - Number(b.rating);
 
-            if (sort === "lowest") {
-                return Number(a.rating) - Number(b.rating);
-            }
-
-            return (
-                (new Date(b.createdAt).getTime() || 0)
-                - (new Date(a.createdAt).getTime() || 0)
-            );
+            return (new Date(b.createdAt).getTime() || 0) -
+                (new Date(a.createdAt).getTime() || 0);
         });
     }, [reviews, ratingFilter, sort]);
-
-    const totalPages = Math.ceil(filteredReviews.length / PAGE_SIZE);
-    const currentPage = Math.min(page, Math.max(1, totalPages));
-
-    const visibleReviews = filteredReviews.slice(
-        (currentPage - 1) * PAGE_SIZE,
-        currentPage * PAGE_SIZE
-    );
 
     const catalogRating = Number(product?.rating);
     const catalogCount = Number(product?.ratingCount);
 
-    const averageRating = Number.isFinite(catalogRating)
-        && catalogRating >= 0 && catalogRating <= 5
-        && catalogCount > 0
+    const totalRatings = Number.isInteger(catalogCount) && catalogCount > 0
+        ? catalogCount : reviews.length;
+
+    const averageRating = Number.isFinite(catalogRating) &&
+        catalogRating >= 0 && catalogRating <= 5 && catalogCount > 0
         ? catalogRating
         : reviews.length
-            ? reviews.reduce(
-                (total, review) => total + Number(review.rating), 0
-            ) / reviews.length
+            ? reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length
             : 0;
 
-    const totalRatings = Number.isInteger(catalogCount) && catalogCount > 0
-        ? catalogCount
-        : reviews.length;
+    const totalPages = Math.ceil(filteredReviews.length / PAGE_SIZE);
+    const currentPage = Math.min(page, Math.max(1, totalPages));
+    const visibleReviews = filteredReviews.slice(
+        (currentPage - 1) * PAGE_SIZE,
+        currentPage * PAGE_SIZE
+    );
 
     const changeRatingFilter = (stars) => {
         setRatingFilter((current) => current === stars ? 0 : stars);
@@ -255,607 +213,179 @@ function ProductReviews({ product }) {
     };
 
     return (
-        <Box
-            component="section"
-            aria-labelledby="product-reviews-title"
-            sx={{
-                mt: { xs: 3, md: 4 },
-                px: { xs: 2, sm: 3 },
-                py: { xs: 2.5, sm: 3 },
-                backgroundColor: colors.background,
-                border: `1px solid ${colors.border}`,
-                borderRadius: "14px",
-            }}
-        >
-            {/* Section Heading */}
-            <Box
-                sx={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    justifyContent: "space-between",
-                    flexWrap: "wrap",
-                    gap: 2,
-                    mb: 3,
-                }}
-            >
-                <Box>
-                    <Box
-                        component="h2"
-                        id="product-reviews-title"
-                        sx={{
-                            m: 0,
-                            pl: 1.5,
-                            borderLeft: `4px solid ${colors.accent}`,
-                            color: colors.primary,
-                            fontSize: { xs: "1.125rem", sm: "1.375rem" },
-                            fontWeight: 700,
-                            lineHeight: 1.4,
-                        }}
-                    >
-                        Ratings & Reviews
-                    </Box>
+        <section className="product-reviews" aria-labelledby="product-reviews-title">
+            <div className="product-reviews-header">
+                <div>
+                    <h2 id="product-reviews-title">Ratings & Reviews</h2>
+                    <p>Explore customer feedback and product ratings</p>
+                </div>
 
-                    <Box
-                        component="p"
-                        sx={{
-                            m: "8px 0 0",
-                            fontSize: "0.875rem",
-                            lineHeight: 1.6,
-                            color: colors.muted,
-                        }}
-                    >
-                        Explore customer feedback and product ratings
-                    </Box>
-                </Box>
-
-                <Box sx={{ textAlign: { xs: "left", sm: "right" } }}>
+                <div className="product-reviews-write">
                     <Button
                         variant="outlined"
                         disabled
-                        startIcon={
-                            <i
-                                className="fa-regular fa-pen-to-square"
-                                aria-hidden="true"
-                                style={{ fontSize: "0.875rem" }}
-                            />
-                        }
-                        sx={{
-                            px: 2,
-                            py: 1,
-                            fontFamily: "inherit",
-                            fontSize: "0.875rem",
-                            fontWeight: 600,
-                            textTransform: "none",
-                            borderRadius: "9px",
-                        }}
+                        startIcon={<i className="fa-regular fa-pen-to-square" aria-hidden="true" />}
                     >
                         Write a Review
                     </Button>
-
-                    <Box
-                        sx={{
-                            mt: 0.75,
-                            fontSize: "0.75rem",
-                            color: colors.muted,
-                        }}
-                    >
-                        Available after a delivered purchase
-                    </Box>
-                </Box>
-            </Box>
+                    <small>Available after a delivered purchase</small>
+                </div>
+            </div>
 
             {/* Rating Summary */}
-            <Box
-                sx={{
-                    display: "grid",
-                    gridTemplateColumns: {
-                        xs: "1fr",
-                        md: "220px minmax(0, 1fr)",
-                    },
-                    alignItems: "center",
-                    gap: { xs: 2.5, md: 4 },
-                    p: { xs: 2, sm: 3 },
-                    mb: 3.5,
-                    backgroundColor: colors.soft,
-                    border: "1px solid #f2e5da",
-                    borderRadius: "12px",
-                }}
-            >
-                {/* Overall Rating */}
-                <Box
-                    sx={{
-                        textAlign: { xs: "center", md: "left" },
-                        borderRight: {
-                            xs: "none",
-                            md: "1px solid #e9dcd2",
-                        },
-                        pr: { md: 3 },
-                    }}
-                >
-                    <Box
-                        sx={{
-                            display: "flex",
-                            alignItems: "baseline",
-                            justifyContent: {
-                                xs: "center",
-                                md: "flex-start",
-                            },
-                            gap: 1,
-                        }}
-                    >
-                        <Box
-                            component="strong"
-                            sx={{
-                                color: colors.primary,
-                                fontSize: { xs: "2.25rem", md: "2.75rem" },
-                                fontWeight: 750,
-                                lineHeight: 1.2,
-                            }}
-                        >
-                            {totalRatings ? averageRating.toFixed(1) : "—"}
-                        </Box>
-
-                        <Box
-                            component="span"
-                            sx={{
-                                fontSize: "0.875rem",
-                                color: colors.muted,
-                            }}
-                        >
-                            / 5
-                        </Box>
-                    </Box>
+            <div className="product-reviews-summary">
+                <div className="product-reviews-overall">
+                    <div className="product-reviews-score">
+                        <strong>{totalRatings ? averageRating.toFixed(1) : "—"}</strong>
+                        <span>/ 5</span>
+                    </div>
 
                     <Rating
+                        className="product-reviews-stars"
                         value={totalRatings ? averageRating : 0}
                         precision={0.1}
                         readOnly
-                        sx={{
-                            mt: 0.5,
-                            color: colors.stars,
-                            fontSize: "1.4rem",
-                        }}
                     />
 
-                    <Box
-                        sx={{
-                            mt: 0.75,
-                            fontSize: "0.875rem",
-                            color: colors.muted,
-                        }}
-                    >
+                    <p>
                         {totalRatings.toLocaleString("en-IN")}{" "}
                         {totalRatings === 1 ? "Rating" : "Ratings"}
-                    </Box>
-                </Box>
+                    </p>
+                </div>
 
-                {/* Rating Distribution */}
-                <Box sx={{ width: "100%", maxWidth: 680 }}>
-                    <Box
-                        component="h3"
-                        sx={{
-                            m: "0 0 15px",
-                            fontSize: "0.9375rem",
-                            fontWeight: 700,
-                            color: colors.primary,
-                        }}
-                    >
-                        {isPreview
-                            ? "Sample Review Distribution"
-                            : "Rating Distribution"}
-                    </Box>
+                <div className="product-reviews-distribution">
+                    <h3>{isPreview ? "Sample Review Distribution" : "Rating Distribution"}</h3>
 
-                    <Box sx={{ display: "grid", gap: 1.25 }}>
-                        {ratingCounts.map(({ stars, count }) => {
-                            const percentage = reviews.length
-                                ? (count / reviews.length) * 100
-                                : 0;
+                    {[5, 4, 3, 2, 1].map((stars) => {
+                        const count = reviews.filter(
+                            (review) => Number(review.rating) === stars
+                        ).length;
 
-                            return (
-                                <Box
-                                    component="button"
-                                    key={stars}
-                                    type="button"
-                                    onClick={() => changeRatingFilter(stars)}
-                                    aria-label={`Show ${stars}-star reviews`}
-                                    aria-pressed={ratingFilter === stars}
-                                    sx={{
-                                        display: "grid",
-                                        gridTemplateColumns: "44px minmax(0, 1fr) 28px",
-                                        alignItems: "center",
-                                        gap: { xs: 1.5, sm: 2 },
-                                        width: "100%",
-                                        p: "3px 6px",
-                                        border: "1px solid",
-                                        borderColor: ratingFilter === stars
-                                            ? colors.accent
-                                            : "transparent",
-                                        borderRadius: "7px",
-                                        backgroundColor: ratingFilter === stars
-                                            ? "#ffead9"
-                                            : "transparent",
-                                        fontFamily: "inherit",
-                                        cursor: "pointer",
-                                        transition: "background-color 150ms ease",
-                                        "&:hover": {
-                                            backgroundColor: "#ffead9",
-                                        },
-                                    }}
-                                >
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 0.5,
-                                            color: colors.primary,
-                                            fontSize: "0.875rem",
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        {stars}
-                                        <i
-                                            className="fa-solid fa-star"
-                                            aria-hidden="true"
-                                            style={{
-                                                fontSize: "0.6875rem",
-                                                color: colors.stars,
-                                            }}
-                                        />
-                                    </Box>
+                        return (
+                            <button
+                                key={stars}
+                                type="button"
+                                className={`product-reviews-rating-filter ${ratingFilter === stars ? "is-selected" : ""}`}
+                                aria-label={`Show ${stars}-star reviews`}
+                                aria-pressed={ratingFilter === stars}
+                                onClick={() => changeRatingFilter(stars)}
+                            >
+                                <span>
+                                    {stars}
+                                    <i className="fa-solid fa-star" aria-hidden="true" />
+                                </span>
 
-                                    <Box
-                                        sx={{
-                                            width: "100%",
-                                            height: 9,
-                                            overflow: "hidden",
-                                            borderRadius: "20px",
-                                            backgroundColor: "#e8e8eb",
-                                        }}
-                                    >
-                                        <Box
-                                            sx={{
-                                                width: `${percentage}%`,
-                                                height: "100%",
-                                                backgroundColor: colors.accent,
-                                                borderRadius: "20px",
-                                            }}
-                                        />
-                                    </Box>
+                                <progress
+                                    value={count}
+                                    max={Math.max(1, reviews.length)}
+                                    aria-label={`${stars}-star review distribution`}
+                                />
 
-                                    <Box
-                                        component="span"
-                                        sx={{
-                                            textAlign: "right",
-                                            fontSize: "0.8125rem",
-                                            fontWeight: 500,
-                                            color: colors.muted,
-                                        }}
-                                    >
-                                        {count}
-                                    </Box>
-                                </Box>
-                            );
-                        })}
-                    </Box>
-                </Box>
-            </Box>
+                                <span>{count}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
 
-            {/* Reviews Toolbar */}
-            <Box
-                sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    flexWrap: "wrap",
-                    gap: 2,
-                    pb: 2,
-                    borderBottom: `1px solid ${colors.border}`,
-                }}
-            >
-                <Box>
-                    <Box
-                        component="h3"
-                        sx={{
-                            m: 0,
-                            fontSize: "1.125rem",
-                            fontWeight: 700,
-                            color: colors.primary,
-                        }}
-                    >
+            {/* Review Toolbar */}
+            <div className="product-reviews-toolbar">
+                <div>
+                    <h3>
                         Customer Feedback
+                        <span> ({filteredReviews.length})</span>
+                    </h3>
 
-                        <Box
-                            component="span"
-                            sx={{
-                                ml: 1,
-                                fontSize: "0.875rem",
-                                color: colors.muted,
-                                fontWeight: 500,
-                            }}
-                        >
-                            ({filteredReviews.length})
-                        </Box>
-                    </Box>
-
-                    {isPreview && (
-                        <Box
-                            component="p"
-                            sx={{
-                                m: "5px 0 0",
-                                fontSize: "0.75rem",
-                                color: colors.muted,
-                            }}
-                        >
-                            Sample feedback for product preview
-                        </Box>
-                    )}
+                    {isPreview && <p>Sample feedback for product preview</p>}
 
                     {ratingFilter > 0 && (
-                        <Button
-                            size="small"
+                        <button
+                            type="button"
+                            className="product-reviews-clear"
                             onClick={() => changeRatingFilter(ratingFilter)}
-                            sx={{
-                                mt: 0.75,
-                                p: 0,
-                                minWidth: 0,
-                                color: colors.accent,
-                                fontFamily: "inherit",
-                                fontSize: "0.8125rem",
-                                fontWeight: 600,
-                                textTransform: "none",
-                            }}
                         >
                             Clear {ratingFilter}-Star Filter
-                        </Button>
+                        </button>
                     )}
-                </Box>
+                </div>
 
                 <TextField
                     select
                     size="small"
                     label="Sort by"
+                    className="product-reviews-sort"
                     value={sort}
                     onChange={(event) => {
                         setSort(event.target.value);
                         setPage(1);
-                    }}
-                    sx={{
-                        width: { xs: "100%", sm: 185 },
-                        "& .MuiOutlinedInput-root": {
-                            fontFamily: "inherit",
-                            fontSize: "0.875rem",
-                            borderRadius: "9px",
-                            backgroundColor: "#ffffff",
-                        },
-                        "& .MuiInputLabel-root": {
-                            fontFamily: "inherit",
-                            fontSize: "0.875rem",
-                        },
-                        "& .MuiOutlinedInput-root.Mui-focused fieldset": {
-                            borderColor: colors.accent,
-                        },
-                        "& .MuiInputLabel-root.Mui-focused": {
-                            color: colors.primary,
-                        },
                     }}
                 >
                     <MenuItem value="recent">Most Recent</MenuItem>
                     <MenuItem value="highest">Highest Rating</MenuItem>
                     <MenuItem value="lowest">Lowest Rating</MenuItem>
                 </TextField>
-            </Box>
+            </div>
 
             {/* Review List */}
             {visibleReviews.length > 0 ? (
-                <Box
-                    component="ul"
-                    sx={{
-                        m: 0,
-                        p: 0,
-                        listStyle: "none",
-                    }}
-                >
+                <ul className="product-reviews-list">
                     {visibleReviews.map((review, index) => {
                         const author = review.author || "Customer";
-
-                        const initials = author
-                            .split(" ")
-                            .filter(Boolean)
-                            .slice(0, 2)
-                            .map((name) => name[0].toUpperCase())
-                            .join("");
+                        const initials = author.split(" ").filter(Boolean)
+                            .slice(0, 2).map((name) => name[0].toUpperCase()).join("");
 
                         return (
-                            <Box
-                                component="li"
-                                key={
-                                    review.id ??
-                                    review._id ??
-                                    `${author}-${index}`
-                                }
-                                sx={{
-                                    display: "flex",
-                                    alignItems: "flex-start",
-                                    gap: { xs: 1.5, sm: 2 },
-                                    py: { xs: 2.5, sm: 3 },
-                                    borderBottom: `1px solid ${colors.border}`,
-                                }}
-                            >
-                                {/* Reviewer Avatar */}
-                                <Box
-                                    aria-hidden="true"
-                                    sx={{
-                                        display: "flex",
-                                        flexShrink: 0,
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        width: 44,
-                                        height: 44,
-                                        borderRadius: "50%",
-                                        backgroundColor: "#fff0e3",
-                                        color: colors.primary,
-                                        fontSize: "0.875rem",
-                                        fontWeight: 700,
-                                    }}
-                                >
+                            <li key={review.id ?? review._id ?? `${author}-${index}`}>
+                                <div className="product-reviews-avatar" aria-hidden="true">
                                     {initials}
-                                </Box>
+                                </div>
 
-                                {/* Review Details */}
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            alignItems: "flex-start",
-                                            justifyContent: "space-between",
-                                            flexWrap: "wrap",
-                                            gap: 1,
-                                        }}
-                                    >
-                                        <Box
-                                            component="strong"
-                                            sx={{
-                                                fontSize: "0.9375rem",
-                                                fontWeight: 700,
-                                                color: colors.primary,
-                                            }}
-                                        >
-                                            {author}
-                                        </Box>
-
-                                        <Box
-                                            component="time"
-                                            dateTime={review.createdAt || undefined}
-                                            sx={{
-                                                fontSize: "0.8125rem",
-                                                color: colors.muted,
-                                            }}
-                                        >
+                                <div className="product-reviews-content">
+                                    <div className="product-reviews-meta">
+                                        <strong>{author}</strong>
+                                        <time dateTime={review.createdAt || undefined}>
                                             {formatDate(review.createdAt)}
-                                        </Box>
-                                    </Box>
+                                        </time>
+                                    </div>
 
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 1,
-                                            mt: 0.75,
-                                        }}
-                                    >
-                                        <Rating
-                                            value={Number(review.rating)}
-                                            readOnly
-                                            size="small"
-                                            sx={{
-                                                fontSize: "1rem",
-                                                color: colors.stars,
-                                            }}
-                                        />
-                                    </Box>
+                                    <Rating
+                                        className="product-reviews-stars"
+                                        value={Number(review.rating)}
+                                        readOnly
+                                        size="small"
+                                    />
 
-                                    {review.title && (
-                                        <Box
-                                            component="h4"
-                                            sx={{
-                                                mt: 1,
-                                                mb: 0.5,
-                                                fontSize: "0.9375rem",
-                                                fontWeight: 700,
-                                                color: colors.text,
-                                            }}
-                                        >
-                                            {review.title}
-                                        </Box>
-                                    )}
-
-                                    <Box
-                                        component="p"
-                                        sx={{
-                                            m: 0,
-                                            maxWidth: 950,
-                                            fontSize: "0.875rem",
-                                            lineHeight: 1.75,
-                                            color: colors.muted,
-                                        }}
-                                    >
-                                        {review.comment}
-                                    </Box>
-                                </Box>
-                            </Box>
+                                    {review.title && <h4>{review.title}</h4>}
+                                    <p>{review.comment}</p>
+                                </div>
+                            </li>
                         );
                     })}
-                </Box>
+                </ul>
             ) : (
-                <Box
-                    sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        minHeight: 180,
-                        py: 4,
-                        textAlign: "center",
-                    }}
-                >
-                    <i
-                        className="fa-regular fa-comment-dots"
-                        aria-hidden="true"
-                        style={{
-                            fontSize: "1.75rem",
-                            color: colors.muted,
-                        }}
-                    />
-
-                    <Box
-                        component="p"
-                        sx={{
-                            mt: 2,
-                            mb: 0,
-                            fontSize: "0.9375rem",
-                            color: colors.muted,
-                        }}
-                    >
+                <div className="product-reviews-empty">
+                    <i className="fa-regular fa-comment-dots" aria-hidden="true" />
+                    <p>
                         {ratingFilter
                             ? `No ${ratingFilter}-star reviews found.`
                             : "No customer reviews yet."}
-                    </Box>
-                </Box>
+                    </p>
+                </div>
             )}
 
-            {/* Review Pagination */}
             {totalPages > 1 && (
-                <Box
-                    sx={{
-                        display: "flex",
-                        justifyContent: "center",
-                        pt: 3,
-                    }}
-                >
+                <div className="product-reviews-pagination">
                     <Pagination
+                        className="product-reviews-pagination-control"
                         count={totalPages}
                         page={currentPage}
                         onChange={(_, nextPage) => setPage(nextPage)}
                         shape="rounded"
                         siblingCount={1}
-                        sx={{
-                            "& .MuiPaginationItem-root": {
-                                fontFamily: "inherit",
-                                fontSize: "0.875rem",
-                                color: colors.primary,
-                            },
-                            "& .MuiPaginationItem-root.Mui-selected": {
-                                backgroundColor: "#fff0e3",
-                                border: `1px solid ${colors.accent}`,
-                                "&:hover": {
-                                    backgroundColor: "#ffe4cf",
-                                },
-                            },
-                        }}
                     />
-                </Box>
+                </div>
             )}
-        </Box>
+        </section>
     );
 }
 

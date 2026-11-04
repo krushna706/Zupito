@@ -1,16 +1,23 @@
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
+import {
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+} from "@mui/material";
 import { toast } from "react-toastify";
 
 import { useCart } from "../../context/CartContext";
 import { getProductPath } from "../../utils/productVariants";
 import AddressForm, { validateAddress } from "../../components/AddressForm";
 import AddressSelector from "../../components/AddressSelector";
-import CheckoutSummary from "./CheckoutSummary";
+import CheckoutSummary, { calculateCheckoutPricing } from "./CheckoutSummary";
 
-const STORAGE_KEY = "zupito_delivery_addresses";
+const ADDRESS_STORAGE_KEY = "zupito_delivery_addresses";
+const COUPON_STORAGE_KEY = "zupito_checkout_coupon";
 
 const initialAddress = {
     name: "",
@@ -47,7 +54,7 @@ function loadAddressBook() {
     };
 
     try {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
+        const raw = window.localStorage.getItem(ADDRESS_STORAGE_KEY);
 
         if (!raw) return fallback;
 
@@ -69,6 +76,14 @@ function loadAddressBook() {
         };
     } catch {
         return fallback;
+    }
+}
+
+function loadCoupon() {
+    try {
+        return window.sessionStorage.getItem(COUPON_STORAGE_KEY) || "";
+    } catch {
+        return "";
     }
 }
 
@@ -144,6 +159,7 @@ function Checkout() {
     const [address, setAddress] = useState(initialAddress);
     const [submitted, setSubmitted] = useState(false);
     const [addressBook, setAddressBook] = useState(loadAddressBook);
+    const [couponCode, setCouponCode] = useState(loadCoupon);
 
     const [addressDialogOpen, setAddressDialogOpen] = useState(false);
     const [addressDialogMode, setAddressDialogMode] = useState("list");
@@ -162,17 +178,29 @@ function Checkout() {
     const deliveryAddress = selectedAddress || address;
     const errors = validateAddress(deliveryAddress);
 
-    // Persist addresses for frontend testing.
+    // ================== LOCAL STORAGE ==================
     useEffect(() => {
         try {
             window.localStorage.setItem(
-                STORAGE_KEY,
+                ADDRESS_STORAGE_KEY,
                 JSON.stringify(addressBook)
             );
         } catch {
-            // Checkout remains usable if storage is unavailable.
+            // Address form remains usable without browser storage.
         }
     }, [addressBook]);
+
+    useEffect(() => {
+        try {
+            if (couponCode) {
+                window.sessionStorage.setItem(COUPON_STORAGE_KEY, couponCode);
+            } else {
+                window.sessionStorage.removeItem(COUPON_STORAGE_KEY);
+            }
+        } catch {
+            // Coupon selection remains usable in the current page.
+        }
+    }, [couponCode]);
 
     // ================== CART ITEMS ==================
     const cartItems = items.map(({ product, quantity }) => {
@@ -204,6 +232,9 @@ function Checkout() {
             quantity > 0 &&
             quantity <= stock
     );
+
+    // Shared pricing for Checkout and Payment Status.
+    const pricing = calculateCheckoutPricing(cartItems, couponCode);
 
     // ================== ADDRESS ACTIONS ==================
     const openAddressDialog = (mode = "list", id = null) => {
@@ -264,9 +295,11 @@ function Checkout() {
             (item) => String(item.id) !== String(id)
         );
 
+        const wasSelected = String(selectedAddressId) === String(id);
+
         setAddressBook((current) => ({
             addresses: remaining,
-            selectedId: String(current.selectedId) === String(id)
+            selectedId: wasSelected
                 ? remaining[0]?.id ?? null
                 : current.selectedId,
         }));
@@ -274,20 +307,64 @@ function Checkout() {
         if (remaining.length === 0) {
             setAddress({ ...initialAddress });
             setSubmitted(false);
+        }
+
+        if (wasSelected) {
             setStep("checkout");
         }
 
         toast.success("Address deleted successfully.");
     };
 
+    // ================== ORDER PREVIEW ==================
+    const createOrderPreview = () => ({
+        orderId: `DEMO-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        paymentMethod: "Online Payment",
+        paymentStatus: "Simulated",
+
+        address: { ...deliveryAddress },
+
+        items: cartItems.map(({ product, quantity, price, mrp }) => ({
+            quantity,
+            price,
+            mrp,
+            product: {
+                _id: product._id,
+                productId: product.productId,
+                name: product.name,
+                image: product.image,
+                variantId: product.variantId,
+                variantLabel: product.variantLabel,
+                packLabel: product.packLabel,
+            },
+        })),
+
+        summary: { ...pricing },
+        couponCode: pricing.appliedCoupon,
+    });
+
     // ================== PAYMENT ACTIONS ==================
     const handlePaymentResult = (status) => {
+        if (!canCheckout || !selectedAddress) {
+            setPaymentDialogOpen(false);
+            setStep("checkout");
+            toast.error("Please review your cart and delivery address.");
+            return;
+        }
+
+        const successful = status === "success";
+        const order = successful ? createOrderPreview() : null;
+
         setPaymentDialogOpen(false);
 
         navigate("/payment-status", {
             state: {
                 status,
                 simulated: true,
+                amount: pricing.total,
+                orderId: order?.orderId,
+                order,
             },
         });
     };
@@ -304,6 +381,12 @@ function Checkout() {
         if (step === "payment") {
             if (!selectedAddress) {
                 toast.error("Please select a delivery address.");
+                setStep("checkout");
+                return;
+            }
+
+            if (Object.values(validateAddress(selectedAddress)).some(Boolean)) {
+                toast.error("Please update your delivery address.");
                 setStep("checkout");
                 return;
             }
@@ -326,7 +409,7 @@ function Checkout() {
             return;
         }
 
-        // Save the first address automatically.
+        // Automatically save first-order delivery address.
         if (!selectedAddress) {
             handleSaveAddress(address);
         }
@@ -381,7 +464,6 @@ function Checkout() {
                 <div className="cart-page-header">
                     <div>
                         <h1>{step === "payment" ? "Payment" : "Checkout"}</h1>
-
                         <p>
                             {step === "payment"
                                 ? "Review your delivery details and complete your payment."
@@ -494,6 +576,7 @@ function Checkout() {
                                                         product.variantId
                                                     )}
                                                     className="checkout-item-image"
+                                                    aria-label={`View ${product.name}`}
                                                 >
                                                     {product.image ? (
                                                         <img
@@ -605,7 +688,7 @@ function Checkout() {
                             </>
                         ) : (
                             <>
-                                {/* Selected Address */}
+                                {/* Confirm Delivery Address */}
                                 <section className="checkout-card">
                                     <div className="checkout-card-header">
                                         <span className="checkout-section-icon">
@@ -637,7 +720,7 @@ function Checkout() {
                                     </div>
                                 </section>
 
-                                {/* Payment Review */}
+                                {/* Complete Payment */}
                                 <section className="checkout-card">
                                     <div className="checkout-card-header">
                                         <span className="checkout-section-icon">
@@ -678,7 +761,11 @@ function Checkout() {
 
                     {/* Order Summary */}
                     <div className="checkout-side">
-                        <CheckoutSummary cartItems={cartItems} />
+                        <CheckoutSummary
+                            cartItems={cartItems}
+                            couponCode={couponCode}
+                            onCouponChange={setCouponCode}
+                        />
 
                         {!canCheckout && (
                             <p className="checkout-error" role="alert">
@@ -740,9 +827,24 @@ function Checkout() {
 
                 <DialogContent>
                     <p className="text-muted small mb-3">
-                        Frontend payment flow testing ke liye result select karo.
-                        Actual Razorpay transaction nahi hogi.
+                        Frontend payment simulation. No actual transaction will occur.
                     </p>
+
+                    <div className="bg-light border rounded-3 p-3 mb-3">
+                        <div className="d-flex justify-content-between gap-3">
+                            <span className="text-muted small">Payable Amount</span>
+                            <strong>{formatPrice(pricing.total)}</strong>
+                        </div>
+
+                        {pricing.appliedCoupon && (
+                            <div className="d-flex justify-content-between gap-3 mt-2">
+                                <span className="text-muted small">Applied Coupon</span>
+                                <strong className="text-success small">
+                                    {pricing.appliedCoupon}
+                                </strong>
+                            </div>
+                        )}
+                    </div>
 
                     <div className="d-grid gap-2">
                         <Button

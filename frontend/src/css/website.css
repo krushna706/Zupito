@@ -4544,7 +4544,7 @@
     .payment-status-content {
         padding: 30px 18px 26px;
     }
-    
+
     .payment-status-icon {
         width: 76px;
         height: 76px;
@@ -4601,3 +4601,303 @@
         animation: none !important;
     }
 }
+
+
+
+/* ===== ORDER CONFIRMATION PAGE ===== */
+
+.order-confirmation-page {
+    min-width: 0;
+    padding: 18px 0 65px;
+    background-color: var(--color-surface);
+}
+
+.order-confirmation-page .products-breadcrumb {
+    margin-bottom: 20px;
+}
+
+.order-confirmation-page .cart-page-header {
+    margin-bottom: 26px;
+}
+
+/* ===== ORDER CONFIRMATION BANNER ===== */
+
+.order-confirmation-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 18px;
+    padding: 25px 28px;
+    background: linear-gradient(110deg, #f0fbf4 0%, #ffffff 100%);
+    border: 1px solid #d3ecdc;
+    border-left: 4px solid #198754;
+    border-radius: 14px;
+}
+
+.order-confirmation-hero-main {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-width: 0;
+}
+
+.order-confirmation-hero-icon {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    color: #168347;
+    background-color: #def5e6;
+    border-radius: 50%;
+    font-size: 2.25rem;
+}
+
+.order-confirmation-hero-text h2 {
+    margin: 0 0 7px;
+    color: var(--color-primary);
+    font-size: 1.375rem;
+    font-weight: 800;
+}
+
+.order-confirmation-hero-text p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.order-confirmation-preview-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+    color: #48725a;
+    background-color: #ffffff;
+    border: 1px solid #cfe9d8;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* ===== ORDER REFERENCE ===== */
+
+.order-confirmation-reference {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px 36px;
+    margin-bottom: 24px;
+    padding: 18px 24px;
+    background-color: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: 13px;
+}
+
+.order-confirmation-reference > div {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.order-confirmation-reference > div + div {
+    padding-left: 30px;
+    border-left: 1px solid #e8ecf1;
+}
+
+.order-confirmation-reference span:not(.order-confirmation-payment-badge) {
+    color: var(--color-muted);
+    font-size: 0.75rem;
+}
+
+.order-confirmation-reference strong {
+    color: var(--color-primary);
+    font-size: 0.875rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.order-confirmation-reference .order-confirmation-payment-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #168347;
+}
+
+/* ===== ORDER DELIVERY ADDRESS ===== */
+
+.order-confirmation-address {
+    padding: 18px;
+    background-color: #f8fafc;
+    border: 1px solid #e8edf3;
+    border-radius: 11px;
+}
+
+.order-confirmation-address-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.order-confirmation-address-heading strong {
+    color: var(--color-primary);
+    font-size: 0.9375rem;
+}
+
+.order-confirmation-address-heading span {
+    padding: 5px 10px;
+    color: var(--color-primary);
+    background-color: #fff0e3;
+    border-radius: 20px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+}
+
+.order-confirmation-address p {
+    max-width: 620px;
+    margin: 0 0 12px;
+    color: var(--color-text);
+    font-size: 0.875rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.order-confirmation-contact {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--color-muted);
+    font-size: 0.8125rem;
+}
+
+.order-confirmation-contact i {
+    color: var(--color-primary);
+}
+
+/* ===== ORDER PAYMENT INFORMATION ===== */
+
+.order-confirmation-payment-details {
+    display: grid;
+    gap: 16px;
+}
+
+.order-confirmation-payment-details > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.order-confirmation-payment-details > div + div {
+    padding-top: 16px;
+    border-top: 1px solid #edf0f3;
+}
+
+.order-confirmation-payment-details span {
+    color: var(--color-muted);
+    font-size: 0.8125rem;
+}
+
+.order-confirmation-payment-details strong {
+    color: var(--color-primary);
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+.order-confirmation-payment-details .order-confirmation-success-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #168347;
+}
+
+/* ===== ORDER SUMMARY INFORMATION ===== */
+
+.order-confirmation-summary-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-top: 16px;
+    padding: 12px;
+    color: #596578;
+    background-color: #f6f8fb;
+    border: 1px solid #e8edf3;
+    border-radius: 9px;
+    font-size: 0.75rem;
+    line-height: 1.6;
+}
+
+.order-confirmation-summary-note i {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--color-primary);
+}
+
+/* ===== ORDER CONFIRMATION RESPONSIVE ===== */
+
+@media (max-width: 767.98px) {
+    .order-confirmation-hero {
+        align-items: flex-start;
+        padding: 22px;
+    }
+
+    .order-confirmation-reference {
+        gap: 16px 22px;
+        padding: 16px;
+    }
+
+    .order-confirmation-reference > div + div {
+        padding-left: 0;
+        border-left: 0;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .order-confirmation-page {
+        padding: 14px 0 40px;
+    }
+
+    .order-confirmation-hero {
+        padding: 18px;
+        gap: 14px;
+    }
+
+    .order-confirmation-hero-main {
+        align-items: flex-start;
+        gap: 13px;
+    }
+
+    .order-confirmation-hero-icon {
+        width: 46px;
+        height: 46px;
+        font-size: 1.75rem;
+    }
+
+    .order-confirmation-hero-text h2 {
+        font-size: 1.125rem;
+    }
+
+    .order-confirmation-hero-text p {
+        font-size: 0.8125rem;
+    }
+
+    .order-confirmation-reference {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .order-confirmation-reference > div:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .order-confirmation-address {
+        padding: 14px;
+    }
+}
+

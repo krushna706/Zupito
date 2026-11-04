@@ -58,6 +58,17 @@ function PaymentStatus() {
         ? String(payment.paymentId)
         : null;
 
+    const order = payment.order;
+
+    const hasOrder = status === "success" &&
+        orderId &&
+        order &&
+        String(order.orderId) === orderId &&
+        Array.isArray(order.items) &&
+        order.items.length > 0 &&
+        order.address &&
+        order.summary;
+
     return (
         <section className="payment-status-page">
             <div className="container-fluid website-shell">
@@ -120,15 +131,33 @@ function PaymentStatus() {
                             </div>
                         )}
 
-                        {/* Status Information */}
+                        {/* Payment Information */}
                         <div className="payment-status-note">
-                            <i className="fa-solid fa-circle-info" aria-hidden="true" />
+                            <i
+                                className="fa-solid fa-circle-info"
+                                aria-hidden="true"
+                            />
                             <span>{currentStatus.note}</span>
                         </div>
 
-                        {/* Actions */}
+                        {/* Next Actions */}
                         <div className="payment-status-actions">
-                            {status !== "success" && (
+                            {hasOrder ? (
+                                <Link
+                                    to={`/order-confirmation/${encodeURIComponent(orderId)}`}
+                                    state={{
+                                        order,
+                                        simulated: true,
+                                    }}
+                                    className="payment-status-primary"
+                                >
+                                    <i
+                                        className="fa-solid fa-receipt"
+                                        aria-hidden="true"
+                                    />
+                                    View Order Confirmation
+                                </Link>
+                            ) : (
                                 <Link
                                     to="/checkout"
                                     className="payment-status-primary"
@@ -143,9 +172,7 @@ function PaymentStatus() {
 
                             <Link
                                 to="/products"
-                                className={status === "success"
-                                    ? "payment-status-primary"
-                                    : "payment-status-secondary"}
+                                className="payment-status-secondary"
                             >
                                 <i
                                     className="fa-solid fa-bag-shopping"
@@ -158,9 +185,15 @@ function PaymentStatus() {
 
                     {/* Contact Support */}
                     <div className="payment-status-footer">
-                        <i className="fa-solid fa-headset" aria-hidden="true" />
+                        <i
+                            className="fa-solid fa-headset"
+                            aria-hidden="true"
+                        />
 
-                        <Link to="/contact" className="payment-status-help-link">
+                        <Link
+                            to="/contact"
+                            className="payment-status-help-link"
+                        >
                             Need help? Our support team is here to assist you.
                         </Link>
                     </div>

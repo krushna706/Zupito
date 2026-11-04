@@ -5,14 +5,15 @@ import { ToastContainer } from "react-toastify";
 
 import WebsiteLayout from "./layouts/WebsiteLayout";
 
-// Public website
+// Public Website
 import HomePage from "./website/Home/HomePage";
 import Products from "./website/Products/Products";
 import ProductDetails from "./website/Products/ProductDetails";
 import Cart from "./website/Cart/Cart";
 import Checkout from "./website/Checkout/Checkout";
+import PaymentStatus from "./website/Checkout/PaymentStatus";
 
-// Shared components
+// Shared Components
 import NotFound from "./components/NotFound";
 
 import "./css/website.css";
@@ -41,13 +42,14 @@ function App() {
             <ToastContainer position="top-right" autoClose={3000} />
 
             <Routes>
-                {/* Public website */}
+                {/* Public Website */}
                 <Route element={<WebsiteLayout />}>
                     <Route path="/" element={<HomePage />} />
                     <Route path="products" element={<Products />} />
                     <Route path="products/:productId" element={<ProductDetails />} />
                     <Route path="cart" element={<Cart />} />
                     <Route path="checkout" element={<Checkout />} />
+                    <Route path="payment-status" element={<PaymentStatus />} />
 
                     <Route path="*" element={<NotFound />} />
                 </Route>

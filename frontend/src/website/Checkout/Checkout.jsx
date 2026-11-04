@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import { toast } from "react-toastify";
 
 import { useCart } from "../../context/CartContext";
@@ -136,6 +137,7 @@ function SelectedAddressCard({ address, onChange, onAdd, onEdit, onDelete }) {
 
 // ================== CHECKOUT PAGE ==================
 function Checkout() {
+    const navigate = useNavigate();
     const { items } = useCart();
 
     const [step, setStep] = useState("checkout");
@@ -148,6 +150,8 @@ function Checkout() {
     const [editingAddressId, setEditingAddressId] = useState(null);
     const [deletingAddressId, setDeletingAddressId] = useState(null);
 
+    const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+
     const savedAddresses = addressBook.addresses;
     const selectedAddressId = addressBook.selectedId;
 
@@ -158,7 +162,7 @@ function Checkout() {
     const deliveryAddress = selectedAddress || address;
     const errors = validateAddress(deliveryAddress);
 
-    // Persist saved addresses for frontend testing.
+    // Persist addresses for frontend testing.
     useEffect(() => {
         try {
             window.localStorage.setItem(
@@ -166,7 +170,7 @@ function Checkout() {
                 JSON.stringify(addressBook)
             );
         } catch {
-            // Checkout remains usable if browser storage is unavailable.
+            // Checkout remains usable if storage is unavailable.
         }
     }, [addressBook]);
 
@@ -247,7 +251,12 @@ function Checkout() {
         });
 
         setSubmitted(false);
-        toast.success(input.id ? "Address updated successfully." : "Address saved successfully.");
+
+        toast.success(
+            input.id
+                ? "Address updated successfully."
+                : "Address saved successfully."
+        );
     };
 
     const handleDeleteAddress = (id) => {
@@ -271,17 +280,35 @@ function Checkout() {
         toast.success("Address deleted successfully.");
     };
 
+    // ================== PAYMENT ACTIONS ==================
+    const handlePaymentResult = (status) => {
+        setPaymentDialogOpen(false);
+
+        navigate("/payment-status", {
+            state: {
+                status,
+                simulated: true,
+            },
+        });
+    };
+
     // ================== CHECKOUT FLOW ==================
     const handleCheckout = (event) => {
         event.preventDefault();
 
-        if (step === "payment") {
-            toast.info("Razorpay test payment will be integrated with the backend.");
+        if (!canCheckout) {
+            toast.error("Some products are unavailable. Please update your cart.");
             return;
         }
 
-        if (!canCheckout) {
-            toast.error("Some products are unavailable. Please update your cart.");
+        if (step === "payment") {
+            if (!selectedAddress) {
+                toast.error("Please select a delivery address.");
+                setStep("checkout");
+                return;
+            }
+
+            setPaymentDialogOpen(true);
             return;
         }
 
@@ -299,7 +326,7 @@ function Checkout() {
             return;
         }
 
-        // First-order address is saved automatically.
+        // Save the first address automatically.
         if (!selectedAddress) {
             handleSaveAddress(address);
         }
@@ -578,7 +605,7 @@ function Checkout() {
                             </>
                         ) : (
                             <>
-                                {/* Payment Step */}
+                                {/* Selected Address */}
                                 <section className="checkout-card">
                                     <div className="checkout-card-header">
                                         <span className="checkout-section-icon">
@@ -610,6 +637,7 @@ function Checkout() {
                                     </div>
                                 </section>
 
+                                {/* Payment Review */}
                                 <section className="checkout-card">
                                     <div className="checkout-card-header">
                                         <span className="checkout-section-icon">
@@ -697,6 +725,64 @@ function Checkout() {
                     onDelete={handleDeleteAddress}
                 />
             )}
+
+            {/* Frontend Payment Preview */}
+            <Dialog
+                open={paymentDialogOpen}
+                onClose={() => setPaymentDialogOpen(false)}
+                fullWidth
+                maxWidth="xs"
+                aria-labelledby="payment-preview-title"
+            >
+                <DialogTitle id="payment-preview-title" className="fw-bold">
+                    Payment Preview
+                </DialogTitle>
+
+                <DialogContent>
+                    <p className="text-muted small mb-3">
+                        Frontend payment flow testing ke liye result select karo.
+                        Actual Razorpay transaction nahi hogi.
+                    </p>
+
+                    <div className="d-grid gap-2">
+                        <Button
+                            type="button"
+                            variant="contained"
+                            color="success"
+                            onClick={() => handlePaymentResult("success")}
+                        >
+                            Simulate Successful Payment
+                        </Button>
+
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            color="error"
+                            onClick={() => handlePaymentResult("failed")}
+                        >
+                            Simulate Failed Payment
+                        </Button>
+
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            color="warning"
+                            onClick={() => handlePaymentResult("cancelled")}
+                        >
+                            Simulate Cancelled Payment
+                        </Button>
+                    </div>
+                </DialogContent>
+
+                <DialogActions>
+                    <Button
+                        type="button"
+                        onClick={() => setPaymentDialogOpen(false)}
+                    >
+                        Close
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </section>
     );
 }

@@ -15,6 +15,7 @@ import PaymentStatus from "./website/Checkout/PaymentStatus";
 import OrderConfirmation from "./website/Checkout/OrderConfirmation";
 import About from "./website/About";
 import Contact from "./website/Contact";
+import Policies from "./website/Policies";
 
 // Shared Components
 import NotFound from "./components/NotFound";
@@ -56,7 +57,8 @@ function App() {
                     <Route path="order-confirmation/:orderId" element={<OrderConfirmation />} />
                     <Route path="about" element={<About />} />
                     <Route path="contact" element={<Contact />} />
-                    
+                    <Route path="policies" element={<Policies />} />
+
                     <Route path="*" element={<NotFound />} />
                 </Route>
             </Routes>

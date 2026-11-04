@@ -19,6 +19,7 @@ import {
     resolveProductVariant,
 } from "../../utils/productVariants";
 import ProductGallery from "./ProductGallery";
+import ProductReviews from "./ProductReviews";
 import ProductSections from "../Home/ProductSections";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -677,12 +678,16 @@ function ProductContent({ product, selectedVariant }) {
                             ))}
                         </dl>
                     </section>
+               
                 )}
+
+                <ProductReviews product={product} />
             </div>
 
             {similarSections.length > 0 && (
                 <ProductSections sections={similarSections} />
             )}
+
         </div>
     );
 }

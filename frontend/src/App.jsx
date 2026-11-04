@@ -7,6 +7,7 @@ import WebsiteLayout from "./layouts/WebsiteLayout";
 // Public website
 import HomePage from "./website/Home/HomePage";
 import Products from "./website/Products/Products";
+import ProductDetails from "./website/Products/ProductDetails";
 
 // Shared components
 import NotFound from "./components/NotFound";
@@ -44,6 +45,7 @@ function App() {
                 
                     <Route path="/" element={<HomePage />} />
                     <Route path="products" element={<Products />} />
+                    <Route path="products/:productId" element={<ProductDetails />} />
 
                     <Route path="*" element={<NotFound />} />
                 </Route>

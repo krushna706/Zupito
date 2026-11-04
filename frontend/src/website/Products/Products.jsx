@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -10,8 +11,14 @@ import {
 } from "@mui/material";
 
 import ProductCard from "../../components/ProductCard";
+import { productCatalog } from "../../data/productCatalog";
+import {
+    getAvailableStock,
+    getDisplayVariant,
+    getProductView,
+    hasProductVariants,
+} from "../../utils/productVariants";
 import ProductFilters from "./ProductFilters";
-import { previewProducts } from "../Home/ProductSections";
 
 // ================== CATALOG CONFIGURATION ==================
 const PAGE_SIZE = 30;
@@ -34,25 +41,6 @@ const categories = [
     { id: "trolley-bags", name: "Trolley Bags" },
     { id: "travel-accessories", name: "Travel Accessories" },
 ];
-
-const productCategories = {
-    "preview-smartphone": "mobiles",
-    "preview-laptop": "laptops",
-    "preview-headphones": "headphones",
-    "preview-shirt": "mens-wear",
-    "preview-dress": "womens-wear",
-    "preview-kids": "kids-wear",
-    "preview-shoes": "footwear",
-    "preview-watch": "watches",
-    "preview-personal-care": "personal-care",
-    "preview-pantry": "daily-essentials",
-    "preview-snacks": "snacks-drinks",
-    "preview-beauty": "beauty",
-    "preview-kitchen": "home-kitchen",
-    "preview-backpack": "backpacks",
-    "preview-trolley": "trolley-bags",
-    "preview-travel": "travel-accessories",
-};
 
 const categoryGroups = {
     electronics: ["mobiles", "laptops", "headphones"],
@@ -81,7 +69,7 @@ const collections = {
     ],
 };
 
-// Preview order only; backend will supply actual sales and approval dates.
+// Preview order only; live data will provide sales and listing dates.
 const bestSellingOrder = [
     "headphones", "shoes", "watch", "smartphone",
     "backpack", "snacks", "shirt", "personal-care",
@@ -105,16 +93,15 @@ const sortOptions = [
     { value: "best-selling", label: "Best Selling" },
 ];
 
-const catalog = previewProducts.map((product) => ({
-    ...product,
-    category: productCategories[product._id],
-}));
+const catalog = productCatalog;
 
-const priceBounds = [
-    0,
-    Math.max(1000, ...catalog.map((product) => product.price)),
-];
+const catalogPrices = catalog.flatMap((product) => (
+    hasProductVariants(product)
+        ? product.variants.map((variant) => variant.price)
+        : [product.price]
+)).filter((price) => Number.isFinite(price));
 
+const priceBounds = [0, Math.max(1000, ...catalogPrices)];
 const categoryIds = new Set(categories.map((category) => category.id));
 
 const getOrder = (ids) => new Map(
@@ -134,6 +121,49 @@ const readPrice = (value, fallback) => {
         : fallback;
 };
 
+// Match words against one variant at a time, not all variants combined.
+const matchesSearch = (product, variant, words) => {
+    if (words.length === 0) return true;
+
+    const view = getProductView(product, variant);
+    if (!view) return false;
+
+    const categoryName = categories.find(
+        (category) => category.id === product.category
+    )?.name;
+
+    const searchableText = [
+        product.name,
+        product.brand,
+        categoryName,
+        groupTitles[product.group],
+        view.variantLabel,
+        view.packLabel,
+        ...Object.values(view.selectedOptions),
+    ].filter(Boolean).join(" ").toLowerCase();
+
+    return words.every((word) => searchableText.includes(word));
+};
+
+const selectVariant = (product, candidates, sort) => {
+    if (!hasProductVariants(product)) return null;
+
+    if (sort !== "price-asc" && sort !== "price-desc") {
+        return getDisplayVariant(product, { candidates });
+    }
+
+    const available = candidates.filter(
+        (variant) => getAvailableStock(variant) > 0
+    );
+
+    const pool = available.length > 0 ? available : candidates;
+    const direction = sort === "price-asc" ? 1 : -1;
+
+    return [...pool].sort((first, second) => (
+        direction * (first.price - second.price)
+    ))[0] ?? null;
+};
+
 // ================== PRODUCTS PAGE ==================
 function Products() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -146,8 +176,11 @@ function Products() {
         || ""
     ).trim();
 
+    const searchWords = query.toLowerCase().split(/\s+/).filter(Boolean);
     const categoryParam = searchParams.get("category") || "";
-    const requestedCategories = categoryParam.split(",").filter(Boolean);
+    const requestedCategories = categoryParam.split(",").map(
+        (id) => id.trim()
+    ).filter(Boolean);
 
     const selectedCategories = [
         ...new Set(
@@ -196,54 +229,40 @@ function Products() {
         inStockOnly: searchParams.get("inStock") === "true",
     };
 
-    // Keep category counts independent of the selected sidebar filters.
-    const scopedProducts = catalog.filter((product) => {
-        if (collection && !collectionIds) return false;
+    // Category counts follow search and collection, not selected filters.
+    const scopedProducts = catalog.flatMap((product) => {
+        if (collection && !collectionIds) return [];
 
         if (collectionIds && !collectionIds.includes(product._id)) {
-            return false;
+            return [];
         }
 
-        if (!query) return true;
+        const variants = hasProductVariants(product)
+            ? product.variants
+            : [null];
 
-        const categoryName = categories.find(
-            (category) => category.id === product.category
-        )?.name || "";
-
-        const searchableText = [
-            product.name,
-            categoryName,
-            product.packLabel,
-            product.variantLabel,
-        ].filter(Boolean).join(" ").toLowerCase();
-
-        return query.toLowerCase().split(/\s+/).every(
-            (word) => searchableText.includes(word)
+        const candidates = variants.filter(
+            (variant) => matchesSearch(product, variant, searchWords)
         );
+
+        return candidates.length > 0 ? [{ product, candidates }] : [];
     });
 
     const filterCategories = categories.map((category) => ({
         ...category,
         count: scopedProducts.filter(
-            (product) => product.category === category.id
+            ({ product }) => product.category === category.id
         ).length,
     }));
 
-    const filteredProducts = scopedProducts.filter((product) => {
-        if (hasUnknownCategory) return false;
+    const filteredProducts = scopedProducts.flatMap(({ product, candidates }) => {
+        if (hasUnknownCategory) return [];
 
         if (
             selectedCategories.length > 0
             && !selectedCategories.includes(product.category)
         ) {
-            return false;
-        }
-
-        if (
-            product.price < filters.priceRange[0]
-            || product.price > filters.priceRange[1]
-        ) {
-            return false;
+            return [];
         }
 
         if (
@@ -254,36 +273,51 @@ function Products() {
                 || !(product.ratingCount > 0)
             )
         ) {
-            return false;
+            return [];
         }
 
-        return !filters.inStockOnly || product.stock > 0;
+        const eligible = candidates.filter((variant) => {
+            const view = getProductView(product, variant);
+
+            return view
+                && Number.isFinite(view.price)
+                && view.price >= filters.priceRange[0]
+                && view.price <= filters.priceRange[1]
+                && (!filters.inStockOnly || view.stock > 0);
+        });
+
+        if (eligible.length === 0) return [];
+
+        const selectedVariant = selectVariant(product, eligible, sort);
+        const view = getProductView(product, selectedVariant);
+
+        return view ? [{ product, view }] : [];
     });
 
     const sortedProducts = [...filteredProducts].sort((first, second) => {
         switch (sort) {
             case "price-asc":
-                return first.price - second.price;
+                return first.view.price - second.view.price;
 
             case "price-desc":
-                return second.price - first.price;
+                return second.view.price - first.view.price;
 
             case "top-rated":
                 return (
-                    (second.rating || 0) - (first.rating || 0)
-                    || (second.ratingCount || 0) - (first.ratingCount || 0)
+                    (second.view.rating || 0) - (first.view.rating || 0)
+                    || (second.view.ratingCount || 0) - (first.view.ratingCount || 0)
                 );
 
             case "best-selling":
                 return (
-                    (salesRanks.get(first._id) ?? Infinity)
-                    - (salesRanks.get(second._id) ?? Infinity)
+                    (salesRanks.get(first.product._id) ?? Infinity)
+                    - (salesRanks.get(second.product._id) ?? Infinity)
                 );
 
             case "newest":
                 return (
-                    (newestRanks.get(first._id) ?? Infinity)
-                    - (newestRanks.get(second._id) ?? Infinity)
+                    (newestRanks.get(first.product._id) ?? Infinity)
+                    - (newestRanks.get(second.product._id) ?? Infinity)
                 );
 
             default:
@@ -529,9 +563,12 @@ function Products() {
                         {visibleProducts.length > 0 ? (
                             <>
                                 <ul className="products-grid">
-                                    {visibleProducts.map((product) => (
+                                    {visibleProducts.map(({ product, view }) => (
                                         <li key={product._id}>
-                                            <ProductCard product={product} />
+                                            <ProductCard
+                                                product={product}
+                                                variantId={view.variantId}
+                                            />
                                         </li>
                                     ))}
                                 </ul>

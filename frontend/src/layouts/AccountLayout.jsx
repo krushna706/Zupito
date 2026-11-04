@@ -14,6 +14,11 @@ const accountLinks = [
         icon: "fa-location-dot",
     },
     {
+        label: "My Orders",
+        path: "/account/orders",
+        icon: "fa-box",
+    },
+    {
         label: "My Complaints",
         path: "/account/complaints",
         icon: "fa-headset",
@@ -23,6 +28,7 @@ const accountLinks = [
 const pageTitles = {
     "/account": "My Profile",
     "/account/addresses": "Saved Addresses",
+    "/account/orders": "My Orders",
     "/account/complaints": "My Complaints",
 };
 
@@ -31,7 +37,12 @@ function AccountLayout({ onLogout }) {
     const { pathname } = useLocation();
 
     const currentPath = pathname.replace(/\/+$/, "") || "/";
-    const currentPage = pageTitles[currentPath] || "My Account";
+    const isOrderDetails = /^\/account\/orders\/[^/]+$/.test(currentPath);
+
+    const currentPage = isOrderDetails
+        ? "Order Details"
+        : pageTitles[currentPath] || "My Account";
+
     const canLogout = typeof onLogout === "function";
 
     return (
@@ -61,7 +72,26 @@ function AccountLayout({ onLogout }) {
                                 aria-hidden="true"
                             />
 
-                            <span aria-current="page">{currentPage}</span>
+                            {isOrderDetails ? (
+                                <>
+                                    <Link to="/account/orders">
+                                        My Orders
+                                    </Link>
+
+                                    <i
+                                        className="fa-solid fa-chevron-right"
+                                        aria-hidden="true"
+                                    />
+
+                                    <span aria-current="page">
+                                        Order Details
+                                    </span>
+                                </>
+                            ) : (
+                                <span aria-current="page">
+                                    {currentPage}
+                                </span>
+                            )}
                         </>
                     )}
                 </nav>
@@ -70,6 +100,7 @@ function AccountLayout({ onLogout }) {
                 <div className="cart-page-header customer-account-page-header">
                     <div>
                         <h1>My Account</h1>
+
                         <p>
                             Manage your personal details, delivery addresses
                             and support requests.
@@ -96,6 +127,7 @@ function AccountLayout({ onLogout }) {
                             </div>
                         </div>
 
+                        {/* Account Navigation */}
                         <nav
                             className="customer-account-navigation"
                             aria-label="Customer account navigation"

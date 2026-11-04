@@ -191,7 +191,7 @@ function PaymentStatus() {
                         />
 
                         <Link
-                            to="/contact"
+                            to="/account/complaints"
                             className="payment-status-help-link"
                         >
                             Need help? Our support team is here to assist you.

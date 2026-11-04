@@ -21,6 +21,8 @@ import Policies from "./website/Policies";
 // Customer Account
 import Profile from "./user/Profile";
 import Addresses from "./user/Addresses";
+import MyOrders from "./user/MyOrders";
+import OrderDetails from "./user/OrderDetails";
 import Complaints from "./user/Complaints";
 
 // Shared Components
@@ -69,6 +71,8 @@ function App() {
                     <Route path="account" element={<AccountLayout />}>
                         <Route index element={<Profile />} />
                         <Route path="addresses" element={<Addresses />} />
+                        <Route path="orders" element={<MyOrders />} />
+                        <Route path="orders/:orderId" element={<OrderDetails />} />
                         <Route path="complaints" element={<Complaints />} />
                     </Route>
 

@@ -10,6 +10,7 @@ import HomePage from "./website/Home/HomePage";
 import Products from "./website/Products/Products";
 import ProductDetails from "./website/Products/ProductDetails";
 import Cart from "./website/Cart/Cart";
+import Checkout from "./website/Checkout/Checkout";
 
 // Shared components
 import NotFound from "./components/NotFound";
@@ -46,6 +47,7 @@ function App() {
                     <Route path="products" element={<Products />} />
                     <Route path="products/:productId" element={<ProductDetails />} />
                     <Route path="cart" element={<Cart />} />
+                    <Route path="checkout" element={<Checkout />} />
 
                     <Route path="*" element={<NotFound />} />
                 </Route>

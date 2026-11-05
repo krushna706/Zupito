@@ -1,21 +1,31 @@
+
+import LoadingState from "../components/LoadingState";
+
+// Admin panel
+import Sellers from "../admin/Sellers";
+import Customers from "../admin/Customers";
+
 /* ===== REGISTERED ROLES ===== */
 
 export const panelRoles = {
     admin: {
         label: "Administrator",
-        dashboard: "/manage/dashboard"
+        dashboard: LoadingState,
+        profile: LoadingState,
     },
     seller: {
         label: "Seller",
-        dashboard: "/manage/dashboard"
+        dashboard: LoadingState,
+        profile: LoadingState,
     },
     delivery: {
         label: "Delivery Agent",
-        dashboard: "/manage/dashboard"
-    }
+        dashboard: LoadingState,
+        profile: LoadingState,
+    },
 };
 
-// Compatible with existing PanelLayout and PanelHeader.
+// Keep compatibility with the existing PanelHeader.
 export const panelConfig = panelRoles;
 
 function normalizeRole(role) {
@@ -36,256 +46,110 @@ export function getPanelRole(role) {
     Add navigation only when a page should appear in the sidebar.
     Declare each unique path once.
 
-    Frontend permissions control navigation visibility.
+    Replace LoadingState with the actual component when a page is ready.
     Backend APIs must enforce authorization separately.
 */
 
-const pageDefinitions = [
+function previewPage(path, label, icon, allowedRoles) {
+    return {
+        path,
+        component: LoadingState,
+        allowedRoles,
+        navigation: {
+            label,
+            icon,
+            end: false,
+        },
+    };
+}
+
+export const panelPages = [
+    // ================== ADMIN PANEL ==================
     {
         path: "sellers",
+        component: Sellers,
         allowedRoles: ["admin"],
         navigation: {
             label: "Manage Sellers",
-            icon: "fa-solid fa-store"
-        }
+            icon: "fa-solid fa-store",
+            end: false,
+        },
     },
     {
         path: "customers",
+        component: Customers,
         allowedRoles: ["admin"],
         navigation: {
             label: "Manage Customers",
-            icon: "fa-solid fa-users"
-        }
-    },
-    {
-        path: "delivery-agents",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Delivery Agents",
-            icon: "fa-solid fa-motorcycle"
-        }
-    },
-    {
-        path: "categories",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Categories",
-            icon: "fa-solid fa-layer-group"
-        }
-    },
-    {
-        path: "products",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Manage Products",
-            icon: "fa-solid fa-box-open"
-        }
-    },
-    {
-        path: "orders",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Manage Orders",
-            icon: "fa-solid fa-cart-shopping"
-        }
-    },
-    {
-        path: "delivery-assignments",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Delivery Assignments",
-            icon: "fa-solid fa-truck-fast"
-        }
-    },
-    {
-        path: "payments",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Payments",
-            icon: "fa-solid fa-credit-card"
-        }
-    },
-    {
-        path: "refunds",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Refunds",
-            icon: "fa-solid fa-money-bill-transfer"
-        }
-    },
-    {
-        path: "replacements",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Replacements",
-            icon: "fa-solid fa-arrow-right-arrow-left"
-        }
-    },
-    {
-        path: "settlements",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Settlements",
-            icon: "fa-solid fa-wallet"
-        }
-    },
-    {
-        path: "coupons",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Coupons",
-            icon: "fa-solid fa-ticket"
-        }
-    },
-    {
-        path: "reviews",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Reviews",
-            icon: "fa-solid fa-star"
-        }
-    },
-    {
-        path: "complaints",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Complaints",
-            icon: "fa-solid fa-headset"
-        }
-    },
-    {
-        path: "reports",
-        allowedRoles: ["admin"],
-        navigation: {
-            label: "Reports",
-            icon: "fa-solid fa-chart-column"
-        }
+            icon: "fa-solid fa-users",
+            end: false,
+        },
     },
 
-    {
-        path: "approval-status",
-        allowedRoles: ["seller"],
-        navigation: {
-            label: "Approval Status",
-            icon: "fa-solid fa-circle-check"
-        }
-    },
-    {
-        path: "store",
-        allowedRoles: ["seller"],
-        navigation: {
-            label: "Store Profile",
-            icon: "fa-solid fa-store"
-        }
-    },
-    {
-        path: "products",
-        allowedRoles: ["seller"],
-        navigation: {
-            label: "Manage Products",
-            icon: "fa-solid fa-box-open"
-        }
-    },
-    {
-        path: "inventory",
-        allowedRoles: ["seller"],
-        navigation: {
-            label: "Inventory",
-            icon: "fa-solid fa-boxes-stacked"
-        }
-    },
-    {
-        path: "orders",
-        allowedRoles: ["seller"],
-        navigation: {
-            label: "Orders",
-            icon: "fa-solid fa-cart-shopping"
-        }
-    },
-    {
-        path: "replacements",
-        allowedRoles: ["seller"],
-        navigation: {
-            label: "Replacements",
-            icon: "fa-solid fa-arrow-right-arrow-left"
-        }
-    },
-    {
-        path: "earnings",
-        allowedRoles: ["seller"],
-        navigation: {
-            label: "Earnings",
-            icon: "fa-solid fa-wallet"
-        }
-    },
-    {
-        path: "reviews",
-        allowedRoles: ["seller"],
-        navigation: {
-            label: "Reviews",
-            icon: "fa-solid fa-star"
-        }
-    },
+    previewPage("delivery-agents", "Delivery Agents", "fa-solid fa-motorcycle", ["admin"]),
+    previewPage("categories", "Categories", "fa-solid fa-layer-group", ["admin"]),
+    previewPage("products", "Manage Products", "fa-solid fa-box-open", ["admin", "seller"]),
+    previewPage("orders", "Manage Orders", "fa-solid fa-cart-shopping", ["admin", "seller"]),
+    previewPage("delivery-assignments", "Delivery Assignments", "fa-solid fa-truck-fast", ["admin"]),
+    previewPage("payments", "Payments", "fa-solid fa-credit-card", ["admin"]),
+    previewPage("refunds", "Refunds", "fa-solid fa-money-bill-transfer", ["admin"]),
+    previewPage("replacements", "Replacements", "fa-solid fa-arrow-right-arrow-left", ["admin", "seller"]),
+    previewPage("settlements", "Settlements", "fa-solid fa-wallet", ["admin"]),
+    previewPage("coupons", "Coupons", "fa-solid fa-ticket", ["admin"]),
+    previewPage("reviews", "Reviews", "fa-solid fa-star", ["admin", "seller"]),
+    previewPage("complaints", "Complaints", "fa-solid fa-headset", ["admin"]),
+    previewPage("reports", "Reports", "fa-solid fa-chart-column", ["admin"]),
 
-    {
-        path: "tasks",
-        allowedRoles: ["delivery"],
-        navigation: {
-            label: "Assigned Tasks",
-            icon: "fa-solid fa-clipboard-list"
-        }
-    },
-    {
-        path: "history",
-        allowedRoles: ["delivery"],
-        navigation: {
-            label: "Delivery History",
-            icon: "fa-solid fa-clock-rotate-left"
-        }
-    }
+    // ================== SELLER PANEL ==================
+    previewPage("approval-status", "Approval Status", "fa-solid fa-circle-check", ["seller"]),
+    previewPage("store", "Store Profile", "fa-solid fa-store", ["seller"]),
+    previewPage("inventory", "Inventory", "fa-solid fa-boxes-stacked", ["seller"]),
+    previewPage("earnings", "Earnings", "fa-solid fa-wallet", ["seller"]),
+
+    // ================== DELIVERY AGENT PANEL ==================
+    previewPage("tasks", "Assigned Tasks", "fa-solid fa-clipboard-list", ["delivery"]),
+    previewPage("history", "Delivery History", "fa-solid fa-clock-rotate-left", ["delivery"]),
 ];
-
-export const panelPages = Object.values(
-    pageDefinitions.reduce((pages, page) => {
-        const existing = pages[page.path];
-        pages[page.path] = existing
-            ? { ...existing, allowedRoles: [...new Set([...existing.allowedRoles, ...page.allowedRoles])] }
-            : page;
-        return pages;
-    }, {})
-);
 
 /* ===== SIDEBAR MENU ===== */
 
 export function getPanelNavigation(role) {
     const normalizedRole = normalizeRole(role);
-    const panelRole = getPanelRole(normalizedRole);
 
-    if (!panelRole) {
+    if (!getPanelRole(normalizedRole)) {
         return [];
     }
 
     const pageLinks = panelPages
-        .filter((page) => page.navigation && page.allowedRoles.includes(normalizedRole))
+        .filter(
+            (page) =>
+                page.navigation &&
+                page.allowedRoles.includes(normalizedRole)
+        )
         .map((page) => ({
             path: `/manage/${page.path}`,
             ...page.navigation,
-            end: page.navigation.end ?? false
         }));
 
     return [
         {
             label: "Dashboard",
-            path: panelRole.dashboard,
+            path: "/manage/dashboard",
             icon: "fa-solid fa-table-columns",
-            end: true
+            end: true,
         },
-        ...pageLinks
+        ...pageLinks,
+        {
+            label: "Profile",
+            path: "/manage/profile",
+            icon: "fa-regular fa-user",
+            end: false,
+        },
     ];
 }
 
 /* ===== DASHBOARD REDIRECT ===== */
 
 export function getPanelDashboardPath(role) {
-    return getPanelRole(role)?.dashboard || "/manage";
+    return getPanelRole(role) ? "/manage/dashboard" : "/manage";
 }

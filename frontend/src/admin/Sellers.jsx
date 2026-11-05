@@ -367,8 +367,6 @@ function Sellers() {
                         SELLER MANAGEMENT
                     </span>
 
-                    <h1>Manage Sellers</h1>
-
                     <p>
                         Review applications, verify store information and
                         manage seller access across Zupito.

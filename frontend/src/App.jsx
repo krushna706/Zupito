@@ -1,13 +1,15 @@
 
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
+
+import { useAuth } from "./context/AuthContext";
 
 import WebsiteLayout from "./layouts/WebsiteLayout";
 import AccountLayout from "./layouts/AccountLayout";
 import PanelLayout from "./layouts/PanelLayout";
 
-// Public Website
+// Public website
 import HomePage from "./website/Home/HomePage";
 import Products from "./website/Products/Products";
 import ProductDetails from "./website/Products/ProductDetails";
@@ -19,7 +21,7 @@ import About from "./website/About";
 import Contact from "./website/Contact";
 import Policies from "./website/Policies";
 
-// Customer Account
+// Customer account
 import Profile from "./user/Profile";
 import Addresses from "./user/Addresses";
 import MyOrders from "./user/MyOrders";
@@ -32,48 +34,88 @@ import Signup from "./auth/Signup";
 import ForgotPassword from "./auth/ForgotPassword";
 import SellerRegister from "./auth/SellerRegister";
 
-// Admin Panel
-import Sellers from "./admin/Sellers";
+// Panel configuration
+import { panelPages, getPanelRole } from "./config/panelConfig";
 
-// Panel Configuration
-import { panelRoles, panelPages } from "./config/panelConfig";
-
-// Shared Components
-import { useAuth } from "./context/AuthContext";
+// Shared components
 import ProtectedRoute from "./components/ProtectedRoute";
-import PanelPreviewPage from "./components/LoadingState";
+import AccessDenied from "./components/AccessDenied";
 import NotFound from "./components/NotFound";
 
 import "./css/website.css";
+
+// ================== PANEL ACCESS ==================
+function PanelAccess() {
+    const { user } = useAuth();
+    const location = useLocation();
+
+    if (!user) {
+        const returnTo = location.pathname + location.search + location.hash;
+
+        return <Navigate to="/manage" replace state={{ returnTo }} />;
+    }
+
+    if (!getPanelRole(user.role)) {
+        return <AccessDenied />;
+    }
+
+    return <Outlet />;
+}
+
+// ================== ROLE-BASED DASHBOARD AND PROFILE ==================
+function RolePage({ user, page }) {
+    const roleConfig = getPanelRole(user?.role);
+    const PageComponent = roleConfig?.[page];
+
+    if (!PageComponent) {
+        return <AccessDenied />;
+    }
+
+    const title = page === "dashboard" ? `${roleConfig.label} Dashboard` : "My Profile";
+
+    return <PageComponent user={user} title={title} />;
+}
+
+// ================== INDIVIDUAL PANEL PAGE ACCESS ==================
+function PanelPage({ user, page }) {
+    const role = user?.role === "delivery_agent" ? "delivery" : user?.role;
+
+    if (!user || !page.allowedRoles.includes(role)) {
+        return <AccessDenied />;
+    }
+
+    const PageComponent = page.components?.[role] || page.component;
+
+    if (!PageComponent) {
+        return <AccessDenied />;
+    }
+
+    return <PageComponent user={user} title={page.navigation?.label || "Panel Page"} />;
+}
 
 // ================== SCROLL TO TOP ==================
 function ScrollToTop() {
     const { pathname } = useLocation();
 
     useEffect(() => {
-        window.scrollTo({
-            top: 0,
-            left: 0,
-            behavior: "instant"
-        });
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     }, [pathname]);
 
     return null;
 }
 
-// ================== PANEL DASHBOARD ==================
-function PanelDashboard() {
-    const { user } = useAuth();
-
-    return (
-        <PanelPreviewPage
-            title={`${panelRoles[user.role].label} Dashboard`}
-        />
-    );
-}
-
 // ================== APPLICATION ROUTES ==================
 function App() {
+    const { user } = useAuth();
+    const roleConfig = getPanelRole(user?.role);
+
+    const panelUser = user
+        ? {
+              ...user,
+              roleLabel: roleConfig?.label || "Unknown role",
+          }
+        : null;
+
     return (
         <BrowserRouter>
             <ScrollToTop />
@@ -93,40 +135,15 @@ function App() {
                     <Route path="products" element={<Products />} />
                     <Route path="products/:productId" element={<ProductDetails />} />
                     <Route path="cart" element={<Cart />} />
-
-                    <Route
-                        path="checkout"
-                        element={
-                            <ProtectedRoute allowedRoles={["customer"]}>
-                                <Checkout />
-                            </ProtectedRoute>
-                        }
-                    />
-
+                    <Route path="checkout" element={<ProtectedRoute allowedRoles={["customer"]}><Checkout /></ProtectedRoute>} />
                     <Route path="payment-status" element={<PaymentStatus />} />
-
-                    <Route
-                        path="order-confirmation/:orderId"
-                        element={
-                            <ProtectedRoute allowedRoles={["customer"]}>
-                                <OrderConfirmation />
-                            </ProtectedRoute>
-                        }
-                    />
-
+                    <Route path="order-confirmation/:orderId" element={<ProtectedRoute allowedRoles={["customer"]}><OrderConfirmation /></ProtectedRoute>} />
                     <Route path="about" element={<About />} />
                     <Route path="contact" element={<Contact />} />
                     <Route path="policies" element={<Policies />} />
 
                     {/* Customer Account */}
-                    <Route
-                        path="account"
-                        element={
-                            <ProtectedRoute allowedRoles={["customer"]}>
-                                <AccountLayout />
-                            </ProtectedRoute>
-                        }
-                    >
+                    <Route path="account" element={<ProtectedRoute allowedRoles={["customer"]}><AccountLayout /></ProtectedRoute>}>
                         <Route index element={<Profile />} />
                         <Route path="addresses" element={<Addresses />} />
                         <Route path="orders" element={<MyOrders />} />
@@ -137,46 +154,18 @@ function App() {
                     <Route path="*" element={<NotFound />} />
                 </Route>
 
-                {/* Staff Panels */}
-                <Route
-                    path="/manage"
-                    element={
-                        <ProtectedRoute allowedRoles={Object.keys(panelRoles)}>
-                            <PanelLayout />
-                        </ProtectedRoute>
-                    }
-                >
-                    <Route path="dashboard" element={<PanelDashboard />} />
+                {/* Admin, Seller and Delivery Panel */}
+                <Route element={<PanelAccess />}>
+                    <Route path="/manage" element={<PanelLayout />}>
+                        <Route path="dashboard" element={<RolePage user={panelUser} page="dashboard" />} />
+                        <Route path="profile" element={<RolePage user={panelUser} page="profile" />} />
 
-                    {panelPages.map((page) => (
-                        <Route
-                            key={page.path}
-                            path={page.path}
-                            element={
-                                <ProtectedRoute allowedRoles={page.allowedRoles}>
-                                    {page.path === "sellers" ? (
-                                        <Sellers />
-                                    ) : (
-                                        <PanelPreviewPage
-                                            title={page.navigation?.label || "Panel Page"}
-                                        />
-                                    )}
-                                </ProtectedRoute>
-                            }
-                        />
-                    ))}
+                        {panelPages.map((page) => (
+                            <Route key={page.path} path={page.path} element={<PanelPage user={panelUser} page={page} />} />
+                        ))}
 
-                    <Route
-                        path="profile"
-                        element={
-                            <PanelPreviewPage
-                                title="My Profile"
-                                description="View and manage your staff profile."
-                            />
-                        }
-                    />
-
-                    <Route path="*" element={<NotFound />} />
+                        <Route path="*" element={<NotFound />} />
+                    </Route>
                 </Route>
             </Routes>
         </BrowserRouter>

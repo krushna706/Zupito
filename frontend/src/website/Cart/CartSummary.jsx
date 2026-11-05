@@ -1,7 +1,5 @@
-
 import { useNavigate } from "react-router-dom";
 
-// ================== CART SUMMARY ==================
 function CartSummary({ cartCount, subtotal, discount, canCheckout, formatPrice }) {
     const navigate = useNavigate();
 
@@ -14,7 +12,9 @@ function CartSummary({ cartCount, subtotal, discount, canCheckout, formatPrice }
             <div className="cart-summary-content">
                 <div className="cart-summary-list">
                     <div className="cart-summary-row">
-                        <span>Price ({cartCount} {cartCount === 1 ? "item" : "items"})</span>
+                        <span>
+                            Price ({cartCount} {cartCount === 1 ? "item" : "items"})
+                        </span>
                         <strong>{formatPrice(subtotal + discount)}</strong>
                     </div>
 
@@ -45,8 +45,7 @@ function CartSummary({ cartCount, subtotal, discount, canCheckout, formatPrice }
 
                 {!canCheckout && (
                     <p className="cart-summary-error" role="alert">
-                        Some items have insufficient stock or unavailable prices.
-                        Please update your cart.
+                        Some items have insufficient stock or unavailable prices. Please update your cart.
                     </p>
                 )}
 

@@ -1,13 +1,13 @@
-
 import { Link } from "react-router-dom";
 import { getProductPath } from "../../utils/productVariants";
 
-// ================== CART ITEMS ==================
 function CartItems({ items, cartCount, onQuantityChange, formatPrice }) {
     return (
         <section className="cart-panel cart-items">
             <div className="cart-panel-header">
-                <h2>Cart Items <span>({cartCount})</span></h2>
+                <h2>
+                    Cart Items <span>({cartCount})</span>
+                </h2>
                 <small>
                     <i className="fa-solid fa-lock" aria-hidden="true" />
                     Secure shopping
@@ -17,19 +17,24 @@ function CartItems({ items, cartCount, onQuantityChange, formatPrice }) {
             <ul className="cart-product-list">
                 {items.map((item) => {
                     const {
-                        product, quantity, price, mrp, stock,
-                        validPrice, available, subtotal, discount,
+                        product,
+                        quantity,
+                        price,
+                        mrp,
+                        stock,
+                        validPrice,
+                        available,
+                        subtotal,
+                        discount
                     } = item;
 
-                    const details = [...new Set([
-                        product.variantLabel,
-                        product.packLabel,
-                    ].filter(Boolean))].join(" · ");
+                    const details = [
+                        ...new Set([product.variantLabel, product.packLabel].filter(Boolean))
+                    ].join(" · ");
 
-                    const path = product.productPath || getProductPath(
-                        product.productId || product._id,
-                        product.variantId
-                    );
+                    const path =
+                        product.productPath ||
+                        getProductPath(product.productId || product._id, product.variantId);
 
                     return (
                         <li className="cart-product" key={product._id}>
@@ -56,9 +61,7 @@ function CartItems({ items, cartCount, onQuantityChange, formatPrice }) {
                                             {validPrice ? formatPrice(price) : "Price unavailable"}
                                         </strong>
 
-                                        {validPrice && mrp > price && (
-                                            <del>{formatPrice(mrp)}</del>
-                                        )}
+                                        {validPrice && mrp > price && <del>{formatPrice(mrp)}</del>}
                                     </div>
                                 </div>
 
@@ -74,27 +77,34 @@ function CartItems({ items, cartCount, onQuantityChange, formatPrice }) {
                                 <div className="cart-product-status">
                                     <span className={available ? "cart-in-stock" : "cart-out-stock"}>
                                         <i
-                                            className={available
-                                                ? "fa-solid fa-circle-check"
-                                                : "fa-solid fa-circle-exclamation"}
+                                            className={
+                                                available
+                                                    ? "fa-solid fa-circle-check"
+                                                    : "fa-solid fa-circle-exclamation"
+                                            }
                                             aria-hidden="true"
                                         />
 
-                                        {!validPrice ? "Price unavailable"
-                                            : stock === 0 ? "Out of stock"
-                                                : quantity > stock ? `Only ${stock} available`
-                                                    : "In Stock"}
+                                        {!validPrice
+                                            ? "Price unavailable"
+                                            : stock === 0
+                                              ? "Out of stock"
+                                              : quantity > stock
+                                                ? `Only ${stock} available`
+                                                : "In Stock"}
                                     </span>
 
                                     {discount > 0 && (
-                                        <span className="cart-savings">
-                                            Save {formatPrice(discount)}
-                                        </span>
+                                        <span className="cart-savings">Save {formatPrice(discount)}</span>
                                     )}
                                 </div>
 
                                 <div className="cart-product-actions">
-                                    <div className="cart-quantity" role="group" aria-label={`Quantity for ${product.name}`}>
+                                    <div
+                                        className="cart-quantity"
+                                        role="group"
+                                        aria-label={`Quantity for ${product.name}`}
+                                    >
                                         <button
                                             type="button"
                                             aria-label={`Decrease ${product.name} quantity`}

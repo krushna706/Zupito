@@ -1,133 +1,19 @@
+import { getOrderId, getOrderTotal, getProductName } from "../utils/orderStatus";
+import formatDate from "../utils/formatDate";
+import formatAmount from "../utils/formatCurrency";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 const PAGE_SIZE = 5;
-export const SHOW_DEMO_ORDERS = true;
-
-// ================== DEMO ORDERS ==================
-export const demoOrders = [
-    {
-        _id: "ZUP-20261103-1001",
-        createdAt: "2026-11-03T10:30:00",
-        orderStatus: "out_for_delivery",
-        expectedDeliveryAt: "2026-11-04",
-        totalAmount: 15998,
-        items: [
-            {
-                name: "Everyday Smartphone - Black, 128 GB",
-                image: "/images/categories/mobiles.webp",
-                quantity: 1,
-            },
-            {
-                name: "Over-Ear Wireless Headphones",
-                image: "/images/categories/headphones.jpg",
-                quantity: 1,
-            },
-        ],
-    },
-    {
-        _id: "ZUP-20261102-1002",
-        createdAt: "2026-11-02T14:15:00",
-        orderStatus: "delivered",
-        deliveredAt: "2026-11-03",
-        totalAmount: 899,
-        items: [
-            {
-                name: "Men's Casual Shirt - Navy, M",
-                image: "/images/categories/mens-wear.webp",
-                quantity: 1,
-            },
-        ],
-    },
-    {
-        _id: "ZUP-20261030-1003",
-        createdAt: "2026-10-30T11:20:00",
-        orderStatus: "shipped",
-        expectedDeliveryAt: "2026-11-07",
-        totalAmount: 42999,
-        items: [
-            {
-                name: "Everyday Performance Laptop",
-                image: "/images/categories/laptops.webp",
-                quantity: 1,
-            },
-        ],
-    },
-    {
-        _id: "ZUP-20261028-1004",
-        createdAt: "2026-10-28T09:45:00",
-        orderStatus: "cancelled",
-        totalAmount: 1299,
-        items: [
-            {
-                name: "Women's Everyday Dress",
-                image: "/images/categories/womens-wear.webp",
-                quantity: 1,
-            },
-        ],
-    },
-    {
-        _id: "ZUP-20261024-1005",
-        createdAt: "2026-10-24T16:10:00",
-        orderStatus: "delivered",
-        deliveredAt: "2026-10-27",
-        totalAmount: 2499,
-        items: [
-            {
-                name: "Travel Backpack",
-                image: "/images/categories/backpacks.jpg",
-                quantity: 1,
-            },
-        ],
-    },
-    {
-        _id: "ZUP-20261020-1006",
-        createdAt: "2026-10-20T12:00:00",
-        orderStatus: "processing",
-        expectedDeliveryAt: "2026-11-08",
-        totalAmount: 1999,
-        items: [
-            {
-                name: "Over-Ear Wireless Headphones",
-                image: "/images/categories/headphones.jpg",
-                quantity: 1,
-            },
-        ],
-    },
-    {
-        _id: "ZUP-20261015-1007",
-        createdAt: "2026-10-15T17:30:00",
-        orderStatus: "delivered",
-        deliveredAt: "2026-10-18",
-        totalAmount: 1299,
-        items: [
-            {
-                name: "Women's Everyday Dress",
-                image: "/images/categories/womens-wear.webp",
-                quantity: 1,
-            },
-        ],
-    },
-];
+import { SHOW_DEMO_ORDERS, demoOrders } from "../data/orderPreview";
 
 const statusFilters = [
     { value: "all", label: "All Orders" },
     { value: "progress", label: "In Progress" },
     { value: "delivered", label: "Delivered" },
-    { value: "cancelled", label: "Cancelled" },
+    { value: "cancelled", label: "Cancelled" }
 ];
-
-const moneyFormatter = new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 2,
-});
-
-// ================== ORDER HELPERS ==================
-function getOrderId(order) {
-    return String(order?._id || order?.id || "");
-}
 
 function getStatus(order) {
     return String(order?.orderStatus || order?.status || "");
@@ -153,7 +39,7 @@ function getStatusGroup(status) {
         "shipped",
         "in_transit",
         "out_for_delivery",
-        "partially_delivered",
+        "partially_delivered"
     ];
 
     return progressStatuses.includes(value) ? "progress" : "other";
@@ -162,90 +48,16 @@ function getStatusGroup(status) {
 function formatStatus(status) {
     if (!status) return "Status Unavailable";
 
-    return status
-        .replace(/[_-]+/g, " ")
-        .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function formatDate(value) {
-    if (!value) return "Unavailable";
-
-    // Date-only values are formatted without timezone shifting.
-    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        const [year, month, day] = value.split("-").map(Number);
-        const date = new Date(year, month - 1, day);
-
-        if (
-            date.getFullYear() !== year ||
-            date.getMonth() !== month - 1 ||
-            date.getDate() !== day
-        ) {
-            return "Unavailable";
-        }
-
-        return new Intl.DateTimeFormat("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-        }).format(date);
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "Unavailable";
-
-    return new Intl.DateTimeFormat("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        timeZone: "Asia/Kolkata",
-    }).format(date);
-}
-
-function formatAmount(value) {
-    if (value === null || value === undefined || value === "") {
-        return "—";
-    }
-
-    const amount = Number(value);
-
-    return Number.isFinite(amount)
-        ? moneyFormatter.format(amount)
-        : "—";
-}
-
-function getOrderTotal(order) {
-    return (
-        order?.totalAmount ??
-        order?.total ??
-        order?.pricing?.grandTotal ??
-        null
-    );
-}
-
-function getProductName(item) {
-    return (
-        item?.productSnapshot?.name ||
-        item?.product?.name ||
-        item?.productName ||
-        item?.name ||
-        "Product"
-    );
+    return status.replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function getProductImage(item) {
     const image =
-        item?.productSnapshot?.image ||
-        item?.product?.images?.[0] ||
-        item?.product?.image ||
-        item?.image;
+        item?.productSnapshot?.image || item?.product?.images?.[0] || item?.product?.image || item?.image;
 
-    return typeof image === "string"
-        ? image
-        : image?.url || image?.secure_url || "";
+    return typeof image === "string" ? image : image?.url || image?.secure_url || "";
 }
 
-// ================== DELIVERY INFORMATION ==================
 function getDeliveryInfo(order) {
     const statusGroup = getStatusGroup(getStatus(order));
 
@@ -253,23 +65,17 @@ function getDeliveryInfo(order) {
         return {
             label: "Delivery",
             value: "Cancelled",
-            type: "cancelled",
+            type: "cancelled"
         };
     }
 
     if (statusGroup === "delivered") {
-        const deliveredAt =
-            order?.deliveredAt ??
-            order?.deliveryDate ??
-            order?.delivery?.deliveredAt ??
-            null;
+        const deliveredAt = order?.deliveredAt ?? order?.deliveryDate ?? order?.delivery?.deliveredAt ?? null;
 
         return {
             label: "Delivered On",
-            value: deliveredAt
-                ? formatDate(deliveredAt)
-                : "Date unavailable",
-            type: "delivered",
+            value: deliveredAt ? formatDate(deliveredAt) : "Date unavailable",
+            type: "delivered"
         };
     }
 
@@ -282,21 +88,15 @@ function getDeliveryInfo(order) {
 
     return {
         label: "Expected Delivery",
-        value: expectedDeliveryAt
-            ? formatDate(expectedDeliveryAt)
-            : "Awaiting estimate",
-        type: "expected",
+        value: expectedDeliveryAt ? formatDate(expectedDeliveryAt) : "Awaiting estimate",
+        type: "expected"
     };
 }
 
-// ================== PRODUCT THUMBNAIL ==================
 function OrderThumbnail({ item }) {
     const image = getProductImage(item);
-    const [imageError, setImageError] = useState(false);
-
-    useEffect(() => {
-        setImageError(false);
-    }, [image]);
+    const [failedImage, setFailedImage] = useState(null);
+    const imageError = failedImage === image;
 
     return (
         <div className="customer-order-product-image">
@@ -305,25 +105,16 @@ function OrderThumbnail({ item }) {
                     src={image}
                     alt={getProductName(item)}
                     loading="lazy"
-                    onError={() => setImageError(true)}
+                    onError={() => setFailedImage(image)}
                 />
             ) : (
-                <i
-                    className="fa-solid fa-box-open"
-                    aria-hidden="true"
-                />
+                <i className="fa-solid fa-box-open" aria-hidden="true" />
             )}
         </div>
     );
 }
 
-// ================== MY ORDERS ==================
-function MyOrders({
-    orders = null,
-    loading = false,
-    error = "",
-    onRetry,
-}) {
+function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
     const [activeFilter, setActiveFilter] = useState("all");
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
@@ -333,32 +124,25 @@ function MyOrders({
     const hasData = Array.isArray(orders) || isDemo;
 
     const orderList = useMemo(
-        () => Array.isArray(orders) ? orders : isDemo ? demoOrders : [],
+        () => (Array.isArray(orders) ? orders : isDemo ? demoOrders : []),
         [orders, isDemo]
     );
 
-    const counts = useMemo(() => ({
-        all: orderList.length,
-        progress: orderList.filter(
-            (order) => getStatusGroup(getStatus(order)) === "progress"
-        ).length,
-        delivered: orderList.filter(
-            (order) => getStatusGroup(getStatus(order)) === "delivered"
-        ).length,
-        cancelled: orderList.filter(
-            (order) => getStatusGroup(getStatus(order)) === "cancelled"
-        ).length,
-    }), [orderList]);
+    const counts = useMemo(
+        () => ({
+            all: orderList.length,
+            progress: orderList.filter((order) => getStatusGroup(getStatus(order)) === "progress").length,
+            delivered: orderList.filter((order) => getStatusGroup(getStatus(order)) === "delivered").length,
+            cancelled: orderList.filter((order) => getStatusGroup(getStatus(order)) === "cancelled").length
+        }),
+        [orderList]
+    );
 
-    // ================== SEARCH & FILTER ==================
     const filteredOrders = useMemo(() => {
         const query = search.trim().toLowerCase();
 
         return orderList
-            .filter((order) => (
-                activeFilter === "all" ||
-                getStatusGroup(getStatus(order)) === activeFilter
-            ))
+            .filter((order) => activeFilter === "all" || getStatusGroup(getStatus(order)) === activeFilter)
             .filter((order) => {
                 if (!query) return true;
 
@@ -368,10 +152,7 @@ function MyOrders({
                     ? order.items.map(getProductName).join(" ").toLowerCase()
                     : "";
 
-                return (
-                    orderId.includes(query) ||
-                    productNames.includes(query)
-                );
+                return orderId.includes(query) || productNames.includes(query);
             })
             .sort((a, b) => {
                 const first = Date.parse(a.createdAt || "") || 0;
@@ -381,17 +162,11 @@ function MyOrders({
             });
     }, [orderList, activeFilter, search]);
 
-    const totalPages = Math.max(
-        1,
-        Math.ceil(filteredOrders.length / PAGE_SIZE)
-    );
+    const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
 
     const currentPage = Math.min(page, totalPages);
 
-    const visibleOrders = filteredOrders.slice(
-        (currentPage - 1) * PAGE_SIZE,
-        currentPage * PAGE_SIZE
-    );
+    const visibleOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
     const changeFilter = (value) => {
         setActiveFilter(value);
@@ -411,37 +186,25 @@ function MyOrders({
 
     return (
         <div className="customer-orders-page">
-
             {/* Page Heading */}
             <div className="customer-orders-heading">
                 <div>
-                    <span className="customer-orders-eyebrow">
-                        ORDER HISTORY
-                    </span>
+                    <span className="customer-orders-eyebrow">ORDER HISTORY</span>
 
                     <h2>My Orders</h2>
 
                     {isDemo && (
                         <span className="customer-orders-demo-label">
-                            <i
-                                className="fa-solid fa-flask"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-solid fa-flask" aria-hidden="true" />
                             Demo Preview — Sample orders, not real purchases
                         </span>
                     )}
 
-                    <p>
-                        View your purchases, track delivery progress
-                        and manage your orders.
-                    </p>
+                    <p>View your purchases, track delivery progress and manage your orders.</p>
                 </div>
 
                 <span className="customer-orders-heading-icon">
-                    <i
-                        className="fa-solid fa-boxes-stacked"
-                        aria-hidden="true"
-                    />
+                    <i className="fa-solid fa-boxes-stacked" aria-hidden="true" />
                 </span>
             </div>
 
@@ -449,52 +212,37 @@ function MyOrders({
             <div className="customer-orders-overview">
                 <div className="customer-orders-stat">
                     <span className="customer-orders-stat-icon">
-                        <i
-                            className="fa-solid fa-bag-shopping"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-bag-shopping" aria-hidden="true" />
                     </span>
 
                     <div>
                         <span>Total Orders</span>
 
-                        <strong>
-                            {hasData ? counts.all : "—"}
-                        </strong>
+                        <strong>{hasData ? counts.all : "—"}</strong>
                     </div>
                 </div>
 
                 <div className="customer-orders-stat">
                     <span className="customer-orders-stat-icon is-progress">
-                        <i
-                            className="fa-solid fa-truck-fast"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-truck-fast" aria-hidden="true" />
                     </span>
 
                     <div>
                         <span>In Progress</span>
 
-                        <strong>
-                            {hasData ? counts.progress : "—"}
-                        </strong>
+                        <strong>{hasData ? counts.progress : "—"}</strong>
                     </div>
                 </div>
 
                 <div className="customer-orders-stat">
                     <span className="customer-orders-stat-icon is-delivered">
-                        <i
-                            className="fa-solid fa-circle-check"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-circle-check" aria-hidden="true" />
                     </span>
 
                     <div>
                         <span>Delivered</span>
 
-                        <strong>
-                            {hasData ? counts.delivered : "—"}
-                        </strong>
+                        <strong>{hasData ? counts.delivered : "—"}</strong>
                     </div>
                 </div>
             </div>
@@ -505,60 +253,40 @@ function MyOrders({
                     <div>
                         <h3>Your Purchases</h3>
 
-                        <p>
-                            Find an order or filter by delivery status.
-                        </p>
+                        <p>Find an order or filter by delivery status.</p>
                     </div>
 
                     <span>
-                        <i
-                            className="fa-solid fa-receipt"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-receipt" aria-hidden="true" />
                     </span>
                 </div>
 
                 {/* Filters & Search */}
                 <div className="customer-orders-toolbar">
-                    <div
-                        className="customer-orders-filters"
-                        role="group"
-                        aria-label="Order status filters"
-                    >
+                    <div className="customer-orders-filters" role="group" aria-label="Order status filters">
                         {statusFilters.map((filter) => (
                             <button
                                 key={filter.value}
                                 type="button"
-                                className={
-                                    activeFilter === filter.value
-                                        ? "is-active"
-                                        : ""
-                                }
+                                className={activeFilter === filter.value ? "is-active" : ""}
                                 disabled={!hasData || loading}
                                 aria-pressed={activeFilter === filter.value}
                                 onClick={() => changeFilter(filter.value)}
                             >
                                 {filter.label}
 
-                                {hasData && (
-                                    <span>{counts[filter.value]}</span>
-                                )}
+                                {hasData && <span>{counts[filter.value]}</span>}
                             </button>
                         ))}
                     </div>
 
                     <label className="customer-orders-search">
-                        <i
-                            className="fa-solid fa-magnifying-glass"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
 
                         <input
                             type="search"
                             value={search}
-                            onChange={(event) =>
-                                changeSearch(event.target.value)
-                            }
+                            onChange={(event) => changeSearch(event.target.value)}
                             placeholder="Search orders..."
                             aria-label="Search orders"
                             disabled={!hasData || loading}
@@ -576,9 +304,7 @@ function MyOrders({
 
                             <h3>Loading your orders</h3>
 
-                            <p>
-                                Retrieving your order information.
-                            </p>
+                            <p>Retrieving your order information.</p>
                         </div>
                     ) : error ? (
                         <div className="customer-orders-empty" role="alert">
@@ -609,17 +335,12 @@ function MyOrders({
                             <h3>Your order history will appear here</h3>
 
                             <p>
-                                Your purchases and delivery updates
-                                will be displayed after account
+                                Your purchases and delivery updates will be displayed after account
                                 integration is completed.
                             </p>
 
-                            <Link
-                                to="/products"
-                                className="customer-orders-empty-button"
-                            >
+                            <Link to="/products" className="customer-orders-empty-button">
                                 Explore Products
-
                                 <i className="fa-solid fa-arrow-right" />
                             </Link>
                         </div>
@@ -631,17 +352,10 @@ function MyOrders({
 
                             <h3>No orders yet</h3>
 
-                            <p>
-                                You haven't placed an order yet.
-                                Explore our products to get started.
-                            </p>
+                            <p>You haven't placed an order yet. Explore our products to get started.</p>
 
-                            <Link
-                                to="/products"
-                                className="customer-orders-empty-button"
-                            >
+                            <Link to="/products" className="customer-orders-empty-button">
                                 Start Shopping
-
                                 <i className="fa-solid fa-arrow-right" />
                             </Link>
                         </div>
@@ -653,9 +367,7 @@ function MyOrders({
 
                             <h3>No matching orders</h3>
 
-                            <p>
-                                Try another search or change your filter.
-                            </p>
+                            <p>Try another search or change your filter.</p>
 
                             <button
                                 type="button"
@@ -675,17 +387,12 @@ function MyOrders({
                                     const statusGroup = getStatusGroup(status);
                                     const deliveryInfo = getDeliveryInfo(order);
 
-                                    const items = Array.isArray(order.items)
-                                        ? order.items
-                                        : [];
+                                    const items = Array.isArray(order.items) ? order.items : [];
 
                                     const firstItem = items[0];
 
                                     return (
-                                        <article
-                                            key={orderId || index}
-                                            className="customer-order-card"
-                                        >
+                                        <article key={orderId || index} className="customer-order-card">
                                             {/* Order Header */}
                                             <div className="customer-order-card-top">
                                                 <div>
@@ -696,13 +403,8 @@ function MyOrders({
                                                     </strong>
                                                 </div>
 
-                                                <span
-                                                    className={`customer-order-status is-${statusGroup}`}
-                                                >
-                                                    <i
-                                                        className="fa-solid fa-circle"
-                                                        aria-hidden="true"
-                                                    />
+                                                <span className={`customer-order-status is-${statusGroup}`}>
+                                                    <i className="fa-solid fa-circle" aria-hidden="true" />
 
                                                     {formatStatus(status)}
                                                 </span>
@@ -712,9 +414,7 @@ function MyOrders({
                                             <div className="customer-order-card-body">
                                                 <div className="customer-order-product">
                                                     {firstItem ? (
-                                                        <OrderThumbnail
-                                                            item={firstItem}
-                                                        />
+                                                        <OrderThumbnail item={firstItem} />
                                                     ) : (
                                                         <div className="customer-order-product-image">
                                                             <i
@@ -733,9 +433,7 @@ function MyOrders({
 
                                                         <p>
                                                             {items.length}{" "}
-                                                            {items.length === 1
-                                                                ? "item"
-                                                                : "items"}
+                                                            {items.length === 1 ? "item" : "items"}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -745,27 +443,19 @@ function MyOrders({
                                                     <div>
                                                         <span>Order Date</span>
 
-                                                        <strong>
-                                                            {formatDate(
-                                                                order.createdAt
-                                                            )}
-                                                        </strong>
+                                                        <strong>{formatDate(order.createdAt)}</strong>
                                                     </div>
 
                                                     <div>
                                                         <span>Total Amount</span>
 
                                                         <strong className="customer-order-amount">
-                                                            {formatAmount(
-                                                                getOrderTotal(order)
-                                                            )}
+                                                            {formatAmount(getOrderTotal(order))}
                                                         </strong>
                                                     </div>
 
                                                     <div className="customer-order-delivery">
-                                                        <span>
-                                                            {deliveryInfo.label}
-                                                        </span>
+                                                        <span>{deliveryInfo.label}</span>
 
                                                         <strong
                                                             className={`customer-order-delivery-date is-${deliveryInfo.type}`}
@@ -783,7 +473,6 @@ function MyOrders({
                                                         className="fa-solid fa-shield-halved"
                                                         aria-hidden="true"
                                                     />
-
                                                     Order information
                                                 </span>
 
@@ -792,7 +481,6 @@ function MyOrders({
                                                         to={`/account/orders/${encodeURIComponent(orderId)}`}
                                                     >
                                                         View Details
-
                                                         <i
                                                             className="fa-solid fa-arrow-right"
                                                             aria-hidden="true"
@@ -816,29 +504,19 @@ function MyOrders({
                                         <button
                                             type="button"
                                             disabled={currentPage === 1}
-                                            onClick={() =>
-                                                setPage(currentPage - 1)
-                                            }
+                                            onClick={() => setPage(currentPage - 1)}
                                             aria-label="Previous page"
                                         >
-                                            <i
-                                                className="fa-solid fa-chevron-left"
-                                                aria-hidden="true"
-                                            />
+                                            <i className="fa-solid fa-chevron-left" aria-hidden="true" />
                                         </button>
 
                                         <button
                                             type="button"
                                             disabled={currentPage === totalPages}
-                                            onClick={() =>
-                                                setPage(currentPage + 1)
-                                            }
+                                            onClick={() => setPage(currentPage + 1)}
                                             aria-label="Next page"
                                         >
-                                            <i
-                                                className="fa-solid fa-chevron-right"
-                                                aria-hidden="true"
-                                            />
+                                            <i className="fa-solid fa-chevron-right" aria-hidden="true" />
                                         </button>
                                     </div>
                                 </div>
@@ -851,28 +529,18 @@ function MyOrders({
             {/* Support Information */}
             <div className="customer-orders-support">
                 <span>
-                    <i
-                        className="fa-solid fa-headset"
-                        aria-hidden="true"
-                    />
+                    <i className="fa-solid fa-headset" aria-hidden="true" />
                 </span>
 
                 <div>
                     <h3>Need help with an order?</h3>
 
-                    <p>
-                        For delivery, payment or product-related issues,
-                        contact our support team.
-                    </p>
+                    <p>For delivery, payment or product-related issues, contact our support team.</p>
                 </div>
 
                 <Link to="/account/complaints">
                     My Complaints
-
-                    <i
-                        className="fa-solid fa-arrow-right"
-                        aria-hidden="true"
-                    />
+                    <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                 </Link>
             </div>
         </div>

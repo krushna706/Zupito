@@ -1,4 +1,3 @@
-
 import { TextField } from "@mui/material";
 
 const addressFields = [
@@ -9,10 +8,9 @@ const addressFields = [
     { name: "area", label: "Street / Area / Locality", autoComplete: "address-line2", full: true },
     { name: "city", label: "City", autoComplete: "address-level2" },
     { name: "state", label: "State", autoComplete: "address-level1" },
-    { name: "landmark", label: "Landmark (Optional)", full: true },
+    { name: "landmark", label: "Landmark (Optional)", full: true }
 ];
 
-// ================== ADDRESS VALIDATION ==================
 export function validateAddress(address = {}) {
     const value = (key) => String(address[key] ?? "").trim();
 
@@ -23,20 +21,17 @@ export function validateAddress(address = {}) {
         house: value("house") ? "" : "House or building details are required.",
         area: value("area") ? "" : "Street or locality is required.",
         city: value("city") ? "" : "City is required.",
-        state: value("state") ? "" : "State is required.",
+        state: value("state") ? "" : "State is required."
     };
 }
 
-// ================== ADDRESS FORM ==================
 function AddressForm({ address, onChange, errors = {}, submitted = false, disabled = false }) {
     const handleChange = (event) => {
         const { name, value } = event.target;
 
         onChange({
             ...address,
-            [name]: ["phone", "pincode"].includes(name)
-                ? value.replace(/\D/g, "")
-                : value,
+            [name]: ["phone", "pincode"].includes(name) ? value.replace(/\D/g, "") : value
         });
     };
 
@@ -68,8 +63,8 @@ function AddressForm({ address, onChange, errors = {}, submitted = false, disabl
                             slotProps={{
                                 htmlInput: {
                                     maxLength: field.maxLength || 150,
-                                    inputMode: field.numeric ? "numeric" : "text",
-                                },
+                                    inputMode: field.numeric ? "numeric" : "text"
+                                }
                             }}
                         />
                     </div>

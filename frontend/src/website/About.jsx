@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { appConfig } from "../config/appConfig";
 
@@ -6,66 +5,67 @@ const benefits = [
     {
         icon: "fa-layer-group",
         title: "Wide Product Selection",
-        description: "Explore electronics, fashion, groceries and travel essentials in one convenient marketplace.",
+        description:
+            "Explore electronics, fashion, groceries and travel essentials in one convenient marketplace."
     },
     {
         icon: "fa-cart-shopping",
         title: "Simple Shopping",
-        description: "Find products, compare variants and enjoy a straightforward shopping experience.",
+        description: "Find products, compare variants and enjoy a straightforward shopping experience."
     },
     {
         icon: "fa-location-dot",
         title: "Flexible Delivery",
-        description: "Choose from saved delivery addresses and manage where your orders should arrive.",
-    },
+        description: "Choose from saved delivery addresses and manage where your orders should arrive."
+    }
 ];
 
 const values = [
     {
         icon: "fa-handshake",
         title: "Trust",
-        description: "We believe in clear communication, transparency and building lasting customer relationships.",
+        description:
+            "We believe in clear communication, transparency and building lasting customer relationships."
     },
     {
         icon: "fa-heart",
         title: "Customer First",
-        description: "Every shopping experience should be simple, comfortable and focused on customer needs.",
+        description: "Every shopping experience should be simple, comfortable and focused on customer needs."
     },
     {
         icon: "fa-lightbulb",
         title: "Innovation",
-        description: "We aim to improve the shopping journey through practical ideas and better technology.",
+        description: "We aim to improve the shopping journey through practical ideas and better technology."
     },
     {
         icon: "fa-arrow-trend-up",
         title: "Continuous Growth",
-        description: "We focus on improving our marketplace and creating better opportunities for everyone involved.",
-    },
+        description:
+            "We focus on improving our marketplace and creating better opportunities for everyone involved."
+    }
 ];
 
 const experience = [
     {
         icon: "fa-magnifying-glass",
         title: "Discover with Ease",
-        description: "Browse products across categories with useful search and filtering options.",
+        description: "Browse products across categories with useful search and filtering options."
     },
     {
         icon: "fa-bag-shopping",
         title: "Shop with Confidence",
-        description: "Review product information, selected variants and order totals before checkout.",
+        description: "Review product information, selected variants and order totals before checkout."
     },
     {
         icon: "fa-location-dot",
         title: "Convenient Checkout",
-        description: "Manage saved addresses, apply available offers and review delivery charges.",
-    },
+        description: "Manage saved addresses, apply available offers and review delivery charges."
+    }
 ];
 
-// ================== ABOUT PAGE ==================
 function About() {
     return (
         <main className="about-page">
-
             {/* Shared About & Contact Hero */}
             <section className="website-story-hero about-hero">
                 <div className="container-fluid website-shell website-story-hero-content">
@@ -83,10 +83,7 @@ function About() {
                             <span> More possibilities.</span>
                         </h1>
 
-                        <p>
-                            Discover a simpler way to shop for your everyday
-                            essentials and favorite finds.
-                        </p>
+                        <p>Discover a simpler way to shop for your everyday essentials and favorite finds.</p>
                     </div>
                 </div>
             </section>
@@ -95,7 +92,6 @@ function About() {
             <section className="about-introduction">
                 <div className="container-fluid website-shell">
                     <div className="about-intro-grid">
-
                         <div className="about-intro-visual">
                             <div className="about-intro-image">
                                 <img
@@ -126,21 +122,19 @@ function About() {
                             </h2>
 
                             <p>
-                                Welcome to <strong>{appConfig.name}</strong>, a
-                                multi-category online marketplace designed to bring
-                                different shopping needs together in one convenient place.
+                                Welcome to <strong>{appConfig.name}</strong>, a multi-category online
+                                marketplace designed to bring different shopping needs together in one
+                                convenient place.
                             </p>
 
                             <p>
-                                From electronics and fashion to groceries and travel
-                                essentials, we aim to make discovering and choosing
-                                products simple, comfortable and enjoyable.
+                                From electronics and fashion to groceries and travel essentials, we aim to
+                                make discovering and choosing products simple, comfortable and enjoyable.
                             </p>
 
                             <p>
-                                Our approach focuses on useful product information,
-                                easy navigation and a shopping experience that puts
-                                convenience first.
+                                Our approach focuses on useful product information, easy navigation and a
+                                shopping experience that puts convenience first.
                             </p>
 
                             <div className="about-intro-highlights">
@@ -176,8 +170,7 @@ function About() {
                         </h2>
 
                         <p>
-                            Our mission guides what we build today.
-                            Our vision shapes what we aim to achieve.
+                            Our mission guides what we build today. Our vision shapes what we aim to achieve.
                         </p>
                     </div>
 
@@ -196,9 +189,8 @@ function About() {
                             <h3>Make shopping simple and accessible.</h3>
 
                             <p>
-                                To create a convenient shopping destination where
-                                customers can discover products across multiple
-                                categories with ease.
+                                To create a convenient shopping destination where customers can discover
+                                products across multiple categories with ease.
                             </p>
 
                             <ul>
@@ -228,9 +220,8 @@ function About() {
                             <h3>Build a better everyday marketplace.</h3>
 
                             <p>
-                                To develop a marketplace that connects customers
-                                with more choices while continuously improving
-                                convenience and usability.
+                                To develop a marketplace that connects customers with more choices while
+                                continuously improving convenience and usability.
                             </p>
 
                             <ul>
@@ -260,10 +251,7 @@ function About() {
                             <span> everyday convenience.</span>
                         </h2>
 
-                        <p>
-                            A shopping experience built around choice,
-                            simplicity and useful features.
-                        </p>
+                        <p>A shopping experience built around choice, simplicity and useful features.</p>
                     </div>
 
                     <div className="about-benefits-grid">
@@ -271,10 +259,7 @@ function About() {
                             <article className="about-benefit-card" key={benefit.title}>
                                 <div className="about-benefit-top">
                                     <span className="about-benefit-icon">
-                                        <i
-                                            className={`fa-solid ${benefit.icon}`}
-                                            aria-hidden="true"
-                                        />
+                                        <i className={`fa-solid ${benefit.icon}`} aria-hidden="true" />
                                     </span>
 
                                     <span className="about-benefit-number">
@@ -303,10 +288,7 @@ function About() {
                             <span> guide us.</span>
                         </h2>
 
-                        <p>
-                            The ideas behind our decisions,
-                            improvements and customer experience.
-                        </p>
+                        <p>The ideas behind our decisions, improvements and customer experience.</p>
                     </div>
 
                     <div className="about-values-grid">
@@ -314,10 +296,7 @@ function About() {
                             <article className="about-value-card" key={value.title}>
                                 <div className="about-value-top">
                                     <span className="about-value-icon">
-                                        <i
-                                            className={`fa-solid ${value.icon}`}
-                                            aria-hidden="true"
-                                        />
+                                        <i className={`fa-solid ${value.icon}`} aria-hidden="true" />
                                     </span>
 
                                     <span className="about-value-number">
@@ -338,9 +317,7 @@ function About() {
                 <div className="container-fluid website-shell">
                     <div className="about-experience-grid">
                         <div className="about-experience-content">
-                            <span className="about-section-eyebrow">
-                                THE ZUPITO EXPERIENCE
-                            </span>
+                            <span className="about-section-eyebrow">THE ZUPITO EXPERIENCE</span>
 
                             <h2>
                                 Shopping made simple.
@@ -348,9 +325,8 @@ function About() {
                             </h2>
 
                             <p>
-                                Our goal is to make the shopping journey easy
-                                to understand, from exploring products to
-                                reviewing an order before payment.
+                                Our goal is to make the shopping journey easy to understand, from exploring
+                                products to reviewing an order before payment.
                             </p>
 
                             <Link to="/products" className="about-outline-button">
@@ -361,15 +337,9 @@ function About() {
 
                         <div className="about-experience-list">
                             {experience.map((item) => (
-                                <article
-                                    className="about-experience-card"
-                                    key={item.title}
-                                >
+                                <article className="about-experience-card" key={item.title}>
                                     <span className="about-experience-icon">
-                                        <i
-                                            className={`fa-solid ${item.icon}`}
-                                            aria-hidden="true"
-                                        />
+                                        <i className={`fa-solid ${item.icon}`} aria-hidden="true" />
                                     </span>
 
                                     <div>
@@ -397,8 +367,8 @@ function About() {
                             </h2>
 
                             <p>
-                                Discover products across categories and
-                                enjoy a convenient shopping experience.
+                                Discover products across categories and enjoy a convenient shopping
+                                experience.
                             </p>
                         </div>
 

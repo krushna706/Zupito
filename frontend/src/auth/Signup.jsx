@@ -1,61 +1,53 @@
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import {
-    Button,
-    IconButton,
-    InputAdornment,
-    TextField,
-} from "@mui/material";
+import { Link, useNavigate } from "react-router-dom";
+import { Button, IconButton, InputAdornment, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
+import { register } from "../services/authService";
 import { appConfig } from "../config/appConfig";
 
 import "../css/auth.css";
 
-// ================== INTRODUCTION CONTENT ==================
 const features = [
     {
         icon: "fa-bag-shopping",
         title: "Explore more",
-        description: "Discover products across your favorite categories.",
+        description: "Discover products across your favorite categories."
     },
     {
         icon: "fa-box-open",
         title: "Manage your orders",
-        description: "Keep track of your purchases in one place.",
+        description: "Keep track of your purchases in one place."
     },
     {
         icon: "fa-truck-fast",
         title: "Stay updated",
-        description: "Follow your orders from checkout to delivery.",
-    },
+        description: "Follow your orders from checkout to delivery."
+    }
 ];
 
-// ================== SIGNUP PAGE ==================
 function Signup() {
+    const navigate = useNavigate();
     const [form, setForm] = useState({
         name: "",
         email: "",
         phone: "",
         password: "",
-        confirmPassword: "",
+        confirmPassword: ""
     });
 
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // ================== INPUT HANDLER ==================
     const handleChange = (event) => {
         const { name, value } = event.target;
 
         setForm((previous) => ({
             ...previous,
-            [name]: value,
+            [name]: value
         }));
     };
 
-    // ================== SIGNUP SUBMISSION ==================
     const handleSubmit = (event) => {
         event.preventDefault();
 
@@ -69,10 +61,7 @@ function Signup() {
             return;
         }
 
-        if (
-            email.length > 254 ||
-            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-        ) {
+        if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             toast.error("Enter a valid email address.");
             return;
         }
@@ -97,26 +86,26 @@ function Signup() {
             return;
         }
 
-        // Backend will validate uniqueness and create the customer account.
-        toast.info("Account registration will be available after backend integration.");
+        try {
+            register({ name, email, phone, password });
+            toast.success("Account created. Please sign in.");
+            navigate("/manage");
+        } catch (error) {
+            toast.error(error.message);
+        }
     };
 
     return (
         <div className="website-layout auth-layout">
             <main className="auth-main">
-                {/* Back Navigation */}
                 <div className="auth-topbar">
                     <Link to="/" className="auth-back-link">
-                        <i
-                            className="fa-solid fa-arrow-left"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-arrow-left" aria-hidden="true" />
                         Back to Home
                     </Link>
                 </div>
 
                 <div className="auth-card">
-                    {/* Introduction Section */}
                     <aside className="auth-introduction">
                         <img
                             src="/images/about-story.jpg"
@@ -126,9 +115,7 @@ function Signup() {
                         />
 
                         <div className="auth-introduction-content">
-                            <p className="website-section-label">
-                                WELCOME TO ZUPITO
-                            </p>
+                            <p className="website-section-label">WELCOME TO ZUPITO</p>
 
                             <h2 className="website-section-title">
                                 Your world of shopping,
@@ -136,19 +123,15 @@ function Signup() {
                             </h2>
 
                             <p className="website-section-description">
-                                Create your account to explore products,
-                                manage purchases and enjoy a convenient
-                                shopping experience.
+                                Create your account to explore products, manage purchases and enjoy a
+                                convenient shopping experience.
                             </p>
 
                             <ul className="auth-features">
                                 {features.map((feature) => (
                                     <li key={feature.title}>
                                         <span className="auth-feature-icon">
-                                            <i
-                                                className={`fa-solid ${feature.icon}`}
-                                                aria-hidden="true"
-                                            />
+                                            <i className={`fa-solid ${feature.icon}`} aria-hidden="true" />
                                         </span>
 
                                         <div>
@@ -160,33 +143,18 @@ function Signup() {
                             </ul>
                         </div>
 
-                        <p className="auth-introduction-note">
-                            Everyday essentials. Exceptional finds.
-                        </p>
+                        <p className="auth-introduction-note">Everyday essentials. Exceptional finds.</p>
                     </aside>
 
                     {/* Signup Form */}
-                    <section
-                        className="auth-form-panel"
-                        aria-labelledby="signup-title"
-                    >
+                    <section className="auth-form-panel" aria-labelledby="signup-title">
                         <div className="auth-form-content">
                             <header className="auth-form-header">
-                                <Link
-                                    to="/"
-                                    className="website-brand auth-brand"
-                                    aria-label="Zupito Home"
-                                >
-                                    <img
-                                        src={appConfig.logo}
-                                        alt={appConfig.name}
-                                    />
+                                <Link to="/" className="website-brand auth-brand" aria-label="Zupito Home">
+                                    <img src={appConfig.logo} alt={appConfig.name} />
                                 </Link>
 
-                                <h1
-                                    id="signup-title"
-                                    className="website-section-title"
-                                >
+                                <h1 id="signup-title" className="website-section-title">
                                     Create <span>Account</span>
                                 </h1>
 
@@ -195,11 +163,7 @@ function Signup() {
                                 </p>
                             </header>
 
-                            <form
-                                className="auth-form"
-                                onSubmit={handleSubmit}
-                                noValidate
-                            >
+                            <form className="auth-form" onSubmit={handleSubmit} noValidate>
                                 <TextField
                                     label="Full Name"
                                     name="name"
@@ -208,7 +172,7 @@ function Signup() {
                                     className="auth-text-field"
                                     autoComplete="name"
                                     slotProps={{
-                                        htmlInput: { maxLength: 100 },
+                                        htmlInput: { maxLength: 100 }
                                     }}
                                     fullWidth
                                     required
@@ -223,7 +187,7 @@ function Signup() {
                                     className="auth-text-field"
                                     autoComplete="email"
                                     slotProps={{
-                                        htmlInput: { maxLength: 254 },
+                                        htmlInput: { maxLength: 254 }
                                     }}
                                     fullWidth
                                     required
@@ -240,8 +204,8 @@ function Signup() {
                                     slotProps={{
                                         htmlInput: {
                                             maxLength: 10,
-                                            inputMode: "numeric",
-                                        },
+                                            inputMode: "numeric"
+                                        }
                                     }}
                                     fullWidth
                                     required
@@ -263,29 +227,23 @@ function Signup() {
                                                         type="button"
                                                         className="auth-password-toggle"
                                                         onClick={() =>
-                                                            setShowPassword(
-                                                                (previous) => !previous
-                                                            )
+                                                            setShowPassword((previous) => !previous)
                                                         }
                                                         aria-label={
-                                                            showPassword
-                                                                ? "Hide password"
-                                                                : "Show password"
+                                                            showPassword ? "Hide password" : "Show password"
                                                         }
                                                         edge="end"
                                                     >
                                                         <i
                                                             className={`fa-solid ${
-                                                                showPassword
-                                                                    ? "fa-eye-slash"
-                                                                    : "fa-eye"
+                                                                showPassword ? "fa-eye-slash" : "fa-eye"
                                                             }`}
                                                             aria-hidden="true"
                                                         />
                                                     </IconButton>
                                                 </InputAdornment>
-                                            ),
-                                        },
+                                            )
+                                        }
                                     }}
                                     fullWidth
                                     required
@@ -307,9 +265,7 @@ function Signup() {
                                                         type="button"
                                                         className="auth-password-toggle"
                                                         onClick={() =>
-                                                            setShowConfirmPassword(
-                                                                (previous) => !previous
-                                                            )
+                                                            setShowConfirmPassword((previous) => !previous)
                                                         }
                                                         aria-label={
                                                             showConfirmPassword
@@ -328,8 +284,8 @@ function Signup() {
                                                         />
                                                     </IconButton>
                                                 </InputAdornment>
-                                            ),
-                                        },
+                                            )
+                                        }
                                     }}
                                     fullWidth
                                     required
@@ -343,21 +299,14 @@ function Signup() {
                                     fullWidth
                                 >
                                     Create Account
-
-                                    <i
-                                        className="fa-solid fa-arrow-right"
-                                        aria-hidden="true"
-                                    />
+                                    <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                                 </Button>
                             </form>
 
                             {/* Sign In Link */}
                             <div className="auth-account-row">
                                 <p className="auth-switch">
-                                    Already have an account?{" "}
-                                    <Link to="/manage">
-                                        Sign In
-                                    </Link>
+                                    Already have an account? <Link to="/manage">Sign In</Link>
                                 </p>
                             </div>
                         </div>

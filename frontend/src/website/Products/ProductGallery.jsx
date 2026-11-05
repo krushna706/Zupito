@@ -1,11 +1,7 @@
-
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-// ================== PRODUCT GALLERY ==================
 function ProductGallery({ productId, name = "Product", image, images = [] }) {
-    const sources = [...new Set(
-        [image, ...images].filter((src) => typeof src === "string" && src.trim())
-    )];
+    const sources = [...new Set([image, ...images].filter((src) => typeof src === "string" && src.trim()))];
 
     return <Gallery key={JSON.stringify([productId, sources])} name={name} images={sources} />;
 }
@@ -91,14 +87,17 @@ function Gallery({ name, images }) {
     useEffect(() => {
         if (!movingRef.current || instant) return;
 
-        const timeout = setTimeout(() => {
-            if (position === 0 || position === count + 1) {
-                setInstant(true);
-                setPosition(position === 0 ? count : 1);
-            } else {
-                movingRef.current = false;
-            }
-        }, reducedMotion ? 0 : 700);
+        const timeout = setTimeout(
+            () => {
+                if (position === 0 || position === count + 1) {
+                    setInstant(true);
+                    setPosition(position === 0 ? count : 1);
+                } else {
+                    movingRef.current = false;
+                }
+            },
+            reducedMotion ? 0 : 700
+        );
 
         return () => clearTimeout(timeout);
     }, [position, instant, count, reducedMotion]);
@@ -108,9 +107,12 @@ function Gallery({ name, images }) {
 
         const interval = setInterval(() => {
             if (
-                document.hidden || movingRef.current || touchRef.current ||
+                document.hidden ||
+                movingRef.current ||
+                touchRef.current ||
                 Date.now() - lastInteractionRef.current < 5000
-            ) return;
+            )
+                return;
 
             movingRef.current = true;
             setPosition((value) => value + 1);
@@ -128,11 +130,11 @@ function Gallery({ name, images }) {
         setPosition((value) => value + direction);
     };
 
-    const selectSlide = (index) => {
+    const selectSlide = (index, timestamp) => {
         if (movingRef.current || activeIndex === index) return;
 
         movingRef.current = true;
-        lastInteractionRef.current = Date.now();
+        lastInteractionRef.current = timestamp;
         setZoomed(false);
         setPosition(index + 1);
     };
@@ -143,7 +145,7 @@ function Gallery({ name, images }) {
         lastInteractionRef.current = Date.now();
         touchRef.current = {
             x: event.touches[0].clientX,
-            y: event.touches[0].clientY,
+            y: event.touches[0].clientY
         };
     };
 
@@ -202,14 +204,23 @@ function Gallery({ name, images }) {
                     {images.map((source, index) => (
                         <button
                             key={source}
-                            ref={(element) => { thumbnailsRef.current[index] = element; }}
+                            ref={(element) => {
+                                thumbnailsRef.current[index] = element;
+                            }}
                             type="button"
                             className={`product-gallery-thumbnail ${index === activeIndex ? "is-active" : ""}`}
                             aria-label={`Show image ${index + 1} of ${count}`}
                             aria-pressed={index === activeIndex}
-                            onClick={() => selectSlide(index)}
+                            onClick={() => selectSlide(index, Date.now())}
                         >
-                            <img src={source} alt="" width="80" height="80" loading="lazy" draggable={false} />
+                            <img
+                                src={source}
+                                alt=""
+                                width="80"
+                                height="80"
+                                loading="lazy"
+                                draggable={false}
+                            />
                         </button>
                     ))}
                 </div>
@@ -224,7 +235,9 @@ function Gallery({ name, images }) {
                     aria-label="Product image viewer"
                     onTouchStart={onTouchStart}
                     onTouchEnd={onTouchEnd}
-                    onTouchCancel={() => { touchRef.current = null; }}
+                    onTouchCancel={() => {
+                        touchRef.current = null;
+                    }}
                     onPointerMove={moveZoom}
                     onKeyDown={(event) => {
                         if (event.target !== event.currentTarget) return;
@@ -239,10 +252,8 @@ function Gallery({ name, images }) {
                         ref={trackRef}
                         className={`product-gallery-track ${instant || reducedMotion ? "is-instant" : ""}`}
                         onTransitionEnd={(event) => {
-                            if (
-                                event.target === event.currentTarget &&
-                                event.propertyName === "transform"
-                            ) finishSlide();
+                            if (event.target === event.currentTarget && event.propertyName === "transform")
+                                finishSlide();
                         }}
                     >
                         {slides.map((source, index) => (

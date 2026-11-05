@@ -1,111 +1,20 @@
-
-import { useEffect, useState } from "react";
+import { calculateCheckoutPricing, coupons } from "../../services/cartService";
+import { useState } from "react";
 import { Button, TextField } from "@mui/material";
-
-// ================== PRICING RULES ==================
-const FREE_DELIVERY_MINIMUM = 499;
-const STANDARD_DELIVERY_CHARGE = 40;
-
-const coupons = {
-    ZUPITO10: {
-        minAmount: 499,
-        type: "percentage",
-        value: 10,
-        maxDiscount: 100,
-    },
-    WELCOME50: {
-        minAmount: 999,
-        type: "fixed",
-        value: 50,
-    },
-};
 
 const formatPrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 2
 }).format;
 
-const roundPrice = (amount) => Math.round(amount * 100) / 100;
-
-// ================== SHARED PRICING CALCULATION ==================
-export function calculateCheckoutPricing(cartItems = [], couponCode = "") {
-    const items = Array.isArray(cartItems) ? cartItems : [];
-
-    const itemCount = items.reduce(
-        (total, item) => total + item.quantity,
-        0
-    );
-
-    const subtotal = roundPrice(items.reduce(
-        (total, item) => total + item.price * item.quantity,
-        0
-    ));
-
-    const productDiscount = roundPrice(items.reduce(
-        (total, item) => (
-            total + Math.max(0, item.mrp - item.price) * item.quantity
-        ),
-        0
-    ));
-
-    const originalPrice = roundPrice(subtotal + productDiscount);
-
-    const deliveryCharge = items.length === 0 ||
-        subtotal >= FREE_DELIVERY_MINIMUM
-        ? 0
-        : STANDARD_DELIVERY_CHARGE;
-
-    const amountForFreeDelivery = roundPrice(
-        Math.max(0, FREE_DELIVERY_MINIMUM - subtotal)
-    );
-
-    const code = String(couponCode).trim().toUpperCase();
-    const coupon = coupons[code];
-
-    let couponDiscount = 0;
-
-    if (coupon && subtotal >= coupon.minAmount) {
-        couponDiscount = coupon.type === "percentage"
-            ? Math.min(subtotal * coupon.value / 100, coupon.maxDiscount)
-            : coupon.value;
-
-        couponDiscount = roundPrice(Math.min(couponDiscount, subtotal));
-    }
-
-    const total = roundPrice(
-        Math.max(0, subtotal - couponDiscount + deliveryCharge)
-    );
-
-    const totalSavings = roundPrice(productDiscount + couponDiscount);
-
-    return {
-        itemCount,
-        originalPrice,
-        subtotal,
-        productDiscount,
-        couponDiscount,
-        deliveryCharge,
-        amountForFreeDelivery,
-        total,
-        totalSavings,
-        appliedCoupon: couponDiscount > 0 ? code : "",
-    };
-}
-
-// ================== CHECKOUT SUMMARY ==================
-function CheckoutSummary({
-    cartItems = [],
-    couponCode,
-    onCouponChange,
-}) {
+function CheckoutSummary({ cartItems = [], couponCode, onCouponChange }) {
     const [couponInput, setCouponInput] = useState("");
     const [localCoupon, setLocalCoupon] = useState("");
     const [couponError, setCouponError] = useState("");
 
     // Supports both standalone and parent-controlled coupon state.
-    const controlled = typeof couponCode === "string" &&
-        typeof onCouponChange === "function";
+    const controlled = typeof couponCode === "string" && typeof onCouponChange === "function";
 
     const selectedCoupon = controlled ? couponCode : localCoupon;
 
@@ -118,6 +27,9 @@ function CheckoutSummary({
     };
 
     const pricing = calculateCheckoutPricing(cartItems, selectedCoupon);
+    const invalidCoupon = selectedCoupon && !pricing.appliedCoupon;
+    const visibleCouponError =
+        couponError || (invalidCoupon ? "Coupon is not eligible for this order value." : "");
 
     const {
         itemCount,
@@ -129,25 +41,10 @@ function CheckoutSummary({
         amountForFreeDelivery,
         total,
         totalSavings,
-        appliedCoupon,
+        appliedCoupon
     } = pricing;
 
     // Remove coupon automatically when cart becomes ineligible.
-    useEffect(() => {
-        if (!selectedCoupon) return;
-
-        const coupon = coupons[selectedCoupon];
-
-        if (!coupon || subtotal < coupon.minAmount) {
-            if (controlled) {
-                onCouponChange("");
-            } else {
-                setLocalCoupon("");
-            }
-
-            setCouponError("Coupon removed because the order value changed.");
-        }
-    }, [selectedCoupon, subtotal, controlled, onCouponChange]);
 
     const handleApplyCoupon = () => {
         const code = couponInput.trim().toUpperCase();
@@ -165,9 +62,7 @@ function CheckoutSummary({
         }
 
         if (subtotal < coupon.minAmount) {
-            setCouponError(
-                `Minimum order of ${formatPrice(coupon.minAmount)} required.`
-            );
+            setCouponError(`Minimum order of ${formatPrice(coupon.minAmount)} required.`);
             return;
         }
 
@@ -189,7 +84,6 @@ function CheckoutSummary({
             </div>
 
             <div className="cart-summary-content">
-
                 {/* Price Details */}
                 <div className="cart-summary-list">
                     <div className="cart-summary-row">
@@ -216,9 +110,7 @@ function CheckoutSummary({
                     <div className="cart-summary-row">
                         <span>Delivery Charges</span>
                         <strong className={deliveryCharge === 0 ? "cart-summary-discount" : ""}>
-                            {deliveryCharge === 0
-                                ? "FREE"
-                                : formatPrice(deliveryCharge)}
+                            {deliveryCharge === 0 ? "FREE" : formatPrice(deliveryCharge)}
                         </strong>
                     </div>
                 </div>
@@ -226,9 +118,7 @@ function CheckoutSummary({
                 {/* Delivery Information */}
                 <div className="checkout-delivery-message">
                     <i
-                        className={`fa-solid ${
-                            deliveryCharge === 0 ? "fa-truck-fast" : "fa-circle-info"
-                        }`}
+                        className={`fa-solid ${deliveryCharge === 0 ? "fa-truck-fast" : "fa-circle-info"}`}
                         aria-hidden="true"
                     />
 
@@ -252,10 +142,7 @@ function CheckoutSummary({
                                 <strong>{appliedCoupon}</strong>
 
                                 <span>
-                                    <i
-                                        className="fa-solid fa-circle-check"
-                                        aria-hidden="true"
-                                    />
+                                    <i className="fa-solid fa-circle-check" aria-hidden="true" />
                                     Coupon applied successfully
                                 </span>
                             </div>
@@ -290,10 +177,10 @@ function CheckoutSummary({
                                     slotProps={{
                                         htmlInput: {
                                             maxLength: 30,
-                                            autoComplete: "off",
-                                        },
+                                            autoComplete: "off"
+                                        }
                                     }}
-                                    error={Boolean(couponError)}
+                                    error={Boolean(visibleCouponError)}
                                     fullWidth
                                 />
 
@@ -307,16 +194,15 @@ function CheckoutSummary({
                                 </Button>
                             </div>
 
-                            {couponError && (
+                            {visibleCouponError && (
                                 <p className="checkout-coupon-error" role="alert">
-                                    {couponError}
+                                    {visibleCouponError}
                                 </p>
                             )}
 
                             <p className="checkout-coupon-hint">
-                                Available offers: <strong>ZUPITO10</strong> (10% off,
-                                up to ₹100, ₹499+ order) and{" "}
-                                <strong>WELCOME50</strong> (₹50 off, ₹999+ order).
+                                Available offers: <strong>ZUPITO10</strong> (10% off, up to ₹100, ₹499+ order)
+                                and <strong>WELCOME50</strong> (₹50 off, ₹999+ order).
                             </p>
                         </>
                     )}

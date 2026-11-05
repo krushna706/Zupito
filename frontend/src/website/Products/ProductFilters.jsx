@@ -1,29 +1,13 @@
-
 import { useId } from "react";
-import {
-    Button,
-    Checkbox,
-    FormControlLabel,
-    Radio,
-    RadioGroup,
-    Rating,
-    Slider,
-} from "@mui/material";
+import { Button, Checkbox, FormControlLabel, Radio, RadioGroup, Rating, Slider } from "@mui/material";
 
 const priceFormatter = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 0
 });
 
-// ================== PRODUCT FILTERS ==================
-function ProductFilters({
-    categories = [],
-    filters,
-    priceBounds = [0, 100000],
-    onChange,
-    onClear,
-}) {
+function ProductFilters({ categories = [], filters, priceBounds = [0, 100000], onChange, onClear }) {
     const filterId = useId();
     const [minPrice, maxPrice] = priceBounds;
 
@@ -63,10 +47,7 @@ function ProductFilters({
             </div>
 
             {/* Category */}
-            <section
-                className="product-filter-group"
-                aria-labelledby={`${filterId}-category`}
-            >
+            <section className="product-filter-group" aria-labelledby={`${filterId}-category`}>
                 <h3 id={`${filterId}-category`} className="product-filter-heading">
                     Category
                 </h3>
@@ -88,9 +69,7 @@ function ProductFilters({
                                 <span className="product-filter-option-label">
                                     <span>{category.name}</span>
                                     {Number.isInteger(category.count) && (
-                                        <span className="product-filter-count">
-                                            ({category.count})
-                                        </span>
+                                        <span className="product-filter-count">({category.count})</span>
                                     )}
                                 </span>
                             }
@@ -104,10 +83,7 @@ function ProductFilters({
             </section>
 
             {/* Price Range */}
-            <section
-                className="product-filter-group"
-                aria-labelledby={`${filterId}-price`}
-            >
+            <section className="product-filter-group" aria-labelledby={`${filterId}-price`}>
                 <h3 id={`${filterId}-price`} className="product-filter-heading">
                     Price range
                 </h3>
@@ -129,7 +105,7 @@ function ProductFilters({
                         onChange={(_, value) => {
                             if (Array.isArray(value)) onChange({ priceRange: value });
                         }}
-                        getAriaLabel={(index) => index === 0 ? "Minimum price" : "Maximum price"}
+                        getAriaLabel={(index) => (index === 0 ? "Minimum price" : "Maximum price")}
                         getAriaValueText={priceFormatter.format}
                         valueLabelDisplay="auto"
                         valueLabelFormat={priceFormatter.format}
@@ -138,10 +114,7 @@ function ProductFilters({
             </section>
 
             {/* Customer Rating */}
-            <section
-                className="product-filter-group"
-                aria-labelledby={`${filterId}-rating`}
-            >
+            <section className="product-filter-group" aria-labelledby={`${filterId}-rating`}>
                 <h3 id={`${filterId}-rating`} className="product-filter-heading">
                     Customer rating
                 </h3>
@@ -150,9 +123,11 @@ function ProductFilters({
                     aria-labelledby={`${filterId}-rating`}
                     name={`${filterId}-rating`}
                     value={String(minRating)}
-                    onChange={(event) => onChange({
-                        minRating: Number(event.target.value),
-                    })}
+                    onChange={(event) =>
+                        onChange({
+                            minRating: Number(event.target.value)
+                        })
+                    }
                 >
                     <FormControlLabel
                         value="0"
@@ -173,9 +148,7 @@ function ProductFilters({
                                         <Rating value={rating} readOnly size="small" />
                                     </span>
                                     <span aria-hidden="true">& above</span>
-                                    <span className="visually-hidden">
-                                        {rating} stars and above
-                                    </span>
+                                    <span className="visually-hidden">{rating} stars and above</span>
                                 </span>
                             }
                         />
@@ -184,10 +157,7 @@ function ProductFilters({
             </section>
 
             {/* Availability */}
-            <section
-                className="product-filter-group"
-                aria-labelledby={`${filterId}-availability`}
-            >
+            <section className="product-filter-group" aria-labelledby={`${filterId}-availability`}>
                 <h3 id={`${filterId}-availability`} className="product-filter-heading">
                     Availability
                 </h3>

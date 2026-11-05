@@ -1,10 +1,6 @@
-
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import {
-    Drawer, IconButton, MenuItem, Pagination,
-    TextField, useMediaQuery,
-} from "@mui/material";
+import { Drawer, IconButton, MenuItem, Pagination, TextField, useMediaQuery } from "@mui/material";
 
 import ProductCard from "../../components/ProductCard";
 import ProductFilters from "./ProductFilters";
@@ -13,10 +9,9 @@ import {
     getAvailableStock,
     getDisplayVariant,
     getProductView,
-    hasProductVariants,
+    hasProductVariants
 } from "../../utils/productVariants";
 
-// ================== CATALOG CONFIGURATION ==================
 const PAGE_SIZE = 30;
 
 const categories = [
@@ -35,38 +30,64 @@ const categories = [
     { id: "home-kitchen", name: "Home & Kitchen" },
     { id: "backpacks", name: "Backpacks" },
     { id: "trolley-bags", name: "Trolley Bags" },
-    { id: "travel-accessories", name: "Travel Accessories" },
+    { id: "travel-accessories", name: "Travel Accessories" }
 ];
 
 const categoryGroups = {
     electronics: ["mobiles", "laptops", "headphones"],
     fashion: ["mens-wear", "womens-wear", "kids-wear", "footwear", "watches", "backpacks"],
     grocery: ["daily-essentials", "snacks-drinks"],
-    travel: ["backpacks", "trolley-bags", "travel-accessories"],
+    travel: ["backpacks", "trolley-bags", "travel-accessories"]
 };
 
 const groupTitles = {
     electronics: "Electronics",
     fashion: "Fashion",
     grocery: "Groceries",
-    travel: "Travel Essentials",
+    travel: "Travel Essentials"
 };
 
 const collections = {
     featured: ["smartphone", "headphones", "shirt", "shoes", "watch", "backpack", "laptop", "kitchen"],
-    "daily-essentials": ["pantry", "personal-care", "snacks", "kitchen"],
+    "daily-essentials": ["pantry", "personal-care", "snacks", "kitchen"]
 };
 
 const bestSellingOrder = [
-    "headphones", "shoes", "watch", "smartphone", "backpack", "snacks",
-    "shirt", "personal-care", "pantry", "dress", "laptop", "kitchen",
-    "kids", "beauty", "trolley", "travel",
+    "headphones",
+    "shoes",
+    "watch",
+    "smartphone",
+    "backpack",
+    "snacks",
+    "shirt",
+    "personal-care",
+    "pantry",
+    "dress",
+    "laptop",
+    "kitchen",
+    "kids",
+    "beauty",
+    "trolley",
+    "travel"
 ];
 
 const newestOrder = [
-    "laptop", "dress", "beauty", "trolley", "travel", "kids",
-    "kitchen", "watch", "smartphone", "headphones", "shirt",
-    "shoes", "backpack", "snacks", "personal-care", "pantry",
+    "laptop",
+    "dress",
+    "beauty",
+    "trolley",
+    "travel",
+    "kids",
+    "kitchen",
+    "watch",
+    "smartphone",
+    "headphones",
+    "shirt",
+    "shoes",
+    "backpack",
+    "snacks",
+    "personal-care",
+    "pantry"
 ];
 
 const sortOptions = [
@@ -75,23 +96,21 @@ const sortOptions = [
     { value: "price-asc", label: "Price: Low to High" },
     { value: "price-desc", label: "Price: High to Low" },
     { value: "top-rated", label: "Top Rated" },
-    { value: "best-selling", label: "Best Selling" },
+    { value: "best-selling", label: "Best Selling" }
 ];
 
 const catalog = productCatalog;
 const categoryIds = new Set(categories.map((item) => item.id));
 
-const catalogPrices = catalog.flatMap((product) => (
-    hasProductVariants(product)
-        ? product.variants.map((variant) => variant.price)
-        : [product.price]
-)).filter(Number.isFinite);
+const catalogPrices = catalog
+    .flatMap((product) =>
+        hasProductVariants(product) ? product.variants.map((variant) => variant.price) : [product.price]
+    )
+    .filter(Number.isFinite);
 
 const priceBounds = [0, Math.max(1000, ...catalogPrices)];
 
-const getRanks = (items) => new Map(
-    items.map((id, index) => [`preview-${id}`, index])
-);
+const getRanks = (items) => new Map(items.map((id, index) => [`preview-${id}`, index]));
 
 const salesRanks = getRanks(bestSellingOrder);
 const newestRanks = getRanks(newestOrder);
@@ -101,9 +120,7 @@ const readPrice = (value, fallback) => {
 
     const price = Number(value);
 
-    return Number.isFinite(price)
-        ? Math.min(priceBounds[1], Math.max(priceBounds[0], price))
-        : fallback;
+    return Number.isFinite(price) ? Math.min(priceBounds[1], Math.max(priceBounds[0], price)) : fallback;
 };
 
 const matchesSearch = (product, variant, words) => {
@@ -119,8 +136,11 @@ const matchesSearch = (product, variant, words) => {
         groupTitles[product.group],
         view.variantLabel,
         view.packLabel,
-        ...Object.values(view.selectedOptions),
-    ].filter(Boolean).join(" ").toLowerCase();
+        ...Object.values(view.selectedOptions)
+    ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
     return words.every((word) => text.includes(word));
 };
@@ -132,19 +152,14 @@ const selectVariant = (product, candidates, sort) => {
         return getDisplayVariant(product, { candidates });
     }
 
-    const available = candidates.filter(
-        (variant) => getAvailableStock(variant) > 0
-    );
+    const available = candidates.filter((variant) => getAvailableStock(variant) > 0);
 
     const pool = available.length ? available : candidates;
     const direction = sort === "price-asc" ? 1 : -1;
 
-    return [...pool].sort(
-        (first, second) => direction * (first.price - second.price)
-    )[0] ?? null;
+    return [...pool].sort((first, second) => direction * (first.price - second.price))[0] ?? null;
 };
 
-// ================== PRODUCTS PAGE ==================
 function Products() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -154,28 +169,24 @@ function Products() {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
     const categoryParam = searchParams.get("category") || "";
 
-    const requestedCategories = categoryParam.split(",").map(
-        (id) => id.trim()
-    ).filter(Boolean);
+    const requestedCategories = categoryParam
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
 
-    const selectedCategories = [...new Set(
-        requestedCategories.flatMap(
-            (id) => categoryGroups[id] || (categoryIds.has(id) ? [id] : [])
+    const selectedCategories = [
+        ...new Set(
+            requestedCategories.flatMap((id) => categoryGroups[id] || (categoryIds.has(id) ? [id] : []))
         )
-    )];
+    ];
 
-    const hasUnknownCategory = requestedCategories.some(
-        (id) => !categoryGroups[id] && !categoryIds.has(id)
-    );
+    const hasUnknownCategory = requestedCategories.some((id) => !categoryGroups[id] && !categoryIds.has(id));
 
     const collection = searchParams.get("collection") || "";
-    const collectionIds = collections[collection]?.map(
-        (id) => `preview-${id}`
-    );
+    const collectionIds = collections[collection]?.map((id) => `preview-${id}`);
 
     const requestedSort = searchParams.get("sort");
-    const sort = sortOptions.some((item) => item.value === requestedSort)
-        ? requestedSort : "recommended";
+    const sort = sortOptions.some((item) => item.value === requestedSort) ? requestedSort : "recommended";
 
     const minPrice = readPrice(searchParams.get("minPrice"), priceBounds[0]);
     const maxPrice = readPrice(searchParams.get("maxPrice"), priceBounds[1]);
@@ -186,7 +197,7 @@ function Products() {
         categories: selectedCategories,
         priceRange: [Math.min(minPrice, maxPrice), Math.max(minPrice, maxPrice)],
         minRating,
-        inStockOnly: searchParams.get("inStock") === "true",
+        inStockOnly: searchParams.get("inStock") === "true"
     };
 
     // Search each product against its own matching variants.
@@ -195,18 +206,14 @@ function Products() {
         if (collectionIds && !collectionIds.includes(product._id)) return [];
 
         const variants = hasProductVariants(product) ? product.variants : [null];
-        const candidates = variants.filter(
-            (variant) => matchesSearch(product, variant, words)
-        );
+        const candidates = variants.filter((variant) => matchesSearch(product, variant, words));
 
         return candidates.length ? [{ product, candidates }] : [];
     });
 
     const filterCategories = categories.map((category) => ({
         ...category,
-        count: scopedProducts.filter(
-            ({ product }) => product.category === category.id
-        ).length,
+        count: scopedProducts.filter(({ product }) => product.category === category.id).length
     }));
 
     const filteredProducts = scopedProducts.flatMap(({ product, candidates }) => {
@@ -216,20 +223,22 @@ function Products() {
             return [];
         }
 
-        if (minRating > 0 && (
-            !Number.isFinite(product.rating) ||
-            product.rating < minRating ||
-            !(product.ratingCount > 0)
-        )) return [];
+        if (
+            minRating > 0 &&
+            (!Number.isFinite(product.rating) || product.rating < minRating || !(product.ratingCount > 0))
+        )
+            return [];
 
         const eligible = candidates.filter((variant) => {
             const view = getProductView(product, variant);
 
-            return view &&
+            return (
+                view &&
                 Number.isFinite(view.price) &&
                 view.price >= filters.priceRange[0] &&
                 view.price <= filters.priceRange[1] &&
-                (!filters.inStockOnly || view.stock > 0);
+                (!filters.inStockOnly || view.stock > 0)
+            );
         });
 
         if (!eligible.length) return [];
@@ -247,14 +256,19 @@ function Products() {
             case "price-desc":
                 return b.view.price - a.view.price;
             case "top-rated":
-                return (b.view.rating || 0) - (a.view.rating || 0)
-                    || (b.view.ratingCount || 0) - (a.view.ratingCount || 0);
+                return (
+                    (b.view.rating || 0) - (a.view.rating || 0) ||
+                    (b.view.ratingCount || 0) - (a.view.ratingCount || 0)
+                );
             case "best-selling":
-                return (salesRanks.get(a.product._id) ?? Infinity)
-                    - (salesRanks.get(b.product._id) ?? Infinity);
+                return (
+                    (salesRanks.get(a.product._id) ?? Infinity) - (salesRanks.get(b.product._id) ?? Infinity)
+                );
             case "newest":
-                return (newestRanks.get(a.product._id) ?? Infinity)
-                    - (newestRanks.get(b.product._id) ?? Infinity);
+                return (
+                    (newestRanks.get(a.product._id) ?? Infinity) -
+                    (newestRanks.get(b.product._id) ?? Infinity)
+                );
             default:
                 return 0;
         }
@@ -262,72 +276,77 @@ function Products() {
 
     const totalPages = Math.max(1, Math.ceil(sortedProducts.length / PAGE_SIZE));
     const requestedPage = Number(searchParams.get("page"));
-    const currentPage = Number.isInteger(requestedPage) && requestedPage > 0
-        ? Math.min(requestedPage, totalPages) : 1;
+    const currentPage =
+        Number.isInteger(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, totalPages) : 1;
 
     const startIndex = (currentPage - 1) * PAGE_SIZE;
     const visibleProducts = sortedProducts.slice(startIndex, startIndex + PAGE_SIZE);
 
-    const activeFilterCount = selectedCategories.length
-        + Number(filters.priceRange[0] !== priceBounds[0]
-            || filters.priceRange[1] !== priceBounds[1])
-        + Number(minRating > 0)
-        + Number(filters.inStockOnly);
+    const activeFilterCount =
+        selectedCategories.length +
+        Number(filters.priceRange[0] !== priceBounds[0] || filters.priceRange[1] !== priceBounds[1]) +
+        Number(minRating > 0) +
+        Number(filters.inStockOnly);
 
     let pageTitle = "All Products";
 
     if (query) pageTitle = `Results for “${query}”`;
     else if (groupTitles[categoryParam]) pageTitle = groupTitles[categoryParam];
     else if (selectedCategories.length === 1) {
-        pageTitle = categories.find(
-            (category) => category.id === selectedCategories[0]
-        )?.name || pageTitle;
+        pageTitle = categories.find((category) => category.id === selectedCategories[0])?.name || pageTitle;
     } else if (collection === "featured") pageTitle = "Featured Products";
     else if (collection === "daily-essentials") pageTitle = "Daily Essentials";
     else if (sort === "best-selling") pageTitle = "Top Selling";
     else if (sort === "newest") pageTitle = "New Arrivals";
 
     const updateFilters = (changes) => {
-        setSearchParams((previous) => {
-            const next = new URLSearchParams(previous);
+        setSearchParams(
+            (previous) => {
+                const next = new URLSearchParams(previous);
 
-            const update = (key, value) => {
-                if (value === null || value === "") next.delete(key);
-                else next.set(key, String(value));
-            };
+                const update = (key, value) => {
+                    if (value === null || value === "") next.delete(key);
+                    else next.set(key, String(value));
+                };
 
-            if (changes.categories !== undefined) {
-                update("category", changes.categories.join(","));
-            }
+                if (changes.categories !== undefined) {
+                    update("category", changes.categories.join(","));
+                }
 
-            if (changes.priceRange !== undefined) {
-                const [min, max] = changes.priceRange;
-                update("minPrice", min === priceBounds[0] ? null : min);
-                update("maxPrice", max === priceBounds[1] ? null : max);
-            }
+                if (changes.priceRange !== undefined) {
+                    const [min, max] = changes.priceRange;
+                    update("minPrice", min === priceBounds[0] ? null : min);
+                    update("maxPrice", max === priceBounds[1] ? null : max);
+                }
 
-            if (changes.minRating !== undefined) {
-                update("rating", changes.minRating || null);
-            }
+                if (changes.minRating !== undefined) {
+                    update("rating", changes.minRating || null);
+                }
 
-            if (changes.inStockOnly !== undefined) {
-                update("inStock", changes.inStockOnly ? "true" : null);
-            }
+                if (changes.inStockOnly !== undefined) {
+                    update("inStock", changes.inStockOnly ? "true" : null);
+                }
 
-            next.delete("page");
-            return next;
-        }, { replace: true });
+                next.delete("page");
+                return next;
+            },
+            { replace: true }
+        );
     };
 
     const clearFilters = () => {
-        setSearchParams((previous) => {
-            const next = new URLSearchParams(previous);
+        setSearchParams(
+            (previous) => {
+                const next = new URLSearchParams(previous);
 
-            ["category", "minPrice", "maxPrice", "rating", "inStock", "page"]
-                .forEach((key) => next.delete(key));
+                ["category", "minPrice", "maxPrice", "rating", "inStock", "page"].forEach((key) =>
+                    next.delete(key)
+                );
 
-            return next;
-        }, { replace: true });
+                return next;
+            },
+            { replace: true }
+        );
     };
 
     const changeSort = (event) => {
@@ -434,10 +453,7 @@ function Products() {
                                 <ul className="products-grid">
                                     {visibleProducts.map(({ product, view }) => (
                                         <li key={product._id}>
-                                            <ProductCard
-                                                product={product}
-                                                variantId={view.variantId}
-                                            />
+                                            <ProductCard product={product} variantId={view.variantId} />
                                         </li>
                                     ))}
                                 </ul>
@@ -492,16 +508,13 @@ function Products() {
                             className: "products-drawer-paper",
                             role: "dialog",
                             "aria-modal": true,
-                            "aria-label": "Product filters",
-                        },
+                            "aria-label": "Product filters"
+                        }
                     }}
                 >
                     <div className="products-drawer-header">
                         <span>Refine products</span>
-                        <IconButton
-                            aria-label="Close filters"
-                            onClick={() => setDrawerOpen(false)}
-                        >
+                        <IconButton aria-label="Close filters" onClick={() => setDrawerOpen(false)}>
                             <i className="fa-solid fa-xmark" aria-hidden="true" />
                         </IconButton>
                     </div>

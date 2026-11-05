@@ -7,9 +7,7 @@ function NotFound() {
 
             <h2 className="section-title">Page not found</h2>
 
-            <p className="text-muted">
-                The page you are looking for does not exist or has been moved.
-            </p>
+            <p className="text-muted">The page you are looking for does not exist or has been moved.</p>
 
             <Link to="/" className="btn btn-primary">
                 Back to Home

@@ -1,5 +1,4 @@
-
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, MenuItem, Pagination, Rating, TextField } from "@mui/material";
 
 const PAGE_SIZE = 3;
@@ -11,113 +10,113 @@ const sampleComments = {
         "I liked the clean design and the available colour options.",
         "The selected configuration matched the product details.",
         "A practical choice for regular use and entertainment.",
-        "More colours would be nice, but the existing options are good.",
+        "More colours would be nice, but the existing options are good."
     ],
     "preview-laptop": [
         "The RAM options helped me select a configuration for work.",
         "A good choice for documents and everyday browsing.",
         "The SSD storage details were clearly mentioned.",
         "Simple design that fits well into my desk setup.",
-        "More configuration options would be helpful.",
+        "More configuration options would be helpful."
     ],
     "preview-headphones": [
         "The over-ear design feels comfortable for everyday listening.",
         "The black finish looks clean and stylish.",
         "Good option for music and podcasts.",
         "The padded ear cushions are a useful feature.",
-        "More colour options would improve the selection.",
+        "More colour options would improve the selection."
     ],
     "preview-shirt": [
         "The navy colour is versatile and easy to style.",
         "The regular fit works well for casual outfits.",
         "Size selection was simple and clear.",
         "Looks great with jeans and casual trousers.",
-        "Additional colours would be a nice improvement.",
+        "Additional colours would be a nice improvement."
     ],
     "preview-dress": [
         "A lovely design for everyday outfits.",
         "The available size options were easy to understand.",
         "The style looks suitable for casual occasions.",
         "I really liked the overall appearance.",
-        "More colour options would make the range better.",
+        "More colour options would make the range better."
     ],
     "preview-kids": [
         "The size selection was easy to understand.",
         "A practical outfit for everyday activities.",
         "The design looks cheerful and comfortable.",
         "The description helped when selecting a size.",
-        "A wider size range would be useful.",
+        "A wider size range would be useful."
     ],
     "preview-shoes": [
         "The design looks great for daily casual wear.",
         "The size options were easy to compare.",
         "They look good with everyday outfits.",
         "The overall design is neat and stylish.",
-        "More colours would make the selection better.",
+        "More colours would make the selection better."
     ],
     "preview-watch": [
         "The watch face looks clean and easy to read.",
         "The classic design works with different outfits.",
         "The product images show the details clearly.",
         "A stylish accessory for everyday use.",
-        "More strap options would be welcome.",
+        "More strap options would be welcome."
     ],
     "preview-personal-care": [
         "The pack details were clear and easy to compare.",
         "A useful product for everyday essentials.",
         "The description helped me select the right option.",
         "Simple packaging and clear information.",
-        "More pack options would be helpful.",
+        "More pack options would be helpful."
     ],
     "preview-pantry": [
         "The available pack sizes are clearly listed.",
         "A useful everyday item for the kitchen.",
         "Comparing different quantities was easy.",
         "The product information is straightforward.",
-        "More pack sizes would make shopping easier.",
+        "More pack sizes would make shopping easier."
     ],
     "preview-snacks": [
         "A convenient snack option for regular grocery orders.",
         "The available packs are easy to compare.",
         "Good for keeping quick snacks at home.",
         "Pack details and images are helpful.",
-        "More varieties would improve the selection.",
+        "More varieties would improve the selection."
     ],
     "preview-beauty": [
         "The product details helped me compare the options.",
         "The packaging and presentation look good.",
         "A nice addition to an everyday routine.",
         "The available variations are easy to understand.",
-        "More shades and options would be welcome.",
+        "More shades and options would be welcome."
     ],
     "preview-kitchen": [
         "A practical product for everyday kitchen tasks.",
         "The size and specifications are clearly described.",
         "The design fits nicely into a regular kitchen.",
         "The product details were helpful.",
-        "Additional size options would be useful.",
+        "Additional size options would be useful."
     ],
     "preview-backpack": [
         "A useful bag for work and daily essentials.",
         "The design looks practical for regular travel.",
         "Product images show the overall shape clearly.",
         "I like the simple and versatile styling.",
-        "More colour options would be great.",
+        "More colour options would be great."
     ],
     "preview-trolley": [
         "The luggage design looks practical for travelling.",
         "The details helped when comparing sizes.",
         "A smart-looking option for travel essentials.",
         "The product photos show the design clearly.",
-        "More sizes and colours would improve the range.",
+        "More sizes and colours would improve the range."
     ],
     "preview-travel": [
         "A convenient addition to everyday travel essentials.",
         "The product design looks practical and easy to use.",
         "The specifications were helpful while comparing options.",
         "A useful accessory for regular journeys.",
-        "More size options would be useful.",
-    ],
+        "More size options would be useful."
+    ]
 };
 
 const sampleReviewers = [
@@ -125,7 +124,7 @@ const sampleReviewers = [
     { name: "Rahul P.", rating: 4, title: "Good overall", date: "2026-10-23" },
     { name: "Sneha R.", rating: 5, title: "As described", date: "2026-10-18" },
     { name: "Aman K.", rating: 4, title: "Happy with it", date: "2026-10-12" },
-    { name: "Priya M.", rating: 3, title: "Room for improvement", date: "2026-10-05" },
+    { name: "Priya M.", rating: 3, title: "Room for improvement", date: "2026-10-05" }
 ];
 
 const formatDate = (value) => {
@@ -133,34 +132,30 @@ const formatDate = (value) => {
 
     const date = new Date(value);
 
-    return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("en-IN", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-    });
+    return Number.isNaN(date.getTime())
+        ? ""
+        : date.toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric"
+          });
 };
 
-// ================== PRODUCT REVIEWS ==================
-function ProductReviews({ product }) {
+function ProductReviewsContent({ product }) {
     const [ratingFilter, setRatingFilter] = useState(0);
     const [sort, setSort] = useState("recent");
     const [page, setPage] = useState(1);
 
     const isPreview = !Array.isArray(product?.reviews);
 
-    useEffect(() => {
-        setRatingFilter(0);
-        setSort("recent");
-        setPage(1);
-    }, [product?._id]);
-
     const reviews = useMemo(() => {
         if (Array.isArray(product?.reviews)) {
-            return product.reviews.filter((review) => (
-                Number.isInteger(Number(review.rating)) &&
-                Number(review.rating) >= 1 &&
-                Number(review.rating) <= 5
-            ));
+            return product.reviews.filter(
+                (review) =>
+                    Number.isInteger(Number(review.rating)) &&
+                    Number(review.rating) >= 1 &&
+                    Number(review.rating) <= 5
+            );
         }
 
         return (sampleComments[product?._id] || []).map((comment, index) => ({
@@ -169,46 +164,41 @@ function ProductReviews({ product }) {
             rating: sampleReviewers[index].rating,
             title: sampleReviewers[index].title,
             comment,
-            createdAt: sampleReviewers[index].date,
+            createdAt: sampleReviewers[index].date
         }));
     }, [product]);
 
     const filteredReviews = useMemo(() => {
-        const result = reviews.filter((review) => (
-            ratingFilter === 0 || Number(review.rating) === ratingFilter
-        ));
+        const result = reviews.filter(
+            (review) => ratingFilter === 0 || Number(review.rating) === ratingFilter
+        );
 
         return [...result].sort((a, b) => {
             if (sort === "highest") return Number(b.rating) - Number(a.rating);
             if (sort === "lowest") return Number(a.rating) - Number(b.rating);
 
-            return (new Date(b.createdAt).getTime() || 0) -
-                (new Date(a.createdAt).getTime() || 0);
+            return (new Date(b.createdAt).getTime() || 0) - (new Date(a.createdAt).getTime() || 0);
         });
     }, [reviews, ratingFilter, sort]);
 
     const catalogRating = Number(product?.rating);
     const catalogCount = Number(product?.ratingCount);
 
-    const totalRatings = Number.isInteger(catalogCount) && catalogCount > 0
-        ? catalogCount : reviews.length;
+    const totalRatings = Number.isInteger(catalogCount) && catalogCount > 0 ? catalogCount : reviews.length;
 
-    const averageRating = Number.isFinite(catalogRating) &&
-        catalogRating >= 0 && catalogRating <= 5 && catalogCount > 0
-        ? catalogRating
-        : reviews.length
-            ? reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length
-            : 0;
+    const averageRating =
+        Number.isFinite(catalogRating) && catalogRating >= 0 && catalogRating <= 5 && catalogCount > 0
+            ? catalogRating
+            : reviews.length
+              ? reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length
+              : 0;
 
     const totalPages = Math.ceil(filteredReviews.length / PAGE_SIZE);
     const currentPage = Math.min(page, Math.max(1, totalPages));
-    const visibleReviews = filteredReviews.slice(
-        (currentPage - 1) * PAGE_SIZE,
-        currentPage * PAGE_SIZE
-    );
+    const visibleReviews = filteredReviews.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
     const changeRatingFilter = (stars) => {
-        setRatingFilter((current) => current === stars ? 0 : stars);
+        setRatingFilter((current) => (current === stars ? 0 : stars));
         setPage(1);
     };
 
@@ -248,8 +238,7 @@ function ProductReviews({ product }) {
                     />
 
                     <p>
-                        {totalRatings.toLocaleString("en-IN")}{" "}
-                        {totalRatings === 1 ? "Rating" : "Ratings"}
+                        {totalRatings.toLocaleString("en-IN")} {totalRatings === 1 ? "Rating" : "Ratings"}
                     </p>
                 </div>
 
@@ -257,9 +246,7 @@ function ProductReviews({ product }) {
                     <h3>{isPreview ? "Sample Review Distribution" : "Rating Distribution"}</h3>
 
                     {[5, 4, 3, 2, 1].map((stars) => {
-                        const count = reviews.filter(
-                            (review) => Number(review.rating) === stars
-                        ).length;
+                        const count = reviews.filter((review) => Number(review.rating) === stars).length;
 
                         return (
                             <button
@@ -331,8 +318,12 @@ function ProductReviews({ product }) {
                 <ul className="product-reviews-list">
                     {visibleReviews.map((review, index) => {
                         const author = review.author || "Customer";
-                        const initials = author.split(" ").filter(Boolean)
-                            .slice(0, 2).map((name) => name[0].toUpperCase()).join("");
+                        const initials = author
+                            .split(" ")
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .map((name) => name[0].toUpperCase())
+                            .join("");
 
                         return (
                             <li key={review.id ?? review._id ?? `${author}-${index}`}>
@@ -366,9 +357,7 @@ function ProductReviews({ product }) {
                 <div className="product-reviews-empty">
                     <i className="fa-regular fa-comment-dots" aria-hidden="true" />
                     <p>
-                        {ratingFilter
-                            ? `No ${ratingFilter}-star reviews found.`
-                            : "No customer reviews yet."}
+                        {ratingFilter ? `No ${ratingFilter}-star reviews found.` : "No customer reviews yet."}
                     </p>
                 </div>
             )}
@@ -389,4 +378,6 @@ function ProductReviews({ product }) {
     );
 }
 
-export default ProductReviews;
+export default function ProductReviews(props) {
+    return <ProductReviewsContent key={props.product?._id} {...props} />;
+}

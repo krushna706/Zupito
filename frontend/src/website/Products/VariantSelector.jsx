@@ -1,9 +1,7 @@
-
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getAvailableStock, getVariantId } from "../../utils/productVariants";
 
-// ================== VARIANT SELECTOR ==================
 function VariantSelector({ product, selectedVariant }) {
     const [, setSearchParams] = useSearchParams();
     const [notice, setNotice] = useState(null);
@@ -14,40 +12,31 @@ function VariantSelector({ product, selectedVariant }) {
 
     if (!variants.length || !selectedVariant) return null;
 
-    const getLabel = (group, value) => (
-        group.values.find((item) => item.value === value)?.label ?? value
-    );
+    const getLabel = (group, value) => group.values.find((item) => item.value === value)?.label ?? value;
 
     const findVariant = (key, value) => {
-        const candidates = variants.filter(
-            (variant) => variant.options?.[key] === value
-        );
+        const candidates = variants.filter((variant) => variant.options?.[key] === value);
 
         if (!candidates.length) return null;
 
         const exact = candidates.find((variant) =>
             Object.entries(selection).every(
-                ([name, selected]) =>
-                    name === key || variant.options?.[name] === selected
+                ([name, selected]) => name === key || variant.options?.[name] === selected
             )
         );
 
         if (exact) return exact;
 
-        const available = candidates.filter(
-            (variant) => getAvailableStock(variant) > 0
-        );
+        const available = candidates.filter((variant) => getAvailableStock(variant) > 0);
 
         const pool = available.length ? available : candidates;
 
-        const score = (variant) => Object.entries(selection).filter(
-            ([name, selected]) =>
-                name !== key && variant.options?.[name] === selected
-        ).length;
+        const score = (variant) =>
+            Object.entries(selection).filter(
+                ([name, selected]) => name !== key && variant.options?.[name] === selected
+            ).length;
 
-        return pool.reduce((best, variant) =>
-            score(variant) > score(best) ? variant : best
-        );
+        return pool.reduce((best, variant) => (score(variant) > score(best) ? variant : best));
     };
 
     const selectOption = (group, value) => {
@@ -59,18 +48,17 @@ function VariantSelector({ product, selectedVariant }) {
         const variantId = getVariantId(variant);
 
         const changes = groups
-            .filter((item) =>
-                item.key !== group.key &&
-                selection[item.key] !== variant.options?.[item.key]
-            )
-            .map((item) =>
-                `${item.label}: ${getLabel(item, variant.options?.[item.key])}`
-            );
+            .filter((item) => item.key !== group.key && selection[item.key] !== variant.options?.[item.key])
+            .map((item) => `${item.label}: ${getLabel(item, variant.options?.[item.key])}`);
 
-        setNotice(changes.length ? {
-            variantId,
-            text: `Updated to ${changes.join(", ")} to match this option.`,
-        } : null);
+        setNotice(
+            changes.length
+                ? {
+                      variantId,
+                      text: `Updated to ${changes.join(", ")} to match this option.`
+                  }
+                : null
+        );
 
         setSearchParams((current) => {
             const next = new URLSearchParams(current);
@@ -100,8 +88,8 @@ function VariantSelector({ product, selectedVariant }) {
                             const title = !target
                                 ? `${label} — unavailable`
                                 : soldOut
-                                    ? `${label} — out of stock`
-                                    : String(label);
+                                  ? `${label} — out of stock`
+                                  : String(label);
 
                             return (
                                 <button

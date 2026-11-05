@@ -1,27 +1,21 @@
-
 import { Link, useLocation, useParams } from "react-router-dom";
 
 const formatPrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 2
 }).format;
 
-const formatAddress = (address) => [
-    address.house,
-    address.area,
-    address.landmark,
-    address.city,
-    address.state,
-    address.pincode,
-].filter(Boolean).join(", ");
+const formatAddress = (address) =>
+    [address.house, address.area, address.landmark, address.city, address.state, address.pincode]
+        .filter(Boolean)
+        .join(", ");
 
 const getAmount = (value) => {
     const amount = Number(value);
     return Number.isFinite(amount) && amount >= 0 ? amount : 0;
 };
 
-// ================== ORDER CONFIRMATION ==================
 function OrderConfirmation() {
     const { orderId } = useParams();
     const { state } = useLocation();
@@ -31,15 +25,14 @@ function OrderConfirmation() {
 
     const hasOrder = Boolean(
         isDemo &&
-        order &&
-        Array.isArray(order.items) &&
-        order.items.length > 0 &&
-        order.address &&
-        order.summary &&
-        String(order.orderId) === String(orderId)
+            order &&
+            Array.isArray(order.items) &&
+            order.items.length > 0 &&
+            order.address &&
+            order.summary &&
+            String(order.orderId) === String(orderId)
     );
 
-    // ================== MISSING ORDER ==================
     if (!hasOrder) {
         return (
             <section className="order-confirmation-page">
@@ -63,10 +56,7 @@ function OrderConfirmation() {
                         </div>
 
                         <h2>Order Details Unavailable</h2>
-                        <p>
-                            Order preview details are unavailable.
-                            Please return to checkout.
-                        </p>
+                        <p>Order preview details are unavailable. Please return to checkout.</p>
 
                         <Link to="/checkout" className="cart-primary cart-explore">
                             Back to Checkout
@@ -77,22 +67,12 @@ function OrderConfirmation() {
         );
     }
 
-    const {
-        items,
-        address,
-        summary,
-        paymentMethod = "Online Payment",
-        createdAt,
-    } = order;
+    const { items, address, summary, paymentMethod = "Online Payment", createdAt } = order;
 
-    const itemCount = items.reduce(
-        (total, item) => total + getAmount(item.quantity),
-        0
-    );
+    const itemCount = items.reduce((total, item) => total + getAmount(item.quantity), 0);
 
     const originalPrice = getAmount(
-        summary.originalPrice ??
-        (getAmount(summary.subtotal) + getAmount(summary.productDiscount))
+        summary.originalPrice ?? getAmount(summary.subtotal) + getAmount(summary.productDiscount)
     );
 
     const productDiscount = getAmount(summary.productDiscount);
@@ -107,15 +87,11 @@ function OrderConfirmation() {
     return (
         <section className="order-confirmation-page">
             <div className="container-fluid website-shell">
-
-                {/* Breadcrumb */}
                 <nav className="products-breadcrumb" aria-label="Breadcrumb">
                     <Link to="/">Home</Link>
                     <i className="fa-solid fa-chevron-right" aria-hidden="true" />
                     <span aria-current="page">Order Confirmation</span>
                 </nav>
-
-                {/* Page Header */}
                 <div className="cart-page-header">
                     <div>
                         <h1>Order Confirmation</h1>
@@ -137,10 +113,7 @@ function OrderConfirmation() {
 
                         <div className="order-confirmation-hero-text">
                             <h2>Order Preview Ready!</h2>
-                            <p>
-                                Your payment simulation was successful.
-                                Review your order details below.
-                            </p>
+                            <p>Your payment simulation was successful. Review your order details below.</p>
                         </div>
                     </div>
 
@@ -164,7 +137,7 @@ function OrderConfirmation() {
                                 {orderDate.toLocaleDateString("en-IN", {
                                     day: "2-digit",
                                     month: "long",
-                                    year: "numeric",
+                                    year: "numeric"
                                 })}
                             </strong>
                         </div>
@@ -181,7 +154,6 @@ function OrderConfirmation() {
 
                 <div className="checkout-layout">
                     <div className="checkout-main">
-
                         {/* Ordered Products */}
                         <section className="checkout-card">
                             <div className="checkout-card-header">
@@ -218,10 +190,7 @@ function OrderConfirmation() {
                                                         loading="lazy"
                                                     />
                                                 ) : (
-                                                    <i
-                                                        className="fa-regular fa-image"
-                                                        aria-hidden="true"
-                                                    />
+                                                    <i className="fa-regular fa-image" aria-hidden="true" />
                                                 )}
                                             </div>
 
@@ -232,10 +201,14 @@ function OrderConfirmation() {
 
                                                 {(product.variantLabel || product.packLabel) && (
                                                     <p className="checkout-item-variant">
-                                                        {[...new Set([
-                                                            product.variantLabel,
-                                                            product.packLabel,
-                                                        ].filter(Boolean))].join(" · ")}
+                                                        {[
+                                                            ...new Set(
+                                                                [
+                                                                    product.variantLabel,
+                                                                    product.packLabel
+                                                                ].filter(Boolean)
+                                                            )
+                                                        ].join(" · ")}
                                                     </p>
                                                 )}
 
@@ -271,9 +244,7 @@ function OrderConfirmation() {
                                     <div className="order-confirmation-address-heading">
                                         <strong>{address.name}</strong>
 
-                                        {address.type && (
-                                            <span>{address.type}</span>
-                                        )}
+                                        {address.type && <span>{address.type}</span>}
                                     </div>
 
                                     <p>{formatAddress(address)}</p>
@@ -358,12 +329,10 @@ function OrderConfirmation() {
                                     <div className="cart-summary-row">
                                         <span>Delivery Charges</span>
 
-                                        <strong className={deliveryCharge === 0
-                                            ? "cart-summary-discount"
-                                            : ""}>
-                                            {deliveryCharge === 0
-                                                ? "FREE"
-                                                : formatPrice(deliveryCharge)}
+                                        <strong
+                                            className={deliveryCharge === 0 ? "cart-summary-discount" : ""}
+                                        >
+                                            {deliveryCharge === 0 ? "FREE" : formatPrice(deliveryCharge)}
                                         </strong>
                                     </div>
                                 </div>
@@ -382,16 +351,12 @@ function OrderConfirmation() {
 
                                 <div className="order-confirmation-summary-note">
                                     <i className="fa-solid fa-circle-info" aria-hidden="true" />
-                                    Frontend preview only. No real order or payment
-                                    has been processed.
+                                    Frontend preview only. No real order or payment has been processed.
                                 </div>
                             </div>
                         </div>
 
-                        <Link
-                            to="/products"
-                            className="checkout-pay-button text-decoration-none"
-                        >
+                        <Link to="/products" className="checkout-pay-button text-decoration-none">
                             Continue Shopping
                             <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                         </Link>

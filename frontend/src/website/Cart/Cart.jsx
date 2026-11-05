@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 
 import { useCart } from "../../context/CartContext";
@@ -8,12 +7,11 @@ import CartSummary from "./CartSummary";
 const formatter = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 2
 });
 
 const formatPrice = (value) => formatter.format(value);
 
-// ================== CART PAGE ==================
 function Cart() {
     const { items, cartCount, changeQuantity } = useCart();
 
@@ -36,7 +34,7 @@ function Cart() {
             validPrice,
             available: validPrice && quantity <= stock,
             subtotal: price * quantity,
-            discount: (mrp - price) * quantity,
+            discount: (mrp - price) * quantity
         };
     });
 
@@ -56,7 +54,9 @@ function Cart() {
                 <div className="cart-page-header">
                     <div>
                         <h1>Shopping Cart</h1>
-                        <p>{cartCount} {cartCount === 1 ? "item" : "items"} in your cart</p>
+                        <p>
+                            {cartCount} {cartCount === 1 ? "item" : "items"} in your cart
+                        </p>
                     </div>
 
                     {cartItems.length > 0 && (

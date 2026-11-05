@@ -1,13 +1,5 @@
-
-import { useEffect, useState } from "react";
-import {
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    Rating,
-    TextField,
-} from "@mui/material";
+import { useState } from "react";
+import { Dialog, DialogActions, DialogContent, DialogTitle, Rating, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
 const MAX_REVIEW_LENGTH = 800;
@@ -17,10 +9,9 @@ const ratingLabels = {
     2: "Poor",
     3: "Average",
     4: "Good",
-    5: "Excellent",
+    5: "Excellent"
 };
 
-// ================== REVIEW HELPERS ==================
 function getProductName(item) {
     return (
         item?.productSnapshot?.name ||
@@ -34,14 +25,9 @@ function getProductName(item) {
 
 function getProductImage(item) {
     const image =
-        item?.productSnapshot?.image ||
-        item?.product?.images?.[0] ||
-        item?.product?.image ||
-        item?.image;
+        item?.productSnapshot?.image || item?.product?.images?.[0] || item?.product?.image || item?.image;
 
-    return typeof image === "string"
-        ? image
-        : image?.url || image?.secure_url || "";
+    return typeof image === "string" ? image : image?.url || image?.secure_url || "";
 }
 
 function getProductId(item) {
@@ -52,23 +38,14 @@ function getProductId(item) {
         item?.product?.id ||
         null;
 
-    return typeof productId === "object"
-        ? productId?._id || productId?.id || null
-        : productId;
+    return typeof productId === "object" ? productId?._id || productId?.id || null : productId;
 }
 
 function getOrderItemId(item) {
     return item?.orderItemId || item?._id || item?.id || null;
 }
 
-// ================== REVIEW FORM ==================
-function ReviewForm({
-    open = false,
-    onClose,
-    orderId,
-    item = null,
-    onSubmit,
-}) {
+function ReviewFormContent({ open = false, onClose, orderId, item = null, onSubmit }) {
     const [rating, setRating] = useState(0);
     const [review, setReview] = useState("");
     const [ratingError, setRatingError] = useState("");
@@ -78,36 +55,16 @@ function ReviewForm({
     const productName = getProductName(item);
     const productImage = getProductImage(item);
 
-    const variantName =
-        item?.variantName ||
-        item?.productSnapshot?.variantLabel ||
-        item?.variantLabel ||
-        "";
+    const variantName = item?.variantName || item?.productSnapshot?.variantLabel || item?.variantLabel || "";
 
     // Reset form when another product is selected.
-    useEffect(() => {
-        if (!open) return;
 
-        setRating(0);
-        setReview("");
-        setRatingError("");
-        setImageFailed(false);
-    }, [
-        open,
-        orderId,
-        item?._id,
-        item?.id,
-        item?.orderItemId,
-    ]);
-
-    // ================== CLOSE FORM ==================
     const handleClose = () => {
         if (submitting) return;
 
         onClose?.();
     };
 
-    // ================== SUBMIT REVIEW ==================
     const handleSubmit = async (event) => {
         event.preventDefault();
 
@@ -132,18 +89,13 @@ function ReviewForm({
             orderId,
             orderItemId: getOrderItemId(item),
             productId: getProductId(item),
-            variantId:
-                item?.variantId ||
-                item?.productSnapshot?.variantId ||
-                null,
+            variantId: item?.variantId || item?.productSnapshot?.variantId || null,
             rating,
-            comment,
+            comment
         };
 
         if (typeof onSubmit !== "function") {
-            toast.info(
-                "Review submission will be available after backend integration."
-            );
+            toast.info("Review submission will be available after backend integration.");
             return;
         }
 
@@ -153,19 +105,14 @@ function ReviewForm({
             const result = await onSubmit(payload);
 
             if (result?.success !== true) {
-                toast.error(
-                    result?.message ||
-                    "Review submission could not be confirmed."
-                );
+                toast.error(result?.message || "Review submission could not be confirmed.");
                 return;
             }
 
             toast.success("Your review has been submitted.");
             onClose?.();
         } catch {
-            toast.error(
-                "Unable to submit your review. Please try again."
-            );
+            toast.error("Unable to submit your review. Please try again.");
         } finally {
             setSubmitting(false);
         }
@@ -184,28 +131,19 @@ function ReviewForm({
             <DialogTitle id="customer-review-dialog-title">
                 <div className="customer-review-dialog-heading">
                     <span className="customer-review-heading-icon">
-                        <i
-                            className="fa-solid fa-star"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-star" aria-hidden="true" />
                     </span>
 
                     <div>
                         <h2>Rate & Review Product</h2>
 
-                        <p>
-                            Share your experience with this product.
-                        </p>
+                        <p>Share your experience with this product.</p>
                     </div>
                 </div>
             </DialogTitle>
 
             <DialogContent dividers>
-                <form
-                    id="customer-review-form"
-                    onSubmit={handleSubmit}
-                    noValidate
-                >
+                <form id="customer-review-form" onSubmit={handleSubmit} noValidate>
                     {/* Selected Product */}
                     <div className="customer-review-product">
                         <div className="customer-review-product-image">
@@ -216,10 +154,7 @@ function ReviewForm({
                                     onError={() => setImageFailed(true)}
                                 />
                             ) : (
-                                <i
-                                    className="fa-solid fa-box-open"
-                                    aria-hidden="true"
-                                />
+                                <i className="fa-solid fa-box-open" aria-hidden="true" />
                             )}
                         </div>
 
@@ -228,15 +163,10 @@ function ReviewForm({
 
                             <h3>{productName}</h3>
 
-                            {variantName && (
-                                <p>{variantName}</p>
-                            )}
+                            {variantName && <p>{variantName}</p>}
 
                             <span className="customer-review-delivered">
-                                <i
-                                    className="fa-solid fa-circle-check"
-                                    aria-hidden="true"
-                                />
+                                <i className="fa-solid fa-circle-check" aria-hidden="true" />
                                 Delivered Product
                             </span>
                         </div>
@@ -250,10 +180,7 @@ function ReviewForm({
 
                         <h3>How was your experience?</h3>
 
-                        <p>
-                            Select the stars that best describe
-                            your experience with this product.
-                        </p>
+                        <p>Select the stars that best describe your experience with this product.</p>
 
                         <div className="customer-review-stars">
                             <Rating
@@ -269,24 +196,13 @@ function ReviewForm({
                                 aria-label="Product rating"
                             />
 
-                            <span
-                                className={
-                                    rating
-                                        ? "has-rating"
-                                        : ""
-                                }
-                            >
-                                {rating
-                                    ? ratingLabels[rating]
-                                    : "Select a rating"}
+                            <span className={rating ? "has-rating" : ""}>
+                                {rating ? ratingLabels[rating] : "Select a rating"}
                             </span>
                         </div>
 
                         {ratingError && (
-                            <p
-                                className="customer-review-error"
-                                role="alert"
-                            >
+                            <p className="customer-review-error" role="alert">
                                 {ratingError}
                             </p>
                         )}
@@ -295,9 +211,7 @@ function ReviewForm({
                     {/* Written Review */}
                     <div className="customer-review-text-section">
                         <div className="customer-review-section-heading">
-                            <span className="customer-review-section-label">
-                                WRITE A REVIEW
-                            </span>
+                            <span className="customer-review-section-label">WRITE A REVIEW</span>
 
                             <span>Optional</span>
                         </div>
@@ -305,9 +219,7 @@ function ReviewForm({
                         <TextField
                             name="review"
                             value={review}
-                            onChange={(event) =>
-                                setReview(event.target.value)
-                            }
+                            onChange={(event) => setReview(event.target.value)}
                             placeholder="What did you like or dislike about this product?"
                             multiline
                             minRows={4}
@@ -317,16 +229,13 @@ function ReviewForm({
                             disabled={submitting}
                             slotProps={{
                                 htmlInput: {
-                                    maxLength: MAX_REVIEW_LENGTH,
-                                },
+                                    maxLength: MAX_REVIEW_LENGTH
+                                }
                             }}
                         />
 
                         <div className="customer-review-character-count">
-                            <span>
-                                Share useful details about product
-                                quality and your experience.
-                            </span>
+                            <span>Share useful details about product quality and your experience.</span>
 
                             <span>
                                 {review.length}/{MAX_REVIEW_LENGTH}
@@ -336,14 +245,10 @@ function ReviewForm({
 
                     {/* Review Guidelines */}
                     <div className="customer-review-guidelines">
-                        <i
-                            className="fa-solid fa-circle-info"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-circle-info" aria-hidden="true" />
 
                         <p>
-                            Reviews should reflect your own experience.
-                            Please avoid personal information,
+                            Reviews should reflect your own experience. Please avoid personal information,
                             offensive content or unrelated comments.
                         </p>
                     </div>
@@ -368,18 +273,12 @@ function ReviewForm({
                 >
                     {submitting ? (
                         <>
-                            <i
-                                className="fa-solid fa-spinner fa-spin"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" />
                             Submitting...
                         </>
                     ) : (
                         <>
-                            <i
-                                className="fa-solid fa-paper-plane"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-solid fa-paper-plane" aria-hidden="true" />
                             Submit Review
                         </>
                     )}
@@ -389,4 +288,12 @@ function ReviewForm({
     );
 }
 
-export default ReviewForm;
+export default function ReviewForm(props) {
+    if (!props.open) return null;
+    return (
+        <ReviewFormContent
+            key={`${props.orderId}-${props.item?.orderItemId || props.item?._id || props.item?.id}`}
+            {...props}
+        />
+    );
+}

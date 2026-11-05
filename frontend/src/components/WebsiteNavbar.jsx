@@ -1,3 +1,4 @@
+import { getPanelRole } from "../config/panelConfig";
 import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { Menu, MenuItem } from "@mui/material";
@@ -6,8 +7,6 @@ import ProductSearchBar from "./ProductSearchBar";
 import { appConfig } from "../config/appConfig";
 import { useCart } from "../context/CartContext";
 
-
-// ================== WEBSITE NAVBAR ==================
 function WebsiteNavbar({ user = null }) {
     const { cartCount } = useCart();
     const location = useLocation();
@@ -16,13 +15,12 @@ function WebsiteNavbar({ user = null }) {
     const [profileLocation, setProfileLocation] = useState("");
 
     const profileOpen = Boolean(profileAnchor) && profileLocation === location.key;
-    const isStaff = ["admin", "seller", "delivery"].includes(user?.role);
+    const isStaff = Boolean(getPanelRole(user?.role));
     const itemCount = Number.isSafeInteger(cartCount) && cartCount > 0 ? cartCount : 0;
 
-    const accountPath = isStaff ? "/manage/dashboard" : "/account/profile";
+    const accountPath = isStaff ? "/manage/dashboard" : "/account";
     const accountLabel = isStaff ? "Dashboard" : "My Account";
 
-    // ================== ACCOUNT MENU ==================
     const openProfile = (event) => {
         setProfileAnchor(event.currentTarget);
         setProfileLocation(location.key);
@@ -34,30 +32,13 @@ function WebsiteNavbar({ user = null }) {
 
     return (
         <header className="website-header">
-            <nav
-                className="container-fluid website-shell website-nav"
-                aria-label="Main navigation"
-            >
-                {/* Brand */}
-                <Link
-                    to="/"
-                    className="website-brand"
-                    aria-label={`${appConfig.name} home`}
-                >
-                    <img
-                        src={appConfig.logo}
-                        alt={appConfig.name}
-                        width="180"
-                        height="60"
-                    />
+            <nav className="container-fluid website-shell website-nav" aria-label="Main navigation">
+                <Link to="/" className="website-brand" aria-label={`${appConfig.name} home`}>
+                    <img src={appConfig.logo} alt={appConfig.name} width="180" height="60" />
                 </Link>
-
-                {/* Search */}
                 <div className="website-header-search">
                     <ProductSearchBar />
                 </div>
-
-                {/* Account and cart */}
                 <div className="website-nav-actions">
                     <button
                         id="website-profile-button"
@@ -76,9 +57,7 @@ function WebsiteNavbar({ user = null }) {
                     <NavLink
                         to="/cart"
                         aria-label={`Cart, ${itemCount} items`}
-                        className={({ isActive }) =>
-                            `website-cart-link ${isActive ? "is-active" : ""}`
-                        }
+                        className={({ isActive }) => `website-cart-link ${isActive ? "is-active" : ""}`}
                     >
                         <span className="website-cart-icon">
                             <i className="fa-solid fa-bag-shopping" aria-hidden="true" />
@@ -91,8 +70,6 @@ function WebsiteNavbar({ user = null }) {
                     </NavLink>
                 </div>
             </nav>
-
-            {/* Account dropdown */}
             <Menu
                 id="website-profile-menu"
                 anchorEl={profileAnchor}
@@ -102,43 +79,29 @@ function WebsiteNavbar({ user = null }) {
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
                 slotProps={{
                     paper: {
-                        className: "website-profile-menu",
+                        className: "website-profile-menu"
                     },
                     list: {
-                        "aria-labelledby": "website-profile-button",
-                    },
+                        "aria-labelledby": "website-profile-button"
+                    }
                 }}
             >
-                <MenuItem
-                    component={Link}
-                    to={user ? accountPath : "/manage"}
-                    onClick={closeProfile}
-                >
+                <MenuItem component={Link} to={user ? accountPath : "/manage"} onClick={closeProfile}>
                     <i
-                        className={`fa-solid ${
-                            user ? "fa-table-columns" : "fa-arrow-right-to-bracket"
-                        }`}
+                        className={`fa-solid ${user ? "fa-table-columns" : "fa-arrow-right-to-bracket"}`}
                         aria-hidden="true"
                     />
                     <span>{user ? accountLabel : "Sign In"}</span>
                 </MenuItem>
 
                 {!user && (
-                    <MenuItem
-                        component={Link}
-                        to="/manage/signup"
-                        onClick={closeProfile}
-                    >
+                    <MenuItem component={Link} to="/manage/signup" onClick={closeProfile}>
                         <i className="fa-solid fa-user-plus" aria-hidden="true" />
                         <span>Create Account</span>
                     </MenuItem>
                 )}
 
-                <MenuItem
-                    component={Link}
-                    to="/manage/seller-register"
-                    onClick={closeProfile}
-                >
+                <MenuItem component={Link} to="/manage/seller-register" onClick={closeProfile}>
                     <i className="fa-solid fa-store" aria-hidden="true" />
                     <span>Become a Seller</span>
                 </MenuItem>

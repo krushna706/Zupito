@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Rating } from "@mui/material";
@@ -10,7 +9,7 @@ import {
     getDisplayVariant,
     getProductPath,
     getProductView,
-    resolveProductVariant,
+    resolveProductVariant
 } from "../../utils/productVariants";
 
 import ProductGallery from "./ProductGallery";
@@ -21,10 +20,9 @@ import ProductSections from "../Home/ProductSections";
 const formatPrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 2
 }).format;
 
-// ================== PRODUCT UNAVAILABLE ==================
 function ProductUnavailable({ product }) {
     return (
         <section className="product-details-page">
@@ -32,9 +30,10 @@ function ProductUnavailable({ product }) {
                 <div className="products-empty">
                     <i className="fa-solid fa-box-open" aria-hidden="true" />
                     <h1>{product ? "Variant unavailable" : "Product unavailable"}</h1>
-                    <p>{product
-                        ? "This product option could not be found. You can view the available options below."
-                        : "This product could not be found."}
+                    <p>
+                        {product
+                            ? "This product option could not be found. You can view the available options below."
+                            : "This product could not be found."}
                     </p>
 
                     <Link
@@ -50,7 +49,6 @@ function ProductUnavailable({ product }) {
     );
 }
 
-// ================== PRODUCT DETAILS ==================
 function ProductDetails() {
     const { productId } = useParams();
     const [searchParams] = useSearchParams();
@@ -59,22 +57,13 @@ function ProductDetails() {
 
     if (!product) return <ProductUnavailable />;
 
-    const { variant, invalidVariant } = resolveProductVariant(
-        product, searchParams.get("variant")
-    );
+    const { variant, invalidVariant } = resolveProductVariant(product, searchParams.get("variant"));
 
     if (invalidVariant) return <ProductUnavailable product={product} />;
 
-    return (
-        <ProductContent
-            key={product._id}
-            product={product}
-            selectedVariant={variant}
-        />
-    );
+    return <ProductContent key={product._id} product={product} selectedVariant={variant} />;
 }
 
-// ================== PRODUCT CONTENT ==================
 function ProductContent({ product, selectedVariant }) {
     const navigate = useNavigate();
     const { getQuantity, changeQuantity } = useCart();
@@ -85,24 +74,29 @@ function ProductContent({ product, selectedVariant }) {
 
     const similarSections = useMemo(() => {
         const related = productCatalog
-            .filter((item) => item._id !== product._id && (
-                item.category === product.category ||
-                (product.group && item.group === product.group)
-            ))
+            .filter(
+                (item) =>
+                    item._id !== product._id &&
+                    (item.category === product.category || (product.group && item.group === product.group))
+            )
             .map((item) => getProductView(item, getDisplayVariant(item)))
             .filter((item) => item?.availableForPurchase);
 
         const products = [
             ...related.filter((item) => item.category === product.category),
-            ...related.filter((item) => item.category !== product.category),
+            ...related.filter((item) => item.category !== product.category)
         ].slice(0, 12);
 
-        return products.length ? [{
-            key: `similar-${product._id}`,
-            title: "Similar Products",
-            viewAllPath: `/products?category=${encodeURIComponent(product.category)}`,
-            products,
-        }] : [];
+        return products.length
+            ? [
+                  {
+                      key: `similar-${product._id}`,
+                      title: "Similar Products",
+                      viewAllPath: `/products?category=${encodeURIComponent(product.category)}`,
+                      products
+                  }
+              ]
+            : [];
     }, [product]);
 
     if (!view || !cartProduct) return <ProductUnavailable product={product} />;
@@ -115,23 +109,27 @@ function ProductContent({ product, selectedVariant }) {
     const hasDiscount = hasValidPrice && Number.isFinite(mrp) && mrp > price;
     const discount = hasDiscount ? Math.floor(((mrp - price) / mrp) * 100) : 0;
 
-    const hasRating = Number.isFinite(product.rating) && product.rating >= 0 &&
-        product.rating <= 5 && Number.isInteger(product.ratingCount) && product.ratingCount > 0;
+    const hasRating =
+        Number.isFinite(product.rating) &&
+        product.rating >= 0 &&
+        product.rating <= 5 &&
+        Number.isInteger(product.ratingCount) &&
+        product.ratingCount > 0;
 
     const selectedDetail = [...new Set([variantLabel, packLabel].filter(Boolean))].join(" · ");
     const accessibleName = selectedDetail ? `${product.name}, ${selectedDetail}` : product.name;
 
     const description = Array.isArray(product.description)
         ? product.description
-        : product.description ? [{ title: "", text: product.description }] : [];
+        : product.description
+          ? [{ title: "", text: product.description }]
+          : [];
 
     const visibleDescription = expanded ? description : description.slice(0, 2);
 
     const specifications = [
         ...(product.brand ? [{ label: "Brand", value: product.brand }] : []),
-        ...(product.specifications ?? []).filter(
-            (item) => item.label?.toLowerCase() !== "brand"
-        ),
+        ...(product.specifications ?? []).filter((item) => item.label?.toLowerCase() !== "brand")
     ];
 
     const addToCart = () => {
@@ -167,9 +165,7 @@ function ProductContent({ product, selectedVariant }) {
                     </div>
 
                     <section className="product-details-info" aria-labelledby="product-details-title">
-                        {product.brand && (
-                            <span className="product-details-brand">{product.brand}</span>
-                        )}
+                        {product.brand && <span className="product-details-brand">{product.brand}</span>}
 
                         <h1 id="product-details-title">{product.name}</h1>
 
@@ -185,7 +181,9 @@ function ProductContent({ product, selectedVariant }) {
                                     <strong>{product.rating.toFixed(1)}</strong>
                                     <span>({product.ratingCount.toLocaleString("en-IN")} ratings)</span>
                                 </>
-                            ) : <span>Not rated yet</span>}
+                            ) : (
+                                <span>Not rated yet</span>
+                            )}
                         </div>
 
                         {/* Product Price */}
@@ -197,7 +195,9 @@ function ProductContent({ product, selectedVariant }) {
                                             <span className="visually-hidden">Price:</span>
                                             {formatPrice(price)}
                                         </>
-                                    ) : "Price unavailable"}
+                                    ) : (
+                                        "Price unavailable"
+                                    )}
                                 </span>
 
                                 {hasDiscount && (
@@ -212,9 +212,7 @@ function ProductContent({ product, selectedVariant }) {
                             </div>
 
                             {hasDiscount && (
-                                <p className="product-details-savings">
-                                    You save {formatPrice(mrp - price)}
-                                </p>
+                                <p className="product-details-savings">You save {formatPrice(mrp - price)}</p>
                             )}
                         </div>
 
@@ -230,8 +228,8 @@ function ProductContent({ product, selectedVariant }) {
 
                         {quantity > stock && (
                             <p className="product-selection-note" role="status">
-                                Your cart quantity exceeds the current stock.
-                                Please reduce it before checkout.
+                                Your cart quantity exceeds the current stock. Please reduce it before
+                                checkout.
                             </p>
                         )}
 
@@ -241,7 +239,11 @@ function ProductContent({ product, selectedVariant }) {
                                 <div className="product-details-quantity-block">
                                     <span>Quantity</span>
 
-                                    <div className="product-quantity" role="group" aria-label={`Quantity for ${accessibleName}`}>
+                                    <div
+                                        className="product-quantity"
+                                        role="group"
+                                        aria-label={`Quantity for ${accessibleName}`}
+                                    >
                                         <button
                                             type="button"
                                             aria-label={`Decrease quantity of ${accessibleName}`}
@@ -250,7 +252,9 @@ function ProductContent({ product, selectedVariant }) {
                                             <i className="fa-solid fa-minus" aria-hidden="true" />
                                         </button>
 
-                                        <span aria-live="polite" aria-atomic="true">{quantity}</span>
+                                        <span aria-live="polite" aria-atomic="true">
+                                            {quantity}
+                                        </span>
 
                                         <button
                                             type="button"
@@ -306,7 +310,10 @@ function ProductContent({ product, selectedVariant }) {
 
                         <div id={`description-${product._id}`}>
                             {visibleDescription.map((paragraph, index) => (
-                                <div className="product-description-block" key={`${paragraph.title}-${index}`}>
+                                <div
+                                    className="product-description-block"
+                                    key={`${paragraph.title}-${index}`}
+                                >
                                     {paragraph.title && <h3>{paragraph.title}</h3>}
                                     <p>{paragraph.text}</p>
                                 </div>
@@ -329,7 +336,10 @@ function ProductContent({ product, selectedVariant }) {
 
                 {/* Specifications */}
                 {specifications.length > 0 && (
-                    <section className="product-details-overview" aria-labelledby="product-specifications-title">
+                    <section
+                        className="product-details-overview"
+                        aria-labelledby="product-specifications-title"
+                    >
                         <h2 id="product-specifications-title">Specifications</h2>
 
                         <dl className="product-details-specifications">
@@ -348,9 +358,7 @@ function ProductContent({ product, selectedVariant }) {
             </div>
 
             {/* Similar Products */}
-            {similarSections.length > 0 && (
-                <ProductSections sections={similarSections} />
-            )}
+            {similarSections.length > 0 && <ProductSections sections={similarSections} />}
         </div>
     );
 }

@@ -1,65 +1,61 @@
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const accountLinks = [
     {
         label: "My Profile",
         path: "/account",
         icon: "fa-user",
-        end: true,
+        end: true
     },
     {
         label: "Saved Addresses",
         path: "/account/addresses",
-        icon: "fa-location-dot",
+        icon: "fa-location-dot"
     },
     {
         label: "My Orders",
         path: "/account/orders",
-        icon: "fa-box",
+        icon: "fa-box"
     },
     {
         label: "My Complaints",
         path: "/account/complaints",
-        icon: "fa-headset",
-    },
+        icon: "fa-headset"
+    }
 ];
 
 const pageTitles = {
     "/account": "My Profile",
     "/account/addresses": "Saved Addresses",
     "/account/orders": "My Orders",
-    "/account/complaints": "My Complaints",
+    "/account/complaints": "My Complaints"
 };
 
-// ================== ACCOUNT LAYOUT ==================
-function AccountLayout({ onLogout }) {
+function AccountLayout() {
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+    const onLogout = () => {
+        logout();
+        navigate("/", { replace: true });
+    };
     const { pathname } = useLocation();
 
     const currentPath = pathname.replace(/\/+$/, "") || "/";
     const isOrderDetails = /^\/account\/orders\/[^/]+$/.test(currentPath);
 
-    const currentPage = isOrderDetails
-        ? "Order Details"
-        : pageTitles[currentPath] || "My Account";
+    const currentPage = isOrderDetails ? "Order Details" : pageTitles[currentPath] || "My Account";
 
     const canLogout = typeof onLogout === "function";
 
     return (
         <section className="customer-account-page">
             <div className="container-fluid website-shell">
-
-                {/* Breadcrumb */}
-                <nav
-                    className="products-breadcrumb customer-account-breadcrumb"
-                    aria-label="Breadcrumb"
-                >
+                <nav className="products-breadcrumb customer-account-breadcrumb" aria-label="Breadcrumb">
                     <Link to="/">Home</Link>
 
-                    <i
-                        className="fa-solid fa-chevron-right"
-                        aria-hidden="true"
-                    />
+                    <i className="fa-solid fa-chevron-right" aria-hidden="true" />
 
                     {currentPath === "/account" ? (
                         <span aria-current="page">My Account</span>
@@ -67,58 +63,34 @@ function AccountLayout({ onLogout }) {
                         <>
                             <Link to="/account">My Account</Link>
 
-                            <i
-                                className="fa-solid fa-chevron-right"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-solid fa-chevron-right" aria-hidden="true" />
 
                             {isOrderDetails ? (
                                 <>
-                                    <Link to="/account/orders">
-                                        My Orders
-                                    </Link>
+                                    <Link to="/account/orders">My Orders</Link>
 
-                                    <i
-                                        className="fa-solid fa-chevron-right"
-                                        aria-hidden="true"
-                                    />
+                                    <i className="fa-solid fa-chevron-right" aria-hidden="true" />
 
-                                    <span aria-current="page">
-                                        Order Details
-                                    </span>
+                                    <span aria-current="page">Order Details</span>
                                 </>
                             ) : (
-                                <span aria-current="page">
-                                    {currentPage}
-                                </span>
+                                <span aria-current="page">{currentPage}</span>
                             )}
                         </>
                     )}
                 </nav>
-
-                {/* Page Header */}
                 <div className="cart-page-header customer-account-page-header">
                     <div>
                         <h1>My Account</h1>
 
-                        <p>
-                            Manage your personal details, delivery addresses
-                            and support requests.
-                        </p>
+                        <p>Manage your personal details, delivery addresses and support requests.</p>
                     </div>
                 </div>
-
-                {/* Account Content */}
                 <div className="customer-account-layout">
-
-                    {/* Account Sidebar */}
                     <aside className="customer-account-sidebar">
                         <div className="customer-account-sidebar-header">
                             <span className="customer-account-sidebar-icon">
-                                <i
-                                    className="fa-solid fa-user-gear"
-                                    aria-hidden="true"
-                                />
+                                <i className="fa-solid fa-user-gear" aria-hidden="true" />
                             </span>
 
                             <div>
@@ -128,31 +100,21 @@ function AccountLayout({ onLogout }) {
                         </div>
 
                         {/* Account Navigation */}
-                        <nav
-                            className="customer-account-navigation"
-                            aria-label="Customer account navigation"
-                        >
+                        <nav className="customer-account-navigation" aria-label="Customer account navigation">
                             {accountLinks.map((item) => (
                                 <NavLink
                                     key={item.path}
                                     to={item.path}
                                     end={item.end}
                                     className={({ isActive }) =>
-                                        `customer-account-nav-link ${
-                                            isActive ? "is-active" : ""
-                                        }`
+                                        `customer-account-nav-link ${isActive ? "is-active" : ""}`
                                     }
                                 >
                                     <span className="customer-account-nav-icon">
-                                        <i
-                                            className={`fa-solid ${item.icon}`}
-                                            aria-hidden="true"
-                                        />
+                                        <i className={`fa-solid ${item.icon}`} aria-hidden="true" />
                                     </span>
 
-                                    <span className="customer-account-nav-label">
-                                        {item.label}
-                                    </span>
+                                    <span className="customer-account-nav-label">{item.label}</span>
 
                                     <i
                                         className="fa-solid fa-chevron-right customer-account-nav-arrow"
@@ -169,17 +131,10 @@ function AccountLayout({ onLogout }) {
                                 className="customer-account-logout"
                                 onClick={canLogout ? onLogout : undefined}
                                 disabled={!canLogout}
-                                title={
-                                    !canLogout
-                                        ? "Available after authentication integration"
-                                        : undefined
-                                }
+                                title={!canLogout ? "Available after authentication integration" : undefined}
                             >
                                 <span className="customer-account-nav-icon">
-                                    <i
-                                        className="fa-solid fa-arrow-right-from-bracket"
-                                        aria-hidden="true"
-                                    />
+                                    <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden="true" />
                                 </span>
 
                                 <span>Logout</span>

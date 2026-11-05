@@ -3,21 +3,13 @@ import { Link } from "react-router-dom";
 
 import ProductCard from "../../components/ProductCard";
 import { productCatalog } from "../../data/productCatalog";
-import {
-    getDisplayVariant,
-    getProductView,
-} from "../../utils/productVariants";
+import { getDisplayVariant, getProductView } from "../../utils/productVariants";
 
 // Keep this export until the listing page imports the catalogue directly.
-export const previewProducts = productCatalog;
 
-const productMap = new Map(
-    productCatalog.map((product) => [product._id, product])
-);
+const productMap = new Map(productCatalog.map((product) => [product._id, product]));
 
-const selectProducts = (...ids) => (
-    ids.map((id) => productMap.get(`preview-${id}`)).filter(Boolean)
-);
+const selectProducts = (...ids) => ids.map((id) => productMap.get(`preview-${id}`)).filter(Boolean);
 
 // Add another object here to introduce a new home section.
 const previewSections = [
@@ -26,46 +18,51 @@ const previewSections = [
         title: "Featured Products",
         viewAllPath: "/products?collection=featured",
         products: selectProducts(
-            "smartphone", "headphones", "shirt", "shoes",
-            "watch", "backpack", "laptop", "kitchen"
-        ),
+            "smartphone",
+            "headphones",
+            "shirt",
+            "shoes",
+            "watch",
+            "backpack",
+            "laptop",
+            "kitchen"
+        )
     },
     {
         key: "top-selling",
         title: "Top Selling",
         viewAllPath: "/products?sort=best-selling",
         products: selectProducts(
-            "headphones", "shoes", "watch", "smartphone",
-            "backpack", "snacks", "shirt", "personal-care"
+            "headphones",
+            "shoes",
+            "watch",
+            "smartphone",
+            "backpack",
+            "snacks",
+            "shirt",
+            "personal-care"
         ),
         // Populate from sales data when the API is connected.
-        preferredVariantIds: {},
+        preferredVariantIds: {}
     },
     {
         key: "fashion",
         title: "Fashion Picks",
         viewAllPath: "/products?category=fashion",
-        products: selectProducts(
-            "shirt", "dress", "kids", "shoes", "watch", "backpack"
-        ),
+        products: selectProducts("shirt", "dress", "kids", "shoes", "watch", "backpack")
     },
     {
         key: "daily-essentials",
         title: "Daily Essentials",
         viewAllPath: "/products?collection=daily-essentials",
-        products: selectProducts(
-            "pantry", "personal-care", "snacks", "kitchen"
-        ),
+        products: selectProducts("pantry", "personal-care", "snacks", "kitchen")
     },
     {
         key: "new-arrivals",
         title: "New Arrivals",
         viewAllPath: "/products?sort=newest",
-        products: selectProducts(
-            "laptop", "dress", "beauty", "trolley",
-            "travel", "kids", "kitchen", "watch"
-        ),
-    },
+        products: selectProducts("laptop", "dress", "beauty", "trolley", "travel", "kids", "kitchen", "watch")
+    }
 ];
 
 const MIN_LOOP_ITEMS = 12;
@@ -92,8 +89,7 @@ function ProductRow({ section }) {
 
             const selectedVariant = getDisplayVariant(product, {
                 variantId: product.variantId,
-                preferredVariantId:
-                    section.preferredVariantIds?.[product._id],
+                preferredVariantId: section.preferredVariantIds?.[product._id]
             });
 
             const view = getProductView(product, selectedVariant);
@@ -110,15 +106,9 @@ function ProductRow({ section }) {
     const loopProducts = useMemo(() => {
         if (products.length === 0) return [];
 
-        const repeatCount = Math.max(
-            1,
-            Math.ceil(MIN_LOOP_ITEMS / products.length)
-        );
+        const repeatCount = Math.max(1, Math.ceil(MIN_LOOP_ITEMS / products.length));
 
-        return Array.from(
-            { length: repeatCount },
-            () => products
-        ).flat();
+        return Array.from({ length: repeatCount }, () => products).flat();
     }, [products]);
 
     // Matching copies allow wrapping without changing visible content.
@@ -126,9 +116,7 @@ function ProductRow({ section }) {
         const track = trackRef.current;
         if (!track || loopProducts.length === 0) return;
 
-        const motionPreference = window.matchMedia(
-            "(prefers-reduced-motion: reduce)"
-        );
+        const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
 
         const groupLength = loopProducts.length;
 
@@ -155,20 +143,13 @@ function ProductRow({ section }) {
 
             if (!first || !nextGroup) return;
 
-            const newWidth =
-                nextGroup.getBoundingClientRect().left
-                - first.getBoundingClientRect().left;
+            const newWidth = nextGroup.getBoundingClientRect().left - first.getBoundingClientRect().left;
 
             if (newWidth <= 0) return;
 
-            const oldPosition = cycleWidth
-                ? ((track.scrollLeft % cycleWidth) + cycleWidth)
-                    % cycleWidth
-                : 0;
+            const oldPosition = cycleWidth ? ((track.scrollLeft % cycleWidth) + cycleWidth) % cycleWidth : 0;
 
-            const progress = cycleWidth
-                ? oldPosition / cycleWidth
-                : 0;
+            const progress = cycleWidth ? oldPosition / cycleWidth : 0;
 
             cycleWidth = newWidth;
             setPosition(cycleWidth + progress * cycleWidth);
@@ -179,16 +160,11 @@ function ProductRow({ section }) {
 
             const current = track.scrollLeft;
 
-            if (
-                current >= cycleWidth
-                && current < cycleWidth * 2
-            ) {
+            if (current >= cycleWidth && current < cycleWidth * 2) {
                 return;
             }
 
-            const relativePosition =
-                ((current - cycleWidth) % cycleWidth + cycleWidth)
-                % cycleWidth;
+            const relativePosition = (((current - cycleWidth) % cycleWidth) + cycleWidth) % cycleWidth;
 
             setPosition(cycleWidth + relativePosition);
         };
@@ -205,37 +181,29 @@ function ProductRow({ section }) {
 
         visibilityObserver.observe(track);
 
-        track.addEventListener(
-            "scroll",
-            normalizePosition,
-            { passive: true }
-        );
+        track.addEventListener("scroll", normalizePosition, { passive: true });
 
         measure();
 
         const animate = (time) => {
-            const elapsed = previousTime
-                ? Math.min(time - previousTime, 50)
-                : 0;
+            const elapsed = previousTime ? Math.min(time - previousTime, 50) : 0;
 
             previousTime = time;
 
             const shouldPause =
-                !isVisible
-                || document.hidden
-                || motionPreference.matches
-                || hoveredRef.current
-                || focusedRef.current
-                || touchingRef.current
-                || draggingRef.current
-                || Date.now() - lastInteractionRef.current
-                    < INTERACTION_DELAY;
+                !isVisible ||
+                document.hidden ||
+                motionPreference.matches ||
+                hoveredRef.current ||
+                focusedRef.current ||
+                touchingRef.current ||
+                draggingRef.current ||
+                Date.now() - lastInteractionRef.current < INTERACTION_DELAY;
 
             if (!shouldPause && cycleWidth > 0) {
                 normalizePosition();
 
-                pendingDistance +=
-                    (elapsed / 1000) * AUTO_SCROLL_SPEED;
+                pendingDistance += (elapsed / 1000) * AUTO_SCROLL_SPEED;
 
                 const distance = Math.floor(pendingDistance);
 
@@ -258,10 +226,7 @@ function ProductRow({ section }) {
             resizeObserver.disconnect();
             visibilityObserver.disconnect();
 
-            track.removeEventListener(
-                "scroll",
-                normalizePosition
-            );
+            track.removeEventListener("scroll", normalizePosition);
 
             draggingRef.current = null;
             touchingRef.current = false;
@@ -279,11 +244,7 @@ function ProductRow({ section }) {
         suppressClickRef.current = false;
 
         // Touch uses native swipe; quantity buttons retain normal clicks.
-        if (
-            event.pointerType !== "mouse"
-            || event.button !== 0
-            || event.target.closest("button")
-        ) {
+        if (event.pointerType !== "mouse" || event.button !== 0 || event.target.closest("button")) {
             return;
         }
 
@@ -291,7 +252,7 @@ function ProductRow({ section }) {
             pointerId: event.pointerId,
             startX: event.clientX,
             startScroll: event.currentTarget.scrollLeft,
-            moved: false,
+            moved: false
         };
     };
 
@@ -352,9 +313,7 @@ function ProductRow({ section }) {
 
         if (!firstCard) return;
 
-        const gap = parseFloat(
-            window.getComputedStyle(track).columnGap
-        ) || 0;
+        const gap = parseFloat(window.getComputedStyle(track).columnGap) || 0;
 
         const step = firstCard.getBoundingClientRect().width + gap;
         const direction = event.key === "ArrowRight" ? 1 : -1;
@@ -365,29 +324,17 @@ function ProductRow({ section }) {
     if (products.length === 0) return null;
 
     return (
-        <section
-            className="home-product-section"
-            aria-labelledby={titleId}
-        >
+        <section className="home-product-section" aria-labelledby={titleId}>
             <div className="container-fluid website-shell">
                 <div className="home-categories-header">
-                    <h2
-                        id={titleId}
-                        className="home-categories-title"
-                    >
+                    <h2 id={titleId} className="home-categories-title">
                         {section.title}
                     </h2>
 
                     {section.viewAllPath && (
-                        <Link
-                            to={section.viewAllPath}
-                            className="home-categories-view-all"
-                        >
+                        <Link to={section.viewAllPath} className="home-categories-view-all">
                             View All
-                            <i
-                                className="fa-solid fa-arrow-right"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                         </Link>
                     )}
                 </div>
@@ -419,11 +366,7 @@ function ProductRow({ section }) {
                         focusedRef.current = true;
                     }}
                     onBlurCapture={(event) => {
-                        if (
-                            !event.currentTarget.contains(
-                                event.relatedTarget
-                            )
-                        ) {
+                        if (!event.currentTarget.contains(event.relatedTarget)) {
                             focusedRef.current = false;
                             recordInteraction();
                         }
@@ -436,10 +379,7 @@ function ProductRow({ section }) {
                     onTouchEnd={finishTouch}
                     onTouchCancel={finishTouch}
                     onClickCapture={(event) => {
-                        if (
-                            !suppressClickRef.current
-                            || event.detail === 0
-                        ) {
+                        if (!suppressClickRef.current || event.detail === 0) {
                             return;
                         }
 
@@ -449,19 +389,13 @@ function ProductRow({ section }) {
                     }}
                     onKeyDown={handleKeyDown}
                 >
-                    {[0, 1, 2].flatMap((copy) => (
+                    {[0, 1, 2].flatMap((copy) =>
                         loopProducts.map((product, index) => (
-                            <li
-                                key={`${copy}-${index}-${product._id}`}
-                                className="home-product-item"
-                            >
-                                <ProductCard
-                                    product={product}
-                                    variantId={product.variantId}
-                                />
+                            <li key={`${copy}-${index}-${product._id}`} className="home-product-item">
+                                <ProductCard product={product} variantId={product.variantId} />
                             </li>
                         ))
-                    ))}
+                    )}
                 </ul>
             </div>
         </section>
@@ -469,19 +403,14 @@ function ProductRow({ section }) {
 }
 
 function ProductSections({ sections = previewSections }) {
-    const visibleSections = sections.filter(
-        (section) => section.products?.length > 0
-    );
+    const visibleSections = sections.filter((section) => section.products?.length > 0);
 
     if (visibleSections.length === 0) return null;
 
     return (
         <div className="home-product-sections">
             {visibleSections.map((section) => (
-                <ProductRow
-                    key={section.key}
-                    section={section}
-                />
+                <ProductRow key={section.key} section={section} />
             ))}
         </div>
     );

@@ -1,6 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
 
-// ================== PRODUCT SEARCH ==================
 function ProductSearchBar() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -8,7 +7,6 @@ function ProductSearchBar() {
     const params = new URLSearchParams(location.search);
     const search = params.get("search") || "";
 
-    // ================== SEARCH SUBMISSION ==================
     function handleSearch(event) {
         event.preventDefault();
 
@@ -24,7 +22,7 @@ function ProductSearchBar() {
 
         navigate({
             pathname: "/products",
-            search: query ? `?${query}` : "",
+            search: query ? `?${query}` : ""
         });
     }
 

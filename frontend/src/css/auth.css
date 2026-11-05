@@ -1,12 +1,10 @@
-
 /* ===== AUTHENTICATION LAYOUT ===== */
 
 .website-layout.auth-layout {
     min-height: 100vh;
     background:
         radial-gradient(circle at 10% 15%, rgb(255 106 0 / 6%), transparent 32%),
-        radial-gradient(circle at 90% 85%, rgb(7 27 69 / 7%), transparent 35%),
-        #f6f7f9;
+        radial-gradient(circle at 90% 85%, rgb(7 27 69 / 7%), transparent 35%), #f6f7f9;
 }
 
 .auth-main {
@@ -354,7 +352,9 @@
     font-weight: 700;
     text-transform: none;
     box-shadow: 0 6px 14px rgb(7 27 69 / 14%);
-    transition: background-color 180ms ease, box-shadow 180ms ease;
+    transition:
+        background-color 180ms ease,
+        box-shadow 180ms ease;
 }
 
 .auth-layout .auth-submit.MuiButton-root:hover {

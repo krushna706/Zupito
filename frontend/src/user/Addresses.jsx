@@ -1,13 +1,5 @@
-
 import { useEffect, useState } from "react";
-import {
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    MenuItem,
-    TextField,
-} from "@mui/material";
+import { Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
 const STORAGE_KEY = "zupito_delivery_addresses";
@@ -21,35 +13,27 @@ const emptyAddress = {
     city: "",
     state: "",
     landmark: "",
-    type: "Home",
+    type: "Home"
 };
 
 const addressTypes = ["Home", "Work", "Other"];
 
-// ================== ADDRESS HELPERS ==================
 function getStoredAddresses() {
     try {
-        const stored = JSON.parse(
-            localStorage.getItem(STORAGE_KEY) || "null"
-        );
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
 
         if (!stored || !Array.isArray(stored.addresses)) {
             return {
                 addresses: [],
-                selectedId: null,
+                selectedId: null
             };
         }
 
         const addresses = stored.addresses.filter(
-            (address) =>
-                address &&
-                typeof address === "object" &&
-                address.id
+            (address) => address && typeof address === "object" && address.id
         );
 
-        const selectedId = addresses.some(
-            (address) => address.id === stored.selectedId
-        )
+        const selectedId = addresses.some((address) => address.id === stored.selectedId)
             ? stored.selectedId
             : addresses[0]?.id || null;
 
@@ -57,7 +41,7 @@ function getStoredAddresses() {
     } catch {
         return {
             addresses: [],
-            selectedId: null,
+            selectedId: null
         };
     }
 }
@@ -112,12 +96,9 @@ function createAddressId() {
         return crypto.randomUUID();
     }
 
-    return `address-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 9)}`;
+    return `address-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-// ================== SAVED ADDRESSES ==================
 function Addresses() {
     const [addressData, setAddressData] = useState(getStoredAddresses);
     const [formOpen, setFormOpen] = useState(false);
@@ -129,9 +110,7 @@ function Addresses() {
     const { addresses, selectedId } = addressData;
 
     const sortedAddresses = [...addresses].sort(
-        (a, b) =>
-            Number(b.id === selectedId) -
-            Number(a.id === selectedId)
+        (a, b) => Number(b.id === selectedId) - Number(a.id === selectedId)
     );
 
     // Sync address changes from other browser tabs.
@@ -149,13 +128,9 @@ function Addresses() {
         };
     }, []);
 
-    // ================== SAVE TO STORAGE ==================
     const saveAddressData = (nextData) => {
         try {
-            localStorage.setItem(
-                STORAGE_KEY,
-                JSON.stringify(nextData)
-            );
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(nextData));
 
             setAddressData(nextData);
             return true;
@@ -165,7 +140,6 @@ function Addresses() {
         }
     };
 
-    // ================== ADDRESS FORM ==================
     const openAddForm = () => {
         setEditingId(null);
         setFormData({ ...emptyAddress });
@@ -185,7 +159,7 @@ function Addresses() {
             city: address.city || "",
             state: address.state || "",
             landmark: address.landmark || "",
-            type: address.type || "Home",
+            type: address.type || "Home"
         });
 
         setFormErrors({});
@@ -212,25 +186,24 @@ function Addresses() {
 
         setFormData((previous) => ({
             ...previous,
-            [name]: nextValue,
+            [name]: nextValue
         }));
 
         if (formErrors[name]) {
             setFormErrors((previous) => ({
                 ...previous,
-                [name]: "",
+                [name]: ""
             }));
         }
     };
 
-    // ================== ADD / EDIT ADDRESS ==================
     const handleSaveAddress = (event) => {
         event.preventDefault();
 
         const normalized = Object.fromEntries(
             Object.entries(formData).map(([key, value]) => [
                 key,
-                typeof value === "string" ? value.trim() : value,
+                typeof value === "string" ? value.trim() : value
             ])
         );
 
@@ -246,14 +219,12 @@ function Addresses() {
 
         if (editingId !== null) {
             nextAddresses = addresses.map((address) =>
-                address.id === editingId
-                    ? { ...address, ...normalized }
-                    : address
+                address.id === editingId ? { ...address, ...normalized } : address
             );
         } else {
             const newAddress = {
                 id: createAddressId(),
-                ...normalized,
+                ...normalized
             };
 
             nextAddresses = [...addresses, newAddress];
@@ -265,27 +236,22 @@ function Addresses() {
 
         const saved = saveAddressData({
             addresses: nextAddresses,
-            selectedId: nextSelectedId,
+            selectedId: nextSelectedId
         });
 
         if (!saved) return;
 
-        toast.success(
-            editingId !== null
-                ? "Address updated successfully."
-                : "Address added successfully."
-        );
+        toast.success(editingId !== null ? "Address updated successfully." : "Address added successfully.");
 
         closeForm();
     };
 
-    // ================== SET DEFAULT ==================
     const handleSetDefault = (addressId) => {
         if (addressId === selectedId) return;
 
         const saved = saveAddressData({
             addresses,
-            selectedId: addressId,
+            selectedId: addressId
         });
 
         if (saved) {
@@ -293,22 +259,16 @@ function Addresses() {
         }
     };
 
-    // ================== DELETE ADDRESS ==================
     const handleDeleteAddress = () => {
         if (!deleteAddress) return;
 
-        const nextAddresses = addresses.filter(
-            (address) => address.id !== deleteAddress.id
-        );
+        const nextAddresses = addresses.filter((address) => address.id !== deleteAddress.id);
 
-        const nextSelectedId =
-            selectedId === deleteAddress.id
-                ? nextAddresses[0]?.id || null
-                : selectedId;
+        const nextSelectedId = selectedId === deleteAddress.id ? nextAddresses[0]?.id || null : selectedId;
 
         const saved = saveAddressData({
             addresses: nextAddresses,
-            selectedId: nextSelectedId,
+            selectedId: nextSelectedId
         });
 
         if (!saved) return;
@@ -319,27 +279,17 @@ function Addresses() {
 
     return (
         <div className="customer-addresses-page">
-
             {/* Page Heading */}
             <div className="customer-addresses-heading">
                 <div>
-                    <span className="customer-addresses-eyebrow">
-                        DELIVERY LOCATIONS
-                    </span>
+                    <span className="customer-addresses-eyebrow">DELIVERY LOCATIONS</span>
 
                     <h2>Saved Addresses</h2>
 
-                    <p>
-                        Add and manage delivery addresses for
-                        a faster checkout experience.
-                    </p>
+                    <p>Add and manage delivery addresses for a faster checkout experience.</p>
                 </div>
 
-                <button
-                    type="button"
-                    className="customer-addresses-add-button"
-                    onClick={openAddForm}
-                >
+                <button type="button" className="customer-addresses-add-button" onClick={openAddForm}>
                     <i className="fa-solid fa-plus" aria-hidden="true" />
                     Add New Address
                 </button>
@@ -348,31 +298,19 @@ function Addresses() {
             {/* Address Summary */}
             <div className="customer-addresses-summary">
                 <span className="customer-addresses-summary-icon">
-                    <i
-                        className="fa-solid fa-map-location-dot"
-                        aria-hidden="true"
-                    />
+                    <i className="fa-solid fa-map-location-dot" aria-hidden="true" />
                 </span>
 
                 <div>
                     <strong>
-                        {addresses.length} Saved{" "}
-                        {addresses.length === 1
-                            ? "Address"
-                            : "Addresses"}
+                        {addresses.length} Saved {addresses.length === 1 ? "Address" : "Addresses"}
                     </strong>
 
-                    <p>
-                        Choose your preferred delivery location
-                        and keep your address details updated.
-                    </p>
+                    <p>Choose your preferred delivery location and keep your address details updated.</p>
                 </div>
 
                 <span className="customer-addresses-summary-decoration">
-                    <i
-                        className="fa-solid fa-location-dot"
-                        aria-hidden="true"
-                    />
+                    <i className="fa-solid fa-location-dot" aria-hidden="true" />
                 </span>
             </div>
 
@@ -380,23 +318,14 @@ function Addresses() {
             {addresses.length === 0 ? (
                 <div className="customer-addresses-empty">
                     <span className="customer-addresses-empty-icon">
-                        <i
-                            className="fa-solid fa-map-location-dot"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-map-location-dot" aria-hidden="true" />
                     </span>
 
                     <h3>No saved addresses yet</h3>
 
-                    <p>
-                        Add your first delivery address to make
-                        checkout faster and more convenient.
-                    </p>
+                    <p>Add your first delivery address to make checkout faster and more convenient.</p>
 
-                    <button
-                        type="button"
-                        onClick={openAddForm}
-                    >
+                    <button type="button" onClick={openAddForm}>
                         <i className="fa-solid fa-plus" aria-hidden="true" />
                         Add Your First Address
                     </button>
@@ -409,9 +338,7 @@ function Addresses() {
                         return (
                             <article
                                 key={address.id}
-                                className={`customer-address-card ${
-                                    isDefault ? "is-default" : ""
-                                }`}
+                                className={`customer-address-card ${isDefault ? "is-default" : ""}`}
                             >
                                 <div className="customer-address-card-header">
                                     <div className="customer-address-card-type">
@@ -422,17 +349,12 @@ function Addresses() {
                                             />
                                         </span>
 
-                                        <strong>
-                                            {address.type || "Other"}
-                                        </strong>
+                                        <strong>{address.type || "Other"}</strong>
                                     </div>
 
                                     {isDefault && (
                                         <span className="customer-address-default-badge">
-                                            <i
-                                                className="fa-solid fa-circle-check"
-                                                aria-hidden="true"
-                                            />
+                                            <i className="fa-solid fa-circle-check" aria-hidden="true" />
                                             Default Address
                                         </span>
                                     )}
@@ -442,32 +364,20 @@ function Addresses() {
                                     <h3>{address.name}</h3>
 
                                     <p className="customer-address-card-phone">
-                                        <i
-                                            className="fa-solid fa-phone"
-                                            aria-hidden="true"
-                                        />
+                                        <i className="fa-solid fa-phone" aria-hidden="true" />
                                         {address.phone}
                                     </p>
 
                                     <div className="customer-address-card-location">
-                                        <i
-                                            className="fa-solid fa-location-dot"
-                                            aria-hidden="true"
-                                        />
+                                        <i className="fa-solid fa-location-dot" aria-hidden="true" />
 
                                         <p>
                                             {address.house}, {address.area}
-                                            {address.landmark
-                                                ? `, ${address.landmark}`
-                                                : ""}
-
+                                            {address.landmark ? `, ${address.landmark}` : ""}
                                             <span>
                                                 {address.city}, {address.state}
                                             </span>
-
-                                            <span>
-                                                PIN: {address.pincode}
-                                            </span>
+                                            <span>PIN: {address.pincode}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -479,10 +389,7 @@ function Addresses() {
                                             className="customer-address-edit"
                                             onClick={() => openEditForm(address)}
                                         >
-                                            <i
-                                                className="fa-solid fa-pen"
-                                                aria-hidden="true"
-                                            />
+                                            <i className="fa-solid fa-pen" aria-hidden="true" />
                                             Edit
                                         </button>
 
@@ -491,10 +398,7 @@ function Addresses() {
                                             className="customer-address-delete"
                                             onClick={() => setDeleteAddress(address)}
                                         >
-                                            <i
-                                                className="fa-solid fa-trash-can"
-                                                aria-hidden="true"
-                                            />
+                                            <i className="fa-solid fa-trash-can" aria-hidden="true" />
                                             Delete
                                         </button>
                                     </div>
@@ -506,10 +410,7 @@ function Addresses() {
                                             onClick={() => handleSetDefault(address.id)}
                                         >
                                             Set as Default
-                                            <i
-                                                className="fa-solid fa-arrow-right"
-                                                aria-hidden="true"
-                                            />
+                                            <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                                         </button>
                                     )}
                                 </div>
@@ -521,14 +422,10 @@ function Addresses() {
 
             {/* Important Information */}
             <div className="customer-addresses-info">
-                <i
-                    className="fa-solid fa-circle-info"
-                    aria-hidden="true"
-                />
+                <i className="fa-solid fa-circle-info" aria-hidden="true" />
 
                 <p>
-                    Your default address is preselected at checkout.
-                    Updating a saved address will not change
+                    Your default address is preselected at checkout. Updating a saved address will not change
                     delivery details on an existing order.
                 </p>
             </div>
@@ -547,34 +444,22 @@ function Addresses() {
                         <span className="customer-address-dialog-icon">
                             <i
                                 className={`fa-solid ${
-                                    editingId !== null
-                                        ? "fa-pen-to-square"
-                                        : "fa-location-dot"
+                                    editingId !== null ? "fa-pen-to-square" : "fa-location-dot"
                                 }`}
                                 aria-hidden="true"
                             />
                         </span>
 
                         <span>
-                            <strong>
-                                {editingId !== null
-                                    ? "Edit Address"
-                                    : "Add New Address"}
-                            </strong>
+                            <strong>{editingId !== null ? "Edit Address" : "Add New Address"}</strong>
 
-                            <small>
-                                Fill in your delivery information below.
-                            </small>
+                            <small>Fill in your delivery information below.</small>
                         </span>
                     </span>
                 </DialogTitle>
 
                 <DialogContent dividers>
-                    <form
-                        id="customer-address-form"
-                        onSubmit={handleSaveAddress}
-                        noValidate
-                    >
+                    <form id="customer-address-form" onSubmit={handleSaveAddress} noValidate>
                         <div className="customer-address-form-grid">
                             <TextField
                                 label="Full Name"
@@ -588,7 +473,7 @@ function Addresses() {
                                 fullWidth
                                 size="small"
                                 slotProps={{
-                                    htmlInput: { maxLength: 80 },
+                                    htmlInput: { maxLength: 80 }
                                 }}
                             />
 
@@ -605,8 +490,8 @@ function Addresses() {
                                 size="small"
                                 slotProps={{
                                     htmlInput: {
-                                        inputMode: "numeric",
-                                    },
+                                        inputMode: "numeric"
+                                    }
                                 }}
                             />
 
@@ -623,8 +508,8 @@ function Addresses() {
                                 size="small"
                                 slotProps={{
                                     htmlInput: {
-                                        inputMode: "numeric",
-                                    },
+                                        inputMode: "numeric"
+                                    }
                                 }}
                             />
 
@@ -660,7 +545,7 @@ function Addresses() {
                                 size="small"
                                 className="customer-address-form-full"
                                 slotProps={{
-                                    htmlInput: { maxLength: 150 },
+                                    htmlInput: { maxLength: 150 }
                                 }}
                             />
 
@@ -677,7 +562,7 @@ function Addresses() {
                                 size="small"
                                 className="customer-address-form-full"
                                 slotProps={{
-                                    htmlInput: { maxLength: 150 },
+                                    htmlInput: { maxLength: 150 }
                                 }}
                             />
 
@@ -693,7 +578,7 @@ function Addresses() {
                                 fullWidth
                                 size="small"
                                 slotProps={{
-                                    htmlInput: { maxLength: 80 },
+                                    htmlInput: { maxLength: 80 }
                                 }}
                             />
 
@@ -709,7 +594,7 @@ function Addresses() {
                                 fullWidth
                                 size="small"
                                 slotProps={{
-                                    htmlInput: { maxLength: 80 },
+                                    htmlInput: { maxLength: 80 }
                                 }}
                             />
 
@@ -722,7 +607,7 @@ function Addresses() {
                                 size="small"
                                 className="customer-address-form-full"
                                 slotProps={{
-                                    htmlInput: { maxLength: 150 },
+                                    htmlInput: { maxLength: 150 }
                                 }}
                             />
                         </div>
@@ -730,11 +615,7 @@ function Addresses() {
                 </DialogContent>
 
                 <DialogActions className="customer-address-dialog-actions">
-                    <button
-                        type="button"
-                        className="customer-address-dialog-cancel"
-                        onClick={closeForm}
-                    >
+                    <button type="button" className="customer-address-dialog-cancel" onClick={closeForm}>
                         Cancel
                     </button>
 
@@ -745,9 +626,7 @@ function Addresses() {
                     >
                         <i className="fa-solid fa-check" aria-hidden="true" />
 
-                        {editingId !== null
-                            ? "Update Address"
-                            : "Save Address"}
+                        {editingId !== null ? "Update Address" : "Save Address"}
                     </button>
                 </DialogActions>
             </Dialog>
@@ -761,14 +640,11 @@ function Addresses() {
                 className="customer-address-delete-dialog"
                 aria-labelledby="customer-address-delete-title"
             >
-                <DialogTitle id="customer-address-delete-title">
-                    Delete Address?
-                </DialogTitle>
+                <DialogTitle id="customer-address-delete-title">Delete Address?</DialogTitle>
 
                 <DialogContent>
                     <p className="customer-address-delete-message">
-                        Are you sure you want to delete this saved
-                        address? This action cannot be undone.
+                        Are you sure you want to delete this saved address? This action cannot be undone.
                     </p>
                 </DialogContent>
 

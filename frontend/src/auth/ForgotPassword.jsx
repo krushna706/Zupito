@@ -1,19 +1,11 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-    Alert,
-    Button,
-    IconButton,
-    InputAdornment,
-    TextField,
-} from "@mui/material";
+import { Alert, Button, IconButton, InputAdornment, TextField } from "@mui/material";
 
 import { appConfig } from "../config/appConfig";
 
 import "../css/auth.css";
 
-// ================== RECOVERY CONFIGURATION ==================
 const DEMO_OTP = "123456";
 const OTP_VALIDITY = 10 * 60 * 1000;
 const RESEND_COOLDOWN = 60 * 1000;
@@ -21,20 +13,19 @@ const MAX_ATTEMPTS = 5;
 const MAX_REQUESTS = 10;
 const REQUEST_WINDOW = 60 * 60 * 1000;
 
-// ================== RECOVERY STEPS ==================
 const recoverySteps = [
     {
         title: "Find your account",
-        description: "Enter your registered email address or mobile number.",
+        description: "Enter your registered email address or mobile number."
     },
     {
         title: "Verify email OTP",
-        description: "Enter the 6-digit verification code.",
+        description: "Enter the 6-digit verification code."
     },
     {
         title: "Set a new password",
-        description: "Create a new password and return to Sign In.",
-    },
+        description: "Create a new password and return to Sign In."
+    }
 ];
 
 const stepContent = [
@@ -42,23 +33,22 @@ const stepContent = [
         title: "Forgot your",
         accent: "password?",
         description: "Enter your email or phone number to begin account recovery.",
-        button: "Send Verification Code",
+        button: "Send Verification Code"
     },
     {
         title: "Verify your",
         accent: "email OTP.",
         description: "Enter the 6-digit verification code to continue.",
-        button: "Verify OTP",
+        button: "Verify OTP"
     },
     {
         title: "Create a new",
         accent: "password.",
         description: "Choose a secure password for your account.",
-        button: "Reset Password",
-    },
+        button: "Reset Password"
+    }
 ];
 
-// ================== PASSWORD VISIBILITY ==================
 function PasswordVisibility({ visible, onToggle, label }) {
     return (
         <InputAdornment position="end">
@@ -70,18 +60,12 @@ function PasswordVisibility({ visible, onToggle, label }) {
                 aria-label={`${visible ? "Hide" : "Show"} ${label}`}
                 edge="end"
             >
-                <i
-                    className={`fa-solid ${
-                        visible ? "fa-eye-slash" : "fa-eye"
-                    }`}
-                    aria-hidden="true"
-                />
+                <i className={`fa-solid ${visible ? "fa-eye-slash" : "fa-eye"}`} aria-hidden="true" />
             </IconButton>
         </InputAdornment>
     );
 }
 
-// ================== FORGOT PASSWORD ==================
 function ForgotPassword() {
     const [step, setStep] = useState(0);
 
@@ -97,12 +81,11 @@ function ForgotPassword() {
     const [resendAt, setResendAt] = useState(0);
     const [requests, setRequests] = useState([]);
     const [attempts, setAttempts] = useState(0);
-    const [now, setNow] = useState(Date.now());
+    const [now, setNow] = useState(() => Date.now());
 
     const [error, setError] = useState("");
     const [completed, setCompleted] = useState(false);
 
-    // ================== COUNTDOWN ==================
     useEffect(() => {
         if (step !== 1) return undefined;
 
@@ -113,23 +96,14 @@ function ForgotPassword() {
         return () => clearInterval(timer);
     }, [step]);
 
-    const resendSeconds = Math.max(
-        0,
-        Math.ceil((resendAt - now) / 1000)
-    );
+    const resendSeconds = Math.max(0, Math.ceil((resendAt - now) / 1000));
 
-    const remainingSeconds = Math.max(
-        0,
-        Math.ceil((expiresAt - now) / 1000)
-    );
+    const remainingSeconds = Math.max(0, Math.ceil((expiresAt - now) / 1000));
 
-    // ================== REQUEST DEMO OTP ==================
     const requestOtp = () => {
         const value = identifier.trim().toLowerCase();
 
-        const validEmail =
-            value.length <= 254 &&
-            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        const validEmail = value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
         const validPhone = /^[6-9]\d{9}$/.test(value);
 
@@ -140,9 +114,7 @@ function ForgotPassword() {
 
         const currentTime = Date.now();
 
-        const recentRequests = requests.filter(
-            (time) => currentTime - time < REQUEST_WINDOW
-        );
+        const recentRequests = requests.filter((time) => currentTime - time < REQUEST_WINDOW);
 
         if (recentRequests.length >= MAX_REQUESTS) {
             setError("Demo request limit reached. Try again later.");
@@ -160,7 +132,6 @@ function ForgotPassword() {
         setStep(1);
     };
 
-    // ================== VERIFY DEMO OTP ==================
     const verifyOtp = () => {
         if (!/^\d{6}$/.test(otp)) {
             setError("Enter the complete 6-digit OTP.");
@@ -195,15 +166,9 @@ function ForgotPassword() {
         setStep(2);
     };
 
-    // ================== RESET PASSWORD DEMO ==================
     const resetPassword = () => {
-        if (
-            newPassword.length < 6 ||
-            new TextEncoder().encode(newPassword).length > 72
-        ) {
-            setError(
-                "Password must be at least 6 characters and at most 72 UTF-8 bytes."
-            );
+        if (newPassword.length < 6 || new TextEncoder().encode(newPassword).length > 72) {
+            setError("Password must be at least 6 characters and at most 72 UTF-8 bytes.");
             return;
         }
 
@@ -219,7 +184,6 @@ function ForgotPassword() {
         setCompleted(true);
     };
 
-    // ================== FORM SUBMISSION ==================
     const handleSubmit = (event) => {
         event.preventDefault();
         setError("");
@@ -229,13 +193,11 @@ function ForgotPassword() {
         else resetPassword();
     };
 
-    // ================== RESEND OTP ==================
     const handleResend = () => {
         if (resendSeconds > 0) return;
         requestOtp();
     };
 
-    // ================== START AGAIN ==================
     const handleRestart = () => {
         setStep(0);
         setIdentifier("");
@@ -256,13 +218,9 @@ function ForgotPassword() {
     return (
         <div className="website-layout auth-layout">
             <main className="auth-main">
-                {/* Back Navigation */}
                 <div className="auth-topbar">
                     <Link to="/manage" className="auth-back-link">
-                        <i
-                            className="fa-solid fa-arrow-left"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-arrow-left" aria-hidden="true" />
                         Back to Sign In
                     </Link>
                 </div>
@@ -278,9 +236,7 @@ function ForgotPassword() {
                         />
 
                         <div className="auth-introduction-content">
-                            <p className="website-section-label">
-                                ACCOUNT RECOVERY
-                            </p>
+                            <p className="website-section-label">ACCOUNT RECOVERY</p>
 
                             <h2 className="website-section-title">
                                 Your account security,
@@ -288,8 +244,7 @@ function ForgotPassword() {
                             </h2>
 
                             <p className="website-section-description">
-                                Follow these simple steps to recover
-                                access to your Zupito account.
+                                Follow these simple steps to recover access to your Zupito account.
                             </p>
 
                             {/* RMS Style Recovery Steps */}
@@ -297,21 +252,12 @@ function ForgotPassword() {
                                 {recoverySteps.map((item, index) => (
                                     <li
                                         key={item.title}
-                                        className={
-                                            index <= step ? "is-active" : ""
-                                        }
-                                        aria-current={
-                                            index === step && !completed
-                                                ? "step"
-                                                : undefined
-                                        }
+                                        className={index <= step ? "is-active" : ""}
+                                        aria-current={index === step && !completed ? "step" : undefined}
                                     >
                                         <span className="auth-feature-icon">
                                             {index < step || completed ? (
-                                                <i
-                                                    className="fa-solid fa-check"
-                                                    aria-hidden="true"
-                                                />
+                                                <i className="fa-solid fa-check" aria-hidden="true" />
                                             ) : (
                                                 <span>{index + 1}</span>
                                             )}
@@ -326,47 +272,29 @@ function ForgotPassword() {
                             </ol>
                         </div>
 
-                        <p className="auth-introduction-note">
-                            Everyday essentials. Exceptional finds.
-                        </p>
+                        <p className="auth-introduction-note">Everyday essentials. Exceptional finds.</p>
                     </aside>
 
                     {/* Recovery Form */}
-                    <section
-                        className="auth-form-panel"
-                        aria-labelledby="recovery-title"
-                    >
+                    <section className="auth-form-panel" aria-labelledby="recovery-title">
                         <div className="auth-form-content">
                             <header className="auth-form-header">
-                                <Link
-                                    to="/"
-                                    className="website-brand auth-brand"
-                                    aria-label="Zupito Home"
-                                >
-                                    <img
-                                        src={appConfig.logo}
-                                        alt={appConfig.name}
-                                    />
+                                <Link to="/" className="website-brand auth-brand" aria-label="Zupito Home">
+                                    <img src={appConfig.logo} alt={appConfig.name} />
                                 </Link>
 
                                 <p className="website-section-label">
-                                    {completed
-                                        ? "RECOVERY COMPLETE"
-                                        : `STEP ${step + 1} OF 3`}
+                                    {completed ? "RECOVERY COMPLETE" : `STEP ${step + 1} OF 3`}
                                 </p>
 
-                                <h1
-                                    id="recovery-title"
-                                    className="website-section-title"
-                                >
+                                <h1 id="recovery-title" className="website-section-title">
                                     {completed ? (
                                         <>
                                             Recovery <span>Complete!</span>
                                         </>
                                     ) : (
                                         <>
-                                            {currentContent.title}{" "}
-                                            <span>{currentContent.accent}</span>
+                                            {currentContent.title} <span>{currentContent.accent}</span>
                                         </>
                                     )}
                                 </h1>
@@ -381,8 +309,8 @@ function ForgotPassword() {
                             {completed ? (
                                 <div className="auth-form">
                                     <Alert severity="success">
-                                        Demo password reset completed successfully.
-                                        No real account password was changed.
+                                        Demo password reset completed successfully. No real account password
+                                        was changed.
                                     </Alert>
 
                                     <Button
@@ -398,11 +326,7 @@ function ForgotPassword() {
                                 </div>
                             ) : (
                                 <>
-                                    <form
-                                        className="auth-form"
-                                        onSubmit={handleSubmit}
-                                        noValidate
-                                    >
+                                    <form className="auth-form" onSubmit={handleSubmit} noValidate>
                                         {/* Step 1: Find Account */}
                                         {step === 0 && (
                                             <TextField
@@ -417,8 +341,8 @@ function ForgotPassword() {
                                                 autoComplete="username"
                                                 slotProps={{
                                                     htmlInput: {
-                                                        maxLength: 254,
-                                                    },
+                                                        maxLength: 254
+                                                    }
                                                 }}
                                                 fullWidth
                                                 required
@@ -429,11 +353,9 @@ function ForgotPassword() {
                                         {step === 1 && (
                                             <>
                                                 <Alert severity="info">
-                                                    Frontend Demo OTP:{" "}
-                                                    <strong>{DEMO_OTP}</strong>
+                                                    Frontend Demo OTP: <strong>{DEMO_OTP}</strong>
                                                     <br />
-                                                    No email or SMS is sent.
-                                                    Code expires in 10 minutes.
+                                                    No email or SMS is sent. Code expires in 10 minutes.
                                                 </Alert>
 
                                                 <TextField
@@ -442,9 +364,7 @@ function ForgotPassword() {
                                                     value={otp}
                                                     onChange={(event) => {
                                                         setOtp(
-                                                            event.target.value
-                                                                .replace(/\D/g, "")
-                                                                .slice(0, 6)
+                                                            event.target.value.replace(/\D/g, "").slice(0, 6)
                                                         );
                                                         setError("");
                                                     }}
@@ -458,8 +378,8 @@ function ForgotPassword() {
                                                     slotProps={{
                                                         htmlInput: {
                                                             maxLength: 6,
-                                                            inputMode: "numeric",
-                                                        },
+                                                            inputMode: "numeric"
+                                                        }
                                                     }}
                                                     fullWidth
                                                     required
@@ -482,18 +402,13 @@ function ForgotPassword() {
                                         {step === 2 && (
                                             <>
                                                 <Alert severity="success">
-                                                    OTP verified successfully.
-                                                    Create your new password.
+                                                    OTP verified successfully. Create your new password.
                                                 </Alert>
 
                                                 <TextField
                                                     label="New Password"
                                                     name="newPassword"
-                                                    type={
-                                                        showPassword
-                                                            ? "text"
-                                                            : "password"
-                                                    }
+                                                    type={showPassword ? "text" : "password"}
                                                     value={newPassword}
                                                     onChange={(event) => {
                                                         setNewPassword(event.target.value);
@@ -513,8 +428,8 @@ function ForgotPassword() {
                                                                     }
                                                                     label="new password"
                                                                 />
-                                                            ),
-                                                        },
+                                                            )
+                                                        }
                                                     }}
                                                     fullWidth
                                                     required
@@ -523,11 +438,7 @@ function ForgotPassword() {
                                                 <TextField
                                                     label="Confirm New Password"
                                                     name="confirmPassword"
-                                                    type={
-                                                        showConfirmPassword
-                                                            ? "text"
-                                                            : "password"
-                                                    }
+                                                    type={showConfirmPassword ? "text" : "password"}
                                                     value={confirmPassword}
                                                     onChange={(event) => {
                                                         setConfirmPassword(event.target.value);
@@ -547,8 +458,8 @@ function ForgotPassword() {
                                                                     }
                                                                     label="confirm password"
                                                                 />
-                                                            ),
-                                                        },
+                                                            )
+                                                        }
                                                     }}
                                                     fullWidth
                                                     required
@@ -557,11 +468,7 @@ function ForgotPassword() {
                                         )}
 
                                         {/* Validation Error */}
-                                        {error && (
-                                            <Alert severity="error">
-                                                {error}
-                                            </Alert>
-                                        )}
+                                        {error && <Alert severity="error">{error}</Alert>}
 
                                         <Button
                                             type="submit"
@@ -572,18 +479,11 @@ function ForgotPassword() {
                                         >
                                             {currentContent.button}
 
-                                            <i
-                                                className="fa-solid fa-arrow-right"
-                                                aria-hidden="true"
-                                            />
+                                            <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                                         </Button>
 
                                         {step > 0 && (
-                                            <Button
-                                                type="button"
-                                                variant="text"
-                                                onClick={handleRestart}
-                                            >
+                                            <Button type="button" variant="text" onClick={handleRestart}>
                                                 Start Again
                                             </Button>
                                         )}
@@ -591,10 +491,7 @@ function ForgotPassword() {
 
                                     <div className="auth-account-row">
                                         <p className="auth-switch">
-                                            Remember your password?{" "}
-                                            <Link to="/manage">
-                                                Sign In
-                                            </Link>
+                                            Remember your password? <Link to="/manage">Sign In</Link>
                                         </p>
                                     </div>
                                 </>

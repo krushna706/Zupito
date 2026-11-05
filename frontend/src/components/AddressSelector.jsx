@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
     Button,
@@ -8,7 +7,7 @@ import {
     DialogTitle,
     IconButton,
     MenuItem,
-    TextField,
+    TextField
 } from "@mui/material";
 
 import AddressForm, { validateAddress } from "./AddressForm";
@@ -22,21 +21,16 @@ const emptyAddress = {
     city: "",
     state: "",
     landmark: "",
-    type: "Home",
+    type: "Home"
 };
 
 const getAddressId = (address) => String(address.id ?? address._id);
 
-const formatAddress = (address) => [
-    address.house,
-    address.area,
-    address.landmark,
-    address.city,
-    address.state,
-    address.pincode,
-].filter(Boolean).join(", ");
+const formatAddress = (address) =>
+    [address.house, address.area, address.landmark, address.city, address.state, address.pincode]
+        .filter(Boolean)
+        .join(", ");
 
-// ================== ADDRESS SELECTOR ==================
 function AddressSelector({
     open,
     addresses = [],
@@ -47,23 +41,17 @@ function AddressSelector({
     onClose,
     onSelect,
     onSave,
-    onDelete,
+    onDelete
 }) {
-    const initialEditAddress = addresses.find(
-        (item) => getAddressId(item) === String(editAddressId)
-    );
+    const initialEditAddress = addresses.find((item) => getAddressId(item) === String(editAddressId));
 
-    const [mode, setMode] = useState(
-        initialMode === "add" || initialMode === "edit" ? "form" : "list"
-    );
+    const [mode, setMode] = useState(initialMode === "add" || initialMode === "edit" ? "form" : "list");
 
-    const [editingId, setEditingId] = useState(
-        initialMode === "edit" ? editAddressId : null
-    );
+    const [editingId, setEditingId] = useState(initialMode === "edit" ? editAddressId : null);
 
     const [draft, setDraft] = useState(() => ({
         ...emptyAddress,
-        ...(initialMode === "edit" ? initialEditAddress : {}),
+        ...(initialMode === "edit" ? initialEditAddress : {})
     }));
 
     const [submitted, setSubmitted] = useState(false);
@@ -94,7 +82,7 @@ function AddressSelector({
 
         onSave({
             ...draft,
-            id: editingId || undefined,
+            id: editingId || undefined
         });
 
         onClose();
@@ -123,7 +111,9 @@ function AddressSelector({
                 <div>
                     <h2 id="address-dialog-title">
                         {mode === "form"
-                            ? editingId ? "Edit Address" : "Add New Address"
+                            ? editingId
+                                ? "Edit Address"
+                                : "Add New Address"
                             : "Choose Delivery Address"}
                     </h2>
                     <p>
@@ -133,12 +123,7 @@ function AddressSelector({
                     </p>
                 </div>
 
-                <IconButton
-                    type="button"
-                    aria-label="Close"
-                    onClick={onClose}
-                    size="small"
-                >
+                <IconButton type="button" aria-label="Close" onClick={onClose} size="small">
                     <i className="fa-solid fa-xmark" aria-hidden="true" />
                 </IconButton>
             </DialogTitle>
@@ -148,10 +133,7 @@ function AddressSelector({
                     <div className="checkout-address-list">
                         {addresses.length === 0 ? (
                             <div className="checkout-address-empty">
-                                <i
-                                    className="fa-solid fa-location-dot"
-                                    aria-hidden="true"
-                                />
+                                <i className="fa-solid fa-location-dot" aria-hidden="true" />
                                 <p>No saved addresses available.</p>
                                 <span>Add an address to continue.</span>
                             </div>
@@ -163,9 +145,7 @@ function AddressSelector({
                                 return (
                                     <div
                                         key={id}
-                                        className={`checkout-address-option ${
-                                            selected ? "is-selected" : ""
-                                        }`}
+                                        className={`checkout-address-option ${selected ? "is-selected" : ""}`}
                                     >
                                         <label className="checkout-address-option-main">
                                             <input
@@ -202,10 +182,7 @@ function AddressSelector({
                                         </label>
 
                                         <div className="checkout-address-option-actions">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleEdit(address)}
-                                            >
+                                            <button type="button" onClick={() => handleEdit(address)}>
                                                 <i
                                                     className="fa-regular fa-pen-to-square"
                                                     aria-hidden="true"
@@ -218,10 +195,7 @@ function AddressSelector({
                                                 className="is-danger"
                                                 onClick={() => setPendingDeleteId(id)}
                                             >
-                                                <i
-                                                    className="fa-regular fa-trash-can"
-                                                    aria-hidden="true"
-                                                />
+                                                <i className="fa-regular fa-trash-can" aria-hidden="true" />
                                                 Delete
                                             </button>
                                         </div>
@@ -230,10 +204,7 @@ function AddressSelector({
                                             <div className="checkout-address-delete-confirm">
                                                 <span>Delete this address?</span>
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDelete(id)}
-                                                >
+                                                <button type="button" onClick={() => handleDelete(id)}>
                                                     Yes, Delete
                                                 </button>
 
@@ -261,7 +232,7 @@ function AddressSelector({
                             onChange={(event) => {
                                 setDraft((current) => ({
                                     ...current,
-                                    type: event.target.value,
+                                    type: event.target.value
                                 }));
                             }}
                             className="checkout-address-type-input"
@@ -284,11 +255,7 @@ function AddressSelector({
             <DialogActions className="checkout-address-dialog-actions">
                 {mode === "list" ? (
                     <>
-                        <Button
-                            type="button"
-                            onClick={onClose}
-                            className="checkout-dialog-secondary"
-                        >
+                        <Button type="button" onClick={onClose} className="checkout-dialog-secondary">
                             Close
                         </Button>
 
@@ -297,9 +264,7 @@ function AddressSelector({
                             variant="contained"
                             onClick={handleAddNew}
                             className="checkout-dialog-primary"
-                            startIcon={
-                                <i className="fa-solid fa-plus" aria-hidden="true" />
-                            }
+                            startIcon={<i className="fa-solid fa-plus" aria-hidden="true" />}
                         >
                             Add New Address
                         </Button>

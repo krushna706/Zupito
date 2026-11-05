@@ -1,44 +1,41 @@
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import {
-    Button,
-    IconButton,
-    InputAdornment,
-    TextField,
-} from "@mui/material";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Button, IconButton, InputAdornment, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
 import { appConfig } from "../config/appConfig";
 
 import "../css/auth.css";
 
-// ================== INTRODUCTION CONTENT ==================
+import { useAuth } from "../context/AuthContext";
+import { getLoginDestination } from "../services/authService";
+
 const features = [
     {
         icon: "fa-bag-shopping",
         title: "Shop your favorites",
-        description: "Discover quality products across everyday categories.",
+        description: "Discover quality products across everyday categories."
     },
     {
         icon: "fa-box-open",
         title: "Everything in one place",
-        description: "Manage your orders and stay updated with ease.",
+        description: "Manage your orders and stay updated with ease."
     },
     {
         icon: "fa-truck-fast",
         title: "Reliable shopping experience",
-        description: "Enjoy a simple and convenient shopping journey.",
-    },
+        description: "Enjoy a simple and convenient shopping journey."
+    }
 ];
 
-// ================== LOGIN PAGE ==================
 function Login() {
+    const { login } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
     const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
-    // ================== LOGIN SUBMISSION ==================
     const handleSubmit = (event) => {
         event.preventDefault();
 
@@ -57,26 +54,25 @@ function Login() {
             return;
         }
 
-        // Backend integration will verify credentials and redirect by role.
-        toast.info("Sign In will be available after backend integration.");
+        try {
+            const user = login(value, password);
+            navigate(getLoginDestination(user, location.state?.returnTo), { replace: true });
+        } catch (error) {
+            toast.error(error.message);
+        }
     };
 
     return (
         <div className="website-layout auth-layout">
             <main className="auth-main">
-                {/* Back Navigation */}
                 <div className="auth-topbar">
                     <Link to="/" className="auth-back-link">
-                        <i
-                            className="fa-solid fa-arrow-left"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-arrow-left" aria-hidden="true" />
                         Back to Home
                     </Link>
                 </div>
 
                 <div className="auth-card">
-                    {/* Introduction Section */}
                     <aside className="auth-introduction">
                         <img
                             src="/images/about-story.jpg"
@@ -86,9 +82,7 @@ function Login() {
                         />
 
                         <div className="auth-introduction-content">
-                            <p className="website-section-label">
-                                WELCOME TO ZUPITO
-                            </p>
+                            <p className="website-section-label">WELCOME TO ZUPITO</p>
 
                             <h2 className="website-section-title">
                                 Your world of shopping,
@@ -96,8 +90,7 @@ function Login() {
                             </h2>
 
                             <p className="website-section-description">
-                                Discover everyday essentials, explore
-                                amazing products and enjoy a better
+                                Discover everyday essentials, explore amazing products and enjoy a better
                                 shopping experience.
                             </p>
 
@@ -105,10 +98,7 @@ function Login() {
                                 {features.map((feature) => (
                                     <li key={feature.title}>
                                         <span className="auth-feature-icon">
-                                            <i
-                                                className={`fa-solid ${feature.icon}`}
-                                                aria-hidden="true"
-                                            />
+                                            <i className={`fa-solid ${feature.icon}`} aria-hidden="true" />
                                         </span>
 
                                         <div>
@@ -120,33 +110,18 @@ function Login() {
                             </ul>
                         </div>
 
-                        <p className="auth-introduction-note">
-                            Everyday essentials. Exceptional finds.
-                        </p>
+                        <p className="auth-introduction-note">Everyday essentials. Exceptional finds.</p>
                     </aside>
 
                     {/* Login Form */}
-                    <section
-                        className="auth-form-panel"
-                        aria-labelledby="login-title"
-                    >
+                    <section className="auth-form-panel" aria-labelledby="login-title">
                         <div className="auth-form-content">
                             <header className="auth-form-header">
-                                <Link
-                                    to="/"
-                                    className="website-brand auth-brand"
-                                    aria-label="Zupito Home"
-                                >
-                                    <img
-                                        src={appConfig.logo}
-                                        alt={appConfig.name}
-                                    />
+                                <Link to="/" className="website-brand auth-brand" aria-label="Zupito Home">
+                                    <img src={appConfig.logo} alt={appConfig.name} />
                                 </Link>
 
-                                <h1
-                                    id="login-title"
-                                    className="website-section-title"
-                                >
+                                <h1 id="login-title" className="website-section-title">
                                     Welcome <span>Back!</span>
                                 </h1>
 
@@ -155,27 +130,21 @@ function Login() {
                                 </p>
                             </header>
 
-                            <form
-                                className="auth-form"
-                                onSubmit={handleSubmit}
-                                noValidate
-                            >
+                            <form className="auth-form" onSubmit={handleSubmit} noValidate>
                                 {/* Email or Phone */}
                                 <TextField
                                     label="Email or Phone Number"
                                     name="identifier"
                                     value={identifier}
-                                    onChange={(event) =>
-                                        setIdentifier(event.target.value)
-                                    }
+                                    onChange={(event) => setIdentifier(event.target.value)}
                                     className="auth-text-field"
                                     autoComplete="username"
                                     slotProps={{
                                         htmlInput: {
                                             maxLength: 254,
                                             autoCapitalize: "none",
-                                            spellCheck: false,
-                                        },
+                                            spellCheck: false
+                                        }
                                     }}
                                     fullWidth
                                     required
@@ -187,9 +156,7 @@ function Login() {
                                     name="password"
                                     type={showPassword ? "text" : "password"}
                                     value={password}
-                                    onChange={(event) =>
-                                        setPassword(event.target.value)
-                                    }
+                                    onChange={(event) => setPassword(event.target.value)}
                                     className="auth-text-field"
                                     autoComplete="current-password"
                                     slotProps={{
@@ -200,29 +167,23 @@ function Login() {
                                                         type="button"
                                                         className="auth-password-toggle"
                                                         onClick={() =>
-                                                            setShowPassword(
-                                                                (previous) => !previous
-                                                            )
+                                                            setShowPassword((previous) => !previous)
                                                         }
                                                         aria-label={
-                                                            showPassword
-                                                                ? "Hide password"
-                                                                : "Show password"
+                                                            showPassword ? "Hide password" : "Show password"
                                                         }
                                                         edge="end"
                                                     >
                                                         <i
                                                             className={`fa-solid ${
-                                                                showPassword
-                                                                    ? "fa-eye-slash"
-                                                                    : "fa-eye"
+                                                                showPassword ? "fa-eye-slash" : "fa-eye"
                                                             }`}
                                                             aria-hidden="true"
                                                         />
                                                     </IconButton>
                                                 </InputAdornment>
-                                            ),
-                                        },
+                                            )
+                                        }
                                     }}
                                     fullWidth
                                     required
@@ -237,27 +198,17 @@ function Login() {
                                     fullWidth
                                 >
                                     Sign In
-
-                                    <i
-                                        className="fa-solid fa-arrow-right"
-                                        aria-hidden="true"
-                                    />
+                                    <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                                 </Button>
                             </form>
 
                             {/* Account Links */}
                             <div className="auth-account-row">
                                 <p className="auth-switch">
-                                    Don't have an account?{" "}
-                                    <Link to="/manage/signup">
-                                        Create Account
-                                    </Link>
+                                    Don't have an account? <Link to="/manage/signup">Create Account</Link>
                                 </p>
 
-                                <Link
-                                    to="/manage/forgot-password"
-                                    className="auth-forgot-link"
-                                >
+                                <Link to="/manage/forgot-password" className="auth-forgot-link">
                                     Forgot Password?
                                 </Link>
                             </div>

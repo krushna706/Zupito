@@ -25,6 +25,9 @@ import MyOrders from "./user/MyOrders";
 import OrderDetails from "./user/OrderDetails";
 import Complaints from "./user/Complaints";
 
+// Authentication
+import Login from "./auth/Login";
+
 // Shared Components
 import NotFound from "./components/NotFound";
 
@@ -54,6 +57,9 @@ function App() {
             <ToastContainer position="top-right" autoClose={3000} />
 
             <Routes>
+                {/* Authentication */}
+                <Route path="/manage" element={<Login />} />
+
                 <Route element={<WebsiteLayout />}>
                     {/* Public Website */}
                     <Route path="/" element={<HomePage />} />

@@ -27,6 +27,8 @@ import Complaints from "./user/Complaints";
 
 // Authentication
 import Login from "./auth/Login";
+import Signup from "./auth/Signup";
+import ForgotPassword from "./auth/ForgotPassword";
 
 // Shared Components
 import NotFound from "./components/NotFound";
@@ -59,6 +61,8 @@ function App() {
             <Routes>
                 {/* Authentication */}
                 <Route path="/manage" element={<Login />} />
+                <Route path="/manage/signup" element={<Signup />} />
+                <Route path="/manage/forgot-password" element={<ForgotPassword />} />
 
                 <Route element={<WebsiteLayout />}>
                     {/* Public Website */}

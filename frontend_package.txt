@@ -26,6 +26,8 @@ npm install @fortawesome/fontawesome-free     # Website and panel icons
 
 npm install @mui/material @emotion/react @emotion/styled
 
+npm install jspdf
+
 
 # ===== DEVELOPMENT PREVIEW =====
 # Run after the starter imports and base files are connected.

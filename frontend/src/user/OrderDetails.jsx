@@ -11,6 +11,7 @@ import { toast } from "react-toastify";
 
 import ReviewForm from "../components/ReviewForm";
 import { SHOW_DEMO_ORDERS, demoOrders } from "./MyOrders";
+import InvoiceDownload from "../components/InvoiceDownload";
 
 // ================== DEMO INFORMATION ==================
 const demoAddress = {
@@ -783,6 +784,7 @@ function OrderDetails({
     onCancel,
     onRequestReplacement,
     onSubmitReview,
+    onDownloadInvoice,
 }) {
     const { orderId } = useParams();
 
@@ -1621,6 +1623,13 @@ function OrderDetails({
                                     {formatMoney(totalAmount)}
                                 </strong>
                             </div>
+                            {/* Invoice Download */}
+                            <InvoiceDownload
+                                order={selectedOrder}
+                                address={address}
+                                isDemo={isDemo}
+                                onDownload={onDownloadInvoice}
+                            />
                         </div>
                     </section>
 

@@ -4,6 +4,7 @@ import LoadingState from "../components/LoadingState";
 // Admin panel
 import Sellers from "../admin/Sellers";
 import Customers from "../admin/Customers";
+import DeliveryAgents from "../admin/DeliveryAgents";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -25,7 +26,6 @@ export const panelRoles = {
     },
 };
 
-// Keep compatibility with the existing PanelHeader.
 export const panelConfig = panelRoles;
 
 function normalizeRole(role) {
@@ -46,8 +46,8 @@ export function getPanelRole(role) {
     Add navigation only when a page should appear in the sidebar.
     Declare each unique path once.
 
-    Replace LoadingState with the actual component when a page is ready.
-    Backend APIs must enforce authorization separately.
+    Replace LoadingState with actual components as pages are completed.
+    Backend APIs must enforce role and ownership permissions.
 */
 
 function previewPage(path, label, icon, allowedRoles) {
@@ -85,8 +85,16 @@ export const panelPages = [
             end: false,
         },
     },
-
-    previewPage("delivery-agents", "Delivery Agents", "fa-solid fa-motorcycle", ["admin"]),
+    {
+        path: "delivery-agents",
+        component: DeliveryAgents,
+        allowedRoles: ["admin"],
+        navigation: {
+            label: "Delivery Agents",
+            icon: "fa-solid fa-motorcycle",
+            end: false,
+        },
+    },
     previewPage("categories", "Categories", "fa-solid fa-layer-group", ["admin"]),
     previewPage("products", "Manage Products", "fa-solid fa-box-open", ["admin", "seller"]),
     previewPage("orders", "Manage Orders", "fa-solid fa-cart-shopping", ["admin", "seller"]),
@@ -121,10 +129,8 @@ export function getPanelNavigation(role) {
     }
 
     const pageLinks = panelPages
-        .filter(
-            (page) =>
-                page.navigation &&
-                page.allowedRoles.includes(normalizedRole)
+        .filter((page) =>
+            page.navigation && page.allowedRoles.includes(normalizedRole)
         )
         .map((page) => ({
             path: `/manage/${page.path}`,

@@ -1810,8 +1810,8 @@
 }
 
 .manage-sellers .zs-eyebrow {
-    font-size: 21px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
     letter-spacing: -0.1px;
 }
 
@@ -2076,8 +2076,8 @@
     gap: 8px;
     margin-bottom: 12px;
     color: #265df5;
-    font-size: 21px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
     letter-spacing: -0.1px;
 }
 
@@ -2622,4 +2622,995 @@
     .mc-dialog-customer {
         flex-wrap: wrap;
     }
+}
+
+
+
+/* =========================================================
+   ADMIN: DELIVERY AGENT MANAGEMENT
+   ========================================================= */
+
+.manage-delivery-agents {
+    display: grid;
+    gap: 22px;
+    min-width: 0;
+}
+
+/* ===== PAGE HEADER ===== */
+
+.manage-delivery-agents .da-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    min-height: 110px;
+    padding: 25px 27px;
+    overflow: hidden;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #ffffff 48%, #edf4ff 100%);
+}
+
+.manage-delivery-agents .da-hero::after {
+    content: "";
+    position: absolute;
+    top: -90px;
+    right: 120px;
+    width: 215px;
+    height: 215px;
+    border: 1px solid #dfe9fe;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.manage-delivery-agents .da-hero-content {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.manage-delivery-agents .zs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 10px;
+    color: #265df5;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -0.1px;
+}
+
+.manage-delivery-agents .zs-eyebrow i {
+    font-size: 18px;
+}
+
+.manage-delivery-agents .da-hero p {
+    margin: 0;
+    color: #61718e;
+    font-size: 14px;
+    line-height: 23px;
+}
+
+.manage-delivery-agents .da-hero-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 10px;
+}
+
+/* ===== BUTTONS ===== */
+
+.manage-delivery-agents .da-button.MuiButton-root {
+    min-height: 39px;
+    padding: 8px 15px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    box-shadow: none;
+}
+
+.manage-delivery-agents .da-button--outline.MuiButton-root {
+    border-color: #d3dff7;
+    color: #265df5;
+    background: #ffffff;
+}
+
+.manage-delivery-agents .da-button--outline.MuiButton-root:hover {
+    border-color: #265df5;
+    background: #f2f6ff;
+}
+
+.manage-delivery-agents .da-button--primary.MuiButton-root {
+    color: #ffffff;
+    background: #265df5;
+}
+
+.manage-delivery-agents .da-button--primary.MuiButton-root:hover {
+    background: #1746c7;
+}
+
+/* ===== STATISTICS ===== */
+
+.manage-delivery-agents .da-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.manage-delivery-agents .da-stat {
+    position: relative;
+    min-width: 0;
+    min-height: 143px;
+    padding: 20px;
+    overflow: hidden;
+    border: 1px solid #e1e8f3;
+    border-radius: 15px;
+    background: #ffffff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.manage-delivery-agents .da-stat::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 3px;
+    background: var(--da-stat-color);
+}
+
+.manage-delivery-agents .da-stat--blue {
+    --da-stat-color: #265df5;
+    --da-stat-soft: #eaf0ff;
+}
+
+.manage-delivery-agents .da-stat--green {
+    --da-stat-color: #0b9d61;
+    --da-stat-soft: #e8f8f0;
+}
+
+.manage-delivery-agents .da-stat--orange {
+    --da-stat-color: #f49a11;
+    --da-stat-soft: #fff3df;
+}
+
+.manage-delivery-agents .da-stat--red {
+    --da-stat-color: #ed4c60;
+    --da-stat-soft: #fff0f2;
+}
+
+.manage-delivery-agents .da-stat-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: #425477;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.manage-delivery-agents .da-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    color: var(--da-stat-color);
+    background: var(--da-stat-soft);
+    font-size: 16px;
+}
+
+.manage-delivery-agents .da-stat-value {
+    display: block;
+    margin: 7px 0 1px;
+    color: #071b45;
+    font-size: 29px;
+    font-weight: 700;
+    line-height: 38px;
+}
+
+.manage-delivery-agents .da-stat p {
+    margin: 0;
+    color: #8a99b1;
+    font-size: 12px;
+    line-height: 20px;
+}
+
+/* ===== SECTION CARDS ===== */
+
+.manage-delivery-agents .da-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e0e7f2;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.manage-delivery-agents .da-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.manage-delivery-agents .da-section-heading {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 13px;
+}
+
+.manage-delivery-agents .da-section-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 17px;
+}
+
+.manage-delivery-agents .da-section-heading h2 {
+    margin: 0 0 3px;
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 26px;
+}
+
+.manage-delivery-agents .da-section-heading p {
+    margin: 0;
+    color: #8795ac;
+    font-size: 12px;
+    line-height: 20px;
+}
+
+.manage-delivery-agents .da-record-count {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 30px;
+    color: #265df5;
+    background: #f3f6ff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* ===== AGENT FORM ===== */
+
+.manage-delivery-agents .da-form {
+    padding: 25px;
+}
+
+.manage-delivery-agents .da-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    column-gap: 22px;
+    row-gap: 23px;
+}
+
+.manage-delivery-agents .da-form-full {
+    grid-column: 1 / -1;
+}
+
+.manage-delivery-agents .da-form .MuiOutlinedInput-root {
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.manage-delivery-agents .da-form .MuiInputLabel-root {
+    font-size: 14px;
+}
+
+.manage-delivery-agents .da-form .MuiFormHelperText-root {
+    margin-left: 2px;
+    font-size: 11px;
+}
+
+.manage-delivery-agents .da-form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 25px;
+    padding-top: 19px;
+    border-top: 1px solid #edf1f6;
+}
+
+.manage-delivery-agents .da-form-footer > span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #8290a6;
+    font-size: 12px;
+}
+
+.manage-delivery-agents .da-form-footer > span i {
+    color: #265df5;
+}
+
+.manage-delivery-agents .da-form-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.manage-delivery-agents .da-form-buttons .MuiButton-root {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 39px;
+    padding: 8px 18px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    box-shadow: none;
+}
+
+/* ===== FILTER TOOLBAR ===== */
+
+.manage-delivery-agents .da-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 19px 22px;
+    border-bottom: 1px solid #e6ecf4;
+}
+
+.manage-delivery-agents .da-search {
+    flex: 1;
+    min-width: 180px;
+}
+
+.manage-delivery-agents .da-filter {
+    flex: 0 0 185px;
+    width: 185px;
+}
+
+.manage-delivery-agents .da-toolbar .MuiOutlinedInput-root {
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.manage-delivery-agents .da-toolbar .MuiInputLabel-root {
+    font-size: 13px;
+}
+
+.manage-delivery-agents .da-toolbar .MuiInputAdornment-root {
+    color: #8c9ab2;
+}
+
+.manage-delivery-agents .da-reset-button.MuiButton-root {
+    min-height: 40px;
+    border-color: #d8e0eb;
+    color: #697994;
+    white-space: nowrap;
+}
+
+.manage-delivery-agents .da-reset-button.Mui-disabled {
+    border-color: #e1e5ec;
+    color: #b3bdca;
+}
+
+/* ===== AGENTS TABLE ===== */
+
+.manage-delivery-agents .da-table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.manage-delivery-agents .da-table {
+    min-width: 1120px;
+}
+
+.manage-delivery-agents .da-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.manage-delivery-agents .da-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 15px 17px;
+    border-bottom: 1px solid #e2eaf4;
+    color: #40547c;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.manage-delivery-agents .da-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 17px;
+    border-bottom: 1px solid #edf1f6;
+    color: #3d5072;
+    font-family: inherit;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.manage-delivery-agents .da-table .MuiTableBody-root .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.manage-delivery-agents .da-agent {
+    display: flex;
+    align-items: center;
+    min-width: 175px;
+    gap: 12px;
+}
+
+.manage-delivery-agents .da-avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    border: 1px solid #d8e5ff;
+    border-radius: 10px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.manage-delivery-agents .da-agent > div,
+.manage-delivery-agents .da-contact {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.manage-delivery-agents .da-agent strong {
+    color: #10254e;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.manage-delivery-agents .da-agent > div > span {
+    color: #265df5;
+    font-size: 11px;
+}
+
+.manage-delivery-agents .da-contact span {
+    color: #394e77;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.manage-delivery-agents .da-contact small {
+    color: #8796b0;
+    font-size: 12px;
+}
+
+.manage-delivery-agents .da-service-area {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: #536688;
+    font-size: 12px;
+    line-height: 21px;
+}
+
+.manage-delivery-agents .da-service-area i {
+    margin-top: 4px;
+    color: #93a8ce;
+    font-size: 12px;
+}
+
+/* ===== WORKLOAD ===== */
+
+.manage-delivery-agents .da-workload {
+    width: 105px;
+}
+
+.manage-delivery-agents .da-workload-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+}
+
+.manage-delivery-agents .da-workload-heading strong {
+    color: #173365;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.manage-delivery-agents .da-workload-heading small {
+    color: #93a1b7;
+    font-size: 11px;
+}
+
+.manage-delivery-agents .da-progress {
+    height: 6px;
+    overflow: hidden;
+    border-radius: 20px;
+    background: #e8eef7;
+}
+
+.manage-delivery-agents .da-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #265df5;
+    transition: width 200ms ease;
+}
+
+.manage-delivery-agents .da-progress span.is-full {
+    background: #f49a11;
+}
+
+/* ===== STATUS BADGES ===== */
+
+.manage-delivery-agents .da-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 17px;
+    white-space: nowrap;
+}
+
+.manage-delivery-agents .da-badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.manage-delivery-agents .da-badge--success {
+    border-color: #bfead0;
+    color: #07894e;
+    background: #e9f9ef;
+}
+
+.manage-delivery-agents .da-badge--danger {
+    border-color: #ffd3da;
+    color: #d83b50;
+    background: #fff0f3;
+}
+
+.manage-delivery-agents .da-badge--warning {
+    border-color: #ffe0af;
+    color: #b87808;
+    background: #fff7e9;
+}
+
+.manage-delivery-agents .da-badge--neutral {
+    border-color: #dfe5ee;
+    color: #738299;
+    background: #f3f5f9;
+}
+
+/* ===== ACTION BUTTON ===== */
+
+.manage-delivery-agents .da-view-button.MuiButton-root {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px;
+    border: 1px solid #d4e0ff;
+    border-radius: 8px;
+    color: #265df5;
+    background: #f7f9ff;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+.manage-delivery-agents .da-view-button.MuiButton-root:hover {
+    border-color: #265df5;
+    background: #edf2ff;
+}
+
+.manage-delivery-agents .da-view-button i {
+    font-size: 10px;
+}
+
+/* ===== EMPTY STATE ===== */
+
+.manage-delivery-agents .da-empty {
+    display: grid;
+    justify-items: center;
+    gap: 9px;
+    padding: 50px 20px;
+    text-align: center;
+}
+
+.manage-delivery-agents .da-empty > span {
+    display: grid;
+    place-items: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 14px;
+    color: #265df5;
+    background: #edf2ff;
+    font-size: 21px;
+}
+
+.manage-delivery-agents .da-empty h3 {
+    margin: 5px 0 0;
+    color: #112750;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.manage-delivery-agents .da-empty p {
+    margin: 0 0 5px;
+    color: #8390a6;
+    font-size: 13px;
+}
+
+.manage-delivery-agents .da-pagination {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ===== DETAILS DIALOG ===== */
+
+.da-dialog-paper.MuiDialog-paper {
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 20px 65px rgb(16 33 70 / 15%);
+}
+
+.da-dialog-paper .da-dialog-title {
+    padding: 20px 23px;
+    color: #0d2146;
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.da-dialog-paper .da-dialog-content {
+    padding: 23px;
+}
+
+.da-dialog-paper .da-detail-profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 23px;
+    padding: 18px;
+    border: 1px solid #e2eafd;
+    border-radius: 12px;
+    background: #f5f8ff;
+}
+
+.da-dialog-paper .da-avatar--large {
+    flex-basis: 49px;
+    width: 49px;
+    height: 49px;
+    font-size: 16px;
+}
+
+.da-dialog-paper .da-detail-profile > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.da-dialog-paper .da-detail-profile h3 {
+    margin: 0 0 4px;
+    color: #0d2146;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.da-dialog-paper .da-detail-profile p {
+    margin: 0;
+    color: #265df5;
+    font-size: 12px;
+}
+
+.da-dialog-paper .da-detail-section {
+    margin-bottom: 22px;
+}
+
+.da-dialog-paper .da-detail-section h4 {
+    margin: 0 0 13px;
+    color: #18345f;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.da-dialog-paper .da-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 0;
+}
+
+.da-dialog-paper .da-detail-item {
+    min-width: 0;
+}
+
+.da-dialog-paper .da-detail-item dt {
+    margin-bottom: 5px;
+    color: #8795ab;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.da-dialog-paper .da-detail-item dd {
+    margin: 0;
+    color: #23395f;
+    font-size: 13px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.da-dialog-paper .da-detail-alert {
+    margin-bottom: 15px;
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.da-dialog-paper .da-confirm-text {
+    margin: 0 0 17px;
+    color: #435674;
+    font-size: 14px;
+    line-height: 24px;
+}
+
+.da-dialog-paper .da-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 15px 20px;
+    border-top: 1px solid #edf1f6;
+}
+
+.da-dialog-paper .da-dialog-actions .MuiButton-root {
+    min-height: 36px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1199.98px) {
+    .manage-delivery-agents .da-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .manage-delivery-agents .da-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .manage-delivery-agents .da-search {
+        flex-basis: 100%;
+    }
+
+    .manage-delivery-agents .da-filter {
+        flex: 1 1 160px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .manage-delivery-agents .da-hero {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 22px 20px;
+    }
+
+    .manage-delivery-agents .da-hero-actions {
+        flex-wrap: wrap;
+    }
+
+    .manage-delivery-agents .da-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .manage-delivery-agents .da-section-header {
+        padding: 19px;
+    }
+
+    .manage-delivery-agents .da-form {
+        padding: 19px;
+    }
+
+    .manage-delivery-agents .da-toolbar {
+        padding: 16px 19px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .manage-delivery-agents {
+        gap: 17px;
+    }
+
+    .manage-delivery-agents .da-hero-actions {
+        width: 100%;
+    }
+
+    .manage-delivery-agents .da-hero-actions .MuiButton-root {
+        flex: 1;
+    }
+
+    .manage-delivery-agents .da-stats {
+        gap: 11px;
+    }
+
+    .manage-delivery-agents .da-stat {
+        min-height: 132px;
+        padding: 15px;
+    }
+
+    .manage-delivery-agents .da-stat-heading {
+        font-size: 11px;
+    }
+
+    .manage-delivery-agents .da-stat-icon {
+        flex-basis: 34px;
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+
+    .manage-delivery-agents .da-stat-value {
+        font-size: 25px;
+    }
+
+    .manage-delivery-agents .da-stat p {
+        font-size: 11px;
+    }
+
+    .manage-delivery-agents .da-form-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .manage-delivery-agents .da-form-buttons {
+        justify-content: flex-end;
+    }
+
+    .da-dialog-paper .da-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .da-dialog-paper .da-detail-profile {
+        flex-wrap: wrap;
+    }
+
+    .da-dialog-paper .da-dialog-actions {
+        justify-content: flex-end;
+    }
+}
+
+/* ===== DELIVERY AGENTS: FONT SIZE CONSISTENCY ===== */
+
+/* Page Heading */
+.manage-delivery-agents .zs-eyebrow {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.1px;
+}
+
+.manage-delivery-agents .da-hero p {
+    font-size: 14px;
+}
+
+/* KPI Cards */
+.manage-delivery-agents .da-stat-heading {
+    font-size: 14px;
+}
+
+.manage-delivery-agents .da-stat-value {
+    font-size: 29px;
+}
+
+.manage-delivery-agents .da-stat p {
+    font-size: 13px;
+}
+
+/* Section Headings */
+.manage-delivery-agents .da-section-heading h2 {
+    font-size: 18px;
+}
+
+.manage-delivery-agents .da-section-heading p {
+    font-size: 13px;
+}
+
+.manage-delivery-agents .da-record-count {
+    font-size: 12px;
+}
+
+/* Search and Filters */
+.manage-delivery-agents .da-toolbar .MuiOutlinedInput-root,
+.manage-delivery-agents .da-toolbar .MuiInputLabel-root {
+    font-size: 14px;
+}
+
+/* Table Header */
+.manage-delivery-agents .da-table .MuiTableHead-root .MuiTableCell-root {
+    font-size: 13px;
+}
+
+/* Table Content */
+.manage-delivery-agents .da-table .MuiTableBody-root .MuiTableCell-root {
+    font-size: 14px;
+}
+
+.manage-delivery-agents .da-agent strong {
+    font-size: 14px;
+}
+
+.manage-delivery-agents .da-agent > div > span {
+    font-size: 12px;
+}
+
+.manage-delivery-agents .da-contact span,
+.manage-delivery-agents .da-contact small,
+.manage-delivery-agents .da-service-area {
+    font-size: 13px;
+}
+
+/* Workload */
+.manage-delivery-agents .da-workload-heading strong {
+    font-size: 13px;
+}
+
+.manage-delivery-agents .da-workload-heading small {
+    font-size: 12px;
+}
+
+/* Status Badges */
+.manage-delivery-agents .da-badge {
+    font-size: 12px;
+}
+
+/* Buttons */
+.manage-delivery-agents .da-button.MuiButton-root,
+.manage-delivery-agents .da-view-button.MuiButton-root,
+.manage-delivery-agents .da-form-buttons .MuiButton-root {
+    font-size: 13px;
+}
+
+/* Add / Edit Form */
+.manage-delivery-agents .da-form .MuiOutlinedInput-root,
+.manage-delivery-agents .da-form .MuiInputLabel-root {
+    font-size: 14px;
+}
+
+.manage-delivery-agents .da-form .MuiFormHelperText-root {
+    font-size: 12px;
+}
+
+/* Details Dialog */
+.da-dialog-paper .da-detail-profile h3 {
+    font-size: 16px;
+}
+
+.da-dialog-paper .da-detail-section h4 {
+    font-size: 14px;
+}
+
+.da-dialog-paper .da-detail-item dt {
+    font-size: 13px;
+}
+
+.da-dialog-paper .da-detail-item dd {
+    font-size: 14px;
+}
+
+.da-dialog-paper .da-dialog-actions .MuiButton-root {
+    font-size: 13px;
 }

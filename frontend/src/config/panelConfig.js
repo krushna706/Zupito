@@ -6,6 +6,7 @@ import Sellers from "../admin/Sellers";
 import Customers from "../admin/Customers";
 import DeliveryAgents from "../admin/DeliveryAgents";
 import Categories from "../admin/Categories";
+import Products from "../admin/Products";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -106,7 +107,19 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("products", "Manage Products", "fa-solid fa-box-open", ["admin", "seller"]),
+    {
+        path: "products",
+        components: {
+            admin: Products,
+            seller: LoadingState,
+        },
+        allowedRoles: ["admin", "seller"],
+        navigation: {
+            label: "Manage Products",
+            icon: "fa-solid fa-box-open",
+            end: false,
+        },
+    },
     previewPage("orders", "Manage Orders", "fa-solid fa-cart-shopping", ["admin", "seller"]),
     previewPage("delivery-assignments", "Delivery Assignments", "fa-solid fa-truck-fast", ["admin"]),
     previewPage("payments", "Payments", "fa-solid fa-credit-card", ["admin"]),

@@ -1,5 +1,6 @@
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
     Dialog,
     DialogActions,
@@ -82,11 +83,22 @@ function validateComplaint(form) {
 // ================== MY COMPLAINTS ==================
 function Complaints() {
     const fileInputRef = useRef(null);
+    const [searchParams] = useSearchParams();
+    const prefillOrderId = String(searchParams.get("orderId") || "").trim().slice(0, 60);
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [formData, setFormData] = useState(initialForm);
     const [formErrors, setFormErrors] = useState({});
     const [attachment, setAttachment] = useState(null);
+
+    // Open the existing complaint form with the selected order prefilled.
+    useEffect(() => {
+        if (!prefillOrderId) return;
+        setFormData({ ...initialForm, category: "order", orderId: prefillOrderId });
+        setFormErrors({});
+        setAttachment(null);
+        setDialogOpen(true);
+    }, [prefillOrderId]);
 
     // ================== DIALOG CONTROLS ==================
     const openDialog = () => {

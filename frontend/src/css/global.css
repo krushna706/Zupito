@@ -263,6 +263,12 @@ small,
     font-size: var(--font-size-small);
 }
 
+/* ================== TOAST POSITION ================== */
+.Toastify__toast-container.Toastify__toast-container--top-right {
+    top: 77px;
+    right: 10px
+}
+
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {

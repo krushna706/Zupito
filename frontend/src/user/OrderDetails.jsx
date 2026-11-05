@@ -1,17 +1,12 @@
 
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import {
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-} from "@mui/material";
-import { toast } from "react-toastify";
-
 import ReviewForm from "../components/ReviewForm";
-import { SHOW_DEMO_ORDERS, demoOrders } from "./MyOrders";
 import InvoiceDownload from "../components/InvoiceDownload";
+import OrderCancellation, { RefundStatus } from "../components/OrderCancellation";
+import ReplacementRequest, { ReplacementStatus } from "./ReplacementRequest";
+import { getProductPath } from "../utils/productVariants";
+import { SHOW_DEMO_ORDERS, demoOrders } from "./MyOrders";
 
 // ================== DEMO INFORMATION ==================
 const demoAddress = {
@@ -94,6 +89,15 @@ const demoParcels = {
     ],
 };
 
+const demoProductLinks = {
+    "Everyday Smartphone - Black, 128 GB": ["preview-smartphone", "smartphone-black-128"],
+    "Over-Ear Wireless Headphones": ["preview-headphones"],
+    "Men's Casual Shirt - Navy, M": ["preview-shirt"],
+    "Everyday Performance Laptop": ["preview-laptop"],
+    "Women's Everyday Dress": ["preview-dress"],
+    "Travel Backpack": ["preview-backpack"],
+};
+
 const moneyFormatter = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -152,15 +156,6 @@ const statusProgress = {
     out_for_delivery: 4,
     delivered: 5,
 };
-
-const cancellableStatuses = new Set([
-    "placed",
-    "confirmed",
-    "processing",
-    "packing",
-    "packed",
-    "ready_for_pickup",
-]);
 
 // ================== ORDER HELPERS ==================
 function getOrderId(order) {
@@ -308,6 +303,18 @@ function getProductName(item) {
     );
 }
 
+function getProductLink(item, isDemo) {
+    const rawId = item?.productId || item?.productSnapshot?.productId ||
+        item?.product?._id || item?.product?.id;
+    const rawVariant = item?.variantId || item?.productSnapshot?.variantId ||
+        item?.variant?._id || item?.variant?.id;
+    const demoLink = isDemo ? demoProductLinks[getProductName(item)] : null;
+    const productId = typeof rawId === "string" ? rawId : rawId?._id || rawId?.id || demoLink?.[0];
+    const variantId = typeof rawVariant === "string" ? rawVariant :
+        rawVariant?._id || rawVariant?.id || demoLink?.[1] || null;
+    return productId ? getProductPath(productId, variantId) : null;
+}
+
 function getProductImage(item) {
     const image =
         item?.productSnapshot?.image ||
@@ -451,7 +458,9 @@ function buildOrderParcels(order, isDemo) {
 function getOverallStatus(order, parcels) {
     const orderStatus = getOrderStatus(order);
 
-    if (parcels.length < 2) return orderStatus;
+    if (parcels.length === 1) {
+        return getParcelStatus(parcels[0], orderStatus) || orderStatus;
+    }
 
     const statuses = parcels.map((parcel) =>
         getParcelStatus(parcel, orderStatus)
@@ -464,6 +473,10 @@ function getOverallStatus(order, parcels) {
     if (statuses.every((status) => status === "cancelled")) {
         return "cancelled";
     }
+    if (statuses.every((status) => ["delivered", "cancelled"].includes(status))) {
+        return statuses.some((status) => status === "delivered")
+            ? "delivered" : "cancelled";
+    }
 
     if (statuses.some((status) => status === "delivered")) {
         return "partially_delivered";
@@ -473,7 +486,7 @@ function getOverallStatus(order, parcels) {
         return "in_progress";
     }
 
-    return orderStatus || statuses[0];
+    return statuses[0] || orderStatus;
 }
 
 function getDeliveryInfo(parcel, status, order = null) {
@@ -789,9 +802,8 @@ function OrderDetails({
     const { orderId } = useParams();
 
     const [visibleOtps, setVisibleOtps] = useState({});
-    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+    const [replacementOpen, setReplacementOpen] = useState(false);
     const [reviewItem, setReviewItem] = useState(null);
-    const [submitting, setSubmitting] = useState(false);
 
     const hasRealData =
         Boolean(order) || Array.isArray(orders);
@@ -870,16 +882,6 @@ function OrderDetails({
         "success",
     ].includes(normalizeStatus(paymentStatus));
 
-    const canCancel =
-        cancellableStatuses.has(status) &&
-        parcels.every((parcel) =>
-            cancellableStatuses.has(getParcelStatus(parcel))
-        );
-
-    const canReplace =
-        status === "delivered" &&
-        selectedOrder?.replacementEligible !== false;
-
     // ================== PRODUCT REVIEW ELIGIBILITY ==================
     const isItemDelivered = (item, itemIndex) => {
         return parcels.some((parcel) => {
@@ -909,93 +911,35 @@ function OrderDetails({
         });
     };
 
+    const deliveredItems = items.flatMap((item, index) => {
+        const declaredEligible = isDemo ||
+            item.replacementEligible === true ||
+            selectedOrder?.replacementEligible === true;
+        if (!isItemDelivered(item, index) ||
+            !declaredEligible ||
+            item.replacementEligible === false ||
+            selectedOrder?.replacementEligible === false
+        ) return [];
+
+        return [isDemo
+            ? { ...item, demoItemId: `preview-item-${index}` }
+            : item
+        ];
+    });
+
+    const canReplace = deliveredItems.length > 0;
+    const canCancel = parcels.some((parcel) =>
+        ["placed", "confirmed", "processing", "packing", "packed", "ready_for_pickup"].includes(
+            getParcelStatus(parcel)
+        )
+    );
+
     // ================== RESET PAGE STATE ==================
     useEffect(() => {
         setVisibleOtps({});
-        setCancelDialogOpen(false);
+        setReplacementOpen(false);
         setReviewItem(null);
     }, [orderId]);
-
-    // ================== CANCEL ORDER ==================
-    const handleCancelOrder = async () => {
-        if (isDemo || typeof onCancel !== "function") {
-            setCancelDialogOpen(false);
-
-            toast.info(
-                "Order cancellation is not available in this preview."
-            );
-
-            return;
-        }
-
-        try {
-            setSubmitting(true);
-
-            const result = await onCancel(selectedOrder);
-
-            if (result?.success !== true) {
-                toast.error(
-                    result?.message ||
-                    "Order cancellation could not be confirmed."
-                );
-
-                return;
-            }
-
-            setCancelDialogOpen(false);
-
-            toast.success(
-                "Order cancellation request processed."
-            );
-        } catch {
-            toast.error(
-                "Unable to cancel the order. Please try again."
-            );
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    // ================== REPLACEMENT REQUEST ==================
-    const handleReplacement = async () => {
-        if (
-            isDemo ||
-            typeof onRequestReplacement !== "function"
-        ) {
-            toast.info(
-                "Replacement requests will be available after backend integration."
-            );
-
-            return;
-        }
-
-        try {
-            setSubmitting(true);
-
-            const result = await onRequestReplacement(
-                selectedOrder
-            );
-
-            if (result?.success !== true) {
-                toast.error(
-                    result?.message ||
-                    "Replacement request could not be confirmed."
-                );
-
-                return;
-            }
-
-            toast.success(
-                "Replacement request submitted."
-            );
-        } catch {
-            toast.error(
-                "Unable to submit replacement request. Please try again."
-            );
-        } finally {
-            setSubmitting(false);
-        }
-    };
 
     // ================== LOADING / ERROR ==================
     if (loading || error || !selectedOrder) {
@@ -1231,6 +1175,7 @@ function OrderDetails({
 
                                     const delivered =
                                         isItemDelivered(item, index);
+                                    const productPath = getProductLink(item, isDemo);
 
                                     return (
                                         <div
@@ -1243,7 +1188,11 @@ function OrderDetails({
 
                                             <div className="customer-detail-item-info">
                                                 <h4>
-                                                    {getProductName(item)}
+                                                    {productPath ? (
+                                                        <Link to={productPath} className="customer-detail-product-title-link">
+                                                            {getProductName(item)}
+                                                        </Link>
+                                                    ) : getProductName(item)}
                                                 </h4>
 
                                                 {item.variantName && (
@@ -1446,48 +1395,32 @@ function OrderDetails({
                         <section className="customer-detail-actions">
                             <div>
                                 <h3>Order Actions</h3>
-
-                                <p>
-                                    Manage available actions
-                                    for this order.
-                                </p>
+                                <p>Manage available actions for this order.</p>
                             </div>
-
                             {canCancel && (
-                                <button
-                                    type="button"
-                                    className="customer-detail-cancel-button"
-                                    onClick={() =>
-                                        setCancelDialogOpen(true)
-                                    }
-                                    disabled={submitting}
-                                >
-                                    <i
-                                        className="fa-solid fa-ban"
-                                        aria-hidden="true"
-                                    />
-
-                                    Cancel Order
-                                </button>
+                                <OrderCancellation
+                                    order={selectedOrder}
+                                    parcels={parcels}
+                                    isDemo={isDemo}
+                                    onCancel={onCancel}
+                                />
                             )}
-
                             {canReplace && (
                                 <button
                                     type="button"
                                     className="customer-detail-replace-button"
-                                    onClick={handleReplacement}
-                                    disabled={submitting}
+                                    onClick={() => setReplacementOpen(true)}
                                 >
-                                    <i
-                                        className="fa-solid fa-rotate"
-                                        aria-hidden="true"
-                                    />
-
+                                    <i className="fa-solid fa-rotate" aria-hidden="true" />
                                     Request Replacement
                                 </button>
                             )}
                         </section>
                     )}
+
+                    {/* Refund and Replacement Tracking */}
+                    <RefundStatus order={selectedOrder} parcels={parcels} isDemo={isDemo} />
+                    <ReplacementStatus order={selectedOrder} />
                 </div>
 
                 {/* Right Column */}
@@ -1623,7 +1556,7 @@ function OrderDetails({
                                     {formatMoney(totalAmount)}
                                 </strong>
                             </div>
-                            {/* Invoice Download */}
+
                             <InvoiceDownload
                                 order={selectedOrder}
                                 address={address}
@@ -1649,7 +1582,7 @@ function OrderDetails({
                                 Have a question about this order?
                             </p>
 
-                            <Link to="/account/complaints">
+                            <Link to={`/account/complaints?orderId=${encodeURIComponent(orderId)}`} >
                                 Contact Support
 
                                 <i
@@ -1671,55 +1604,16 @@ function OrderDetails({
                 onSubmit={onSubmitReview}
             />
 
-            {/* Cancel Confirmation */}
-            <Dialog
-                open={cancelDialogOpen}
-                onClose={
-                    submitting
-                        ? undefined
-                        : () => setCancelDialogOpen(false)
-                }
-                fullWidth
-                maxWidth="xs"
-                className="customer-detail-cancel-dialog"
-                aria-labelledby="customer-order-cancel-title"
-            >
-                <DialogTitle id="customer-order-cancel-title">
-                    Cancel Order?
-                </DialogTitle>
-
-                <DialogContent>
-                    <p>
-                        Are you sure you want to cancel this order?
-                        Cancellation is subject to its current status
-                        and store policy.
-                    </p>
-                </DialogContent>
-
-                <DialogActions>
-                    <button
-                        type="button"
-                        className="customer-detail-dialog-back"
-                        onClick={() =>
-                            setCancelDialogOpen(false)
-                        }
-                        disabled={submitting}
-                    >
-                        Keep Order
-                    </button>
-
-                    <button
-                        type="button"
-                        className="customer-detail-dialog-confirm"
-                        onClick={handleCancelOrder}
-                        disabled={submitting}
-                    >
-                        {submitting
-                            ? "Processing..."
-                            : "Cancel Order"}
-                    </button>
-                </DialogActions>
-            </Dialog>
+            {/* Replacement Request */}
+            <ReplacementRequest
+                open={replacementOpen}
+                onClose={() => setReplacementOpen(false)}
+                order={selectedOrder}
+                items={deliveredItems}
+                address={address}
+                isDemo={isDemo}
+                onSubmit={onRequestReplacement}
+            />
         </div>
     );
 }

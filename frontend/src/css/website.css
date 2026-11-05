@@ -13383,3 +13383,382 @@
         gap: 9px;
     }
 }
+
+
+
+/* ===== ORDER PRODUCT TITLE LINK ===== */
+
+.customer-detail-product-title-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.customer-detail-product-title-link:hover {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+.customer-detail-product-title-link:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
+
+
+/* ===== ORDER CANCELLATION ===== */
+
+.customer-cancel-dialog-body {
+    display: grid;
+    gap: 18px;
+    padding-top: 5px;
+}
+
+.customer-cancel-packages {
+    display: grid;
+    gap: 9px;
+}
+
+.customer-cancel-packages > strong {
+    color: var(--color-primary);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.customer-cancel-package {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px;
+    background-color: #fafbfd;
+    border: 1px solid #e5eaf1;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.customer-cancel-package:has(input:disabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.customer-cancel-package input {
+    accent-color: var(--color-accent);
+    width: 16px;
+    height: 16px;
+}
+
+.customer-cancel-package > span {
+    flex: 1;
+    color: var(--color-primary);
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.customer-cancel-package small {
+    color: #738299;
+    font-size: 0.71875rem;
+}
+
+.customer-detail-cancel-dialog
+.MuiDialogContent-root .customer-cancel-error {
+    color: #b42318;
+    font-size: 0.75rem;
+}
+
+.customer-detail-cancel-dialog
+.MuiDialogContent-root .customer-cancel-note {
+    padding: 12px;
+    color: #64748b;
+    background-color: #f5f7fb;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    line-height: 1.75;
+}
+
+/* ===== REFUND STATUS ===== */
+
+.customer-refund-content {
+    padding: 19px;
+}
+
+.customer-refund-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.customer-refund-row + .customer-refund-row {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #edf0f4;
+}
+
+.customer-refund-row > div {
+    display: grid;
+    gap: 7px;
+}
+
+.customer-refund-row strong {
+    color: var(--color-primary);
+    font-size: 0.84375rem;
+    font-weight: 600;
+}
+
+.customer-refund-row > div > span,
+.customer-refund-unavailable {
+    color: #77869b;
+    font-size: 0.78125rem;
+    line-height: 1.7;
+}
+
+.customer-refund-unavailable {
+    margin: 0;
+}
+
+.customer-refund-status {
+    display: inline-flex;
+    padding: 7px 11px;
+    border-radius: 7px;
+    background-color: #f1f5f9;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.customer-refund-status.is-completed,
+.customer-refund-status.is-refunded,
+.customer-refund-status.is-refunded_demo {
+    color: #20804a;
+    background-color: #eaf7ef;
+}
+
+.customer-refund-status.is-pending,
+.customer-refund-status.is-processing {
+    color: #a76a19;
+    background-color: #fff7eb;
+}
+
+.customer-refund-status.is-failed {
+    color: #b42318;
+    background-color: #fff1ef;
+}
+
+
+
+/* ===== ORDER PRODUCT LINKS ===== */
+.customer-detail-product-title-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.customer-detail-product-title-link:hover {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+.customer-detail-product-title-link:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
+/* ===== ORDER CANCELLATION FORM ===== */
+.customer-cancel-form,
+.customer-replacement-form {
+    display: grid;
+    gap: 16px;
+    padding-top: 7px;
+}
+
+.customer-cancel-form > p,
+.customer-replacement-form > p {
+    margin: 0;
+    color: #697991;
+    font-size: 0.8125rem;
+    line-height: 1.75;
+}
+
+.customer-cancel-packages { display: grid; gap: 9px; }
+.customer-cancel-packages > strong {
+    color: var(--color-primary);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.customer-cancel-package {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px;
+    background: #fafbfd;
+    border: 1px solid #e5eaf1;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.customer-cancel-package:has(input:disabled) { opacity: 0.65; cursor: not-allowed; }
+.customer-cancel-package input { width: 16px; height: 16px; accent-color: var(--color-accent); }
+.customer-cancel-package > span {
+    flex: 1;
+    color: var(--color-primary);
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+.customer-cancel-package small { color: #748299; font-size: 0.71875rem; }
+
+.customer-cancel-form .customer-cancel-error,
+.customer-replacement-form .customer-replacement-error {
+    color: #b42318;
+    font-size: 0.75rem;
+}
+
+.customer-cancel-form .customer-cancel-note,
+.customer-replacement-form .customer-replacement-note {
+    padding: 12px;
+    color: #65758a;
+    background: #f4f7fb;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    line-height: 1.75;
+}
+
+/* ===== ORDER REFUND STATUS ===== */
+.customer-refund-content { padding: 19px; }
+.customer-refund-row,
+.customer-replacement-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+.customer-refund-row + .customer-refund-row,
+.customer-replacement-status-row + .customer-replacement-status-row {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #edf0f4;
+}
+.customer-refund-row > div,
+.customer-replacement-status-row > div { display: grid; gap: 7px; min-width: 0; }
+.customer-refund-row strong,
+.customer-replacement-status-row strong {
+    color: var(--color-primary);
+    font-size: 0.84375rem;
+    font-weight: 600;
+}
+.customer-refund-row > div > span,
+.customer-refund-unavailable,
+.customer-replacement-status-row > div > span {
+    color: #77869b;
+    font-size: 0.78125rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+.customer-refund-unavailable { margin: 0; }
+.customer-refund-status,
+.customer-replacement-status {
+    display: inline-flex;
+    padding: 7px 11px;
+    color: #64748b;
+    background: #f1f5f9;
+    border-radius: 7px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.customer-refund-status.is-completed,
+.customer-refund-status.is-refunded,
+.customer-refund-status.is-refunded_demo,
+.customer-replacement-status.is-approved,
+.customer-replacement-status.is-completed {
+    color: #20804a;
+    background: #eaf7ef;
+}
+.customer-refund-status.is-pending,
+.customer-refund-status.is-processing,
+.customer-replacement-status.is-requested,
+.customer-replacement-status.is-pending {
+    color: #a76a19;
+    background: #fff7eb;
+}
+.customer-refund-status.is-failed,
+.customer-replacement-status.is-rejected { color: #b42318; background: #fff1ef; }
+
+/* ===== PRODUCT REPLACEMENT ===== */
+.customer-replacement-dialog .MuiDialog-paper { border-radius: 14px; }
+.customer-replacement-dialog .MuiDialogTitle-root {
+    color: var(--color-primary);
+    font-size: 1.0625rem;
+    font-weight: 650;
+    padding: 20px 24px;
+}
+.customer-replacement-dialog .MuiDialogContent-root { padding: 20px 24px; border-color: #edf0f4; }
+.customer-replacement-dialog .MuiDialogActions-root { padding: 17px 24px; gap: 10px; }
+.customer-replacement-upload { display: grid; gap: 9px; }
+.customer-replacement-upload > span,
+.customer-replacement-address > strong {
+    color: var(--color-primary);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+.customer-replacement-upload > label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: fit-content;
+    padding: 9px 13px;
+    color: var(--color-primary);
+    border: 1px solid #dce3ed;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.78125rem;
+    font-weight: 600;
+}
+.customer-replacement-upload > label > input { display: none; }
+.customer-replacement-upload > small,
+.customer-replacement-address > small { color: #8896a7; font-size: 0.71875rem; }
+.customer-replacement-files { display: grid; gap: 7px; }
+.customer-replacement-files > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #f8fafd;
+    border-radius: 6px;
+}
+.customer-replacement-files span {
+    min-width: 0;
+    overflow: hidden;
+    color: #65758a;
+    font-size: 0.75rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.customer-replacement-files button { border: 0; background: none; color: #b42318; cursor: pointer; }
+.customer-replacement-address { display: grid; gap: 7px; padding: 13px; background: #f7f9fc; border-radius: 8px; }
+.customer-replacement-address p { margin: 0; color: #697991; font-size: 0.78125rem; line-height: 1.7; }
+.customer-replacement-status-list { padding: 19px; }
+
+@media (max-width: 575.98px) {
+    .customer-replacement-dialog .MuiDialogTitle-root,
+    .customer-replacement-dialog .MuiDialogContent-root { padding: 18px; }
+    .customer-replacement-dialog .MuiDialogActions-root { padding: 15px 18px; }
+    .customer-refund-content,
+    .customer-replacement-status-list { padding: 15px; }
+}
+
+/* Keep validation and policy notes visible inside the existing MUI dialog styles. */
+.customer-detail-cancel-dialog .customer-cancel-form .customer-cancel-error {
+    color: #b42318;
+    font-size: 0.75rem;
+}
+.customer-detail-cancel-dialog .customer-cancel-form .customer-cancel-note {
+    color: #65758a;
+    font-size: 0.75rem;
+}

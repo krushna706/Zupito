@@ -29,6 +29,7 @@ import Complaints from "./user/Complaints";
 import Login from "./auth/Login";
 import Signup from "./auth/Signup";
 import ForgotPassword from "./auth/ForgotPassword";
+import SellerRegister from "./auth/SellerRegister";
 
 // Shared Components
 import NotFound from "./components/NotFound";
@@ -63,7 +64,7 @@ function App() {
                 <Route path="/manage" element={<Login />} />
                 <Route path="/manage/signup" element={<Signup />} />
                 <Route path="/manage/forgot-password" element={<ForgotPassword />} />
-
+                <Route path="/manage/seller-register" element={<SellerRegister />} />
                 <Route element={<WebsiteLayout />}>
                     {/* Public Website */}
                     <Route path="/" element={<HomePage />} />

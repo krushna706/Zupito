@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
@@ -31,6 +32,9 @@ import Signup from "./auth/Signup";
 import ForgotPassword from "./auth/ForgotPassword";
 import SellerRegister from "./auth/SellerRegister";
 
+// Admin Panel
+import Sellers from "./admin/Sellers";
+
 // Panel Configuration
 import { panelRoles, panelPages } from "./config/panelConfig";
 
@@ -42,9 +46,7 @@ import NotFound from "./components/NotFound";
 
 import "./css/website.css";
 
-// Temporary pages for testing the shared panel layout.
-// Replace each preview with its actual page component later.
-
+// ================== SCROLL TO TOP ==================
 function ScrollToTop() {
     const { pathname } = useLocation();
 
@@ -59,11 +61,18 @@ function ScrollToTop() {
     return null;
 }
 
+// ================== PANEL DASHBOARD ==================
 function PanelDashboard() {
     const { user } = useAuth();
-    return <PanelPreviewPage title={`${panelRoles[user.role].label} Dashboard`} />;
+
+    return (
+        <PanelPreviewPage
+            title={`${panelRoles[user.role].label} Dashboard`}
+        />
+    );
 }
 
+// ================== APPLICATION ROUTES ==================
 function App() {
     return (
         <BrowserRouter>
@@ -72,15 +81,19 @@ function App() {
             <ToastContainer position="top-right" autoClose={3000} />
 
             <Routes>
+                {/* Authentication */}
                 <Route path="/manage" element={<Login />} />
                 <Route path="/manage/signup" element={<Signup />} />
                 <Route path="/manage/forgot-password" element={<ForgotPassword />} />
                 <Route path="/manage/seller-register" element={<SellerRegister />} />
+
+                {/* Public Website */}
                 <Route element={<WebsiteLayout />}>
                     <Route path="/" element={<HomePage />} />
                     <Route path="products" element={<Products />} />
                     <Route path="products/:productId" element={<ProductDetails />} />
                     <Route path="cart" element={<Cart />} />
+
                     <Route
                         path="checkout"
                         element={
@@ -89,7 +102,9 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+
                     <Route path="payment-status" element={<PaymentStatus />} />
+
                     <Route
                         path="order-confirmation/:orderId"
                         element={
@@ -98,9 +113,12 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+
                     <Route path="about" element={<About />} />
                     <Route path="contact" element={<Contact />} />
                     <Route path="policies" element={<Policies />} />
+
+                    {/* Customer Account */}
                     <Route
                         path="account"
                         element={
@@ -118,6 +136,8 @@ function App() {
 
                     <Route path="*" element={<NotFound />} />
                 </Route>
+
+                {/* Staff Panels */}
                 <Route
                     path="/manage"
                     element={
@@ -127,17 +147,25 @@ function App() {
                     }
                 >
                     <Route path="dashboard" element={<PanelDashboard />} />
+
                     {panelPages.map((page) => (
                         <Route
                             key={page.path}
                             path={page.path}
                             element={
                                 <ProtectedRoute allowedRoles={page.allowedRoles}>
-                                    <PanelPreviewPage title={page.navigation?.label || "Panel Page"} />
+                                    {page.path === "sellers" ? (
+                                        <Sellers />
+                                    ) : (
+                                        <PanelPreviewPage
+                                            title={page.navigation?.label || "Panel Page"}
+                                        />
+                                    )}
                                 </ProtectedRoute>
                             }
                         />
                     ))}
+
                     <Route
                         path="profile"
                         element={

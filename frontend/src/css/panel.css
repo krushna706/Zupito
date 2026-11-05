@@ -3614,3 +3614,918 @@
 .da-dialog-paper .da-dialog-actions .MuiButton-root {
     font-size: 13px;
 }
+
+
+
+
+/* =========================================================
+   ADMIN: CATEGORY MANAGEMENT
+   ========================================================= */
+
+.manage-categories {
+    display: grid;
+    gap: 22px;
+    min-width: 0;
+}
+
+/* ===== PAGE HEADER ===== */
+
+.manage-categories .zc-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    min-height: 110px;
+    padding: 25px 27px;
+    overflow: hidden;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #ffffff 48%, #edf4ff 100%);
+}
+
+.manage-categories .zc-hero::after {
+    content: "";
+    position: absolute;
+    top: -90px;
+    right: 120px;
+    width: 215px;
+    height: 215px;
+    border: 1px solid #dfe9fe;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.manage-categories .zc-hero-content {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.manage-categories .zs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 10px;
+    color: #265df5;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -0.1px;
+}
+
+.manage-categories .zs-eyebrow i {
+    font-size: 18px;
+}
+
+.manage-categories .zc-hero p {
+    margin: 0;
+    color: #61718e;
+    font-size: 14px;
+    line-height: 23px;
+}
+
+.manage-categories .zc-hero-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 10px;
+}
+
+/* ===== BUTTONS ===== */
+
+.manage-categories .zc-button.MuiButton-root {
+    min-height: 39px;
+    padding: 8px 15px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    box-shadow: none;
+}
+
+.manage-categories .zc-button--outline.MuiButton-root {
+    border-color: #d3dff7;
+    color: #265df5;
+    background: #ffffff;
+}
+
+.manage-categories .zc-button--outline.MuiButton-root:hover {
+    border-color: #265df5;
+    background: #f2f6ff;
+}
+
+.manage-categories .zc-button--primary.MuiButton-root {
+    color: #ffffff;
+    background: #265df5;
+}
+
+.manage-categories .zc-button--primary.MuiButton-root:hover {
+    background: #1746c7;
+}
+
+/* ===== STATISTICS ===== */
+
+.manage-categories .zc-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.manage-categories .zc-stat {
+    position: relative;
+    min-width: 0;
+    min-height: 143px;
+    padding: 20px;
+    overflow: hidden;
+    border: 1px solid #e1e8f3;
+    border-radius: 15px;
+    background: #ffffff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.manage-categories .zc-stat::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 3px;
+    background: var(--zc-stat-color);
+}
+
+.manage-categories .zc-stat--blue {
+    --zc-stat-color: #265df5;
+    --zc-stat-soft: #eaf0ff;
+}
+
+.manage-categories .zc-stat--green {
+    --zc-stat-color: #0b9d61;
+    --zc-stat-soft: #e8f8f0;
+}
+
+.manage-categories .zc-stat--orange {
+    --zc-stat-color: #f49a11;
+    --zc-stat-soft: #fff3df;
+}
+
+.manage-categories .zc-stat--red {
+    --zc-stat-color: #ed4c60;
+    --zc-stat-soft: #fff0f2;
+}
+
+.manage-categories .zc-stat-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.manage-categories .zc-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    color: var(--zc-stat-color);
+    background: var(--zc-stat-soft);
+    font-size: 16px;
+}
+
+.manage-categories .zc-stat-value {
+    display: block;
+    margin: 7px 0 1px;
+    color: #071b45;
+    font-size: 29px;
+    font-weight: 700;
+    line-height: 38px;
+}
+
+.manage-categories .zc-stat p {
+    margin: 0;
+    color: #8a99b1;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+/* ===== CONTENT CARD ===== */
+
+.manage-categories .zc-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e0e7f2;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.manage-categories .zc-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.manage-categories .zc-section-heading {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 13px;
+}
+
+.manage-categories .zc-section-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 17px;
+}
+
+.manage-categories .zc-section-heading h2 {
+    margin: 0 0 3px;
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 26px;
+}
+
+.manage-categories .zc-section-heading p {
+    margin: 0;
+    color: #8795ac;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.manage-categories .zc-record-count {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 30px;
+    color: #265df5;
+    background: #f3f6ff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* ===== CATEGORY FORM ===== */
+
+.manage-categories .zc-form {
+    padding: 24px;
+}
+
+.manage-categories .zc-form-heading {
+    margin-bottom: 20px;
+}
+
+.manage-categories .zc-form-heading--policy {
+    margin-top: 27px;
+    padding-top: 22px;
+    border-top: 1px solid #edf1f6;
+}
+
+.manage-categories .zc-form-heading h3 {
+    margin: 0 0 5px;
+    color: #16315c;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.manage-categories .zc-form-heading p {
+    margin: 0;
+    color: #8290a6;
+    font-size: 13px;
+    line-height: 21px;
+}
+
+.manage-categories .zc-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    column-gap: 22px;
+    row-gap: 23px;
+}
+
+.manage-categories .zc-form-full {
+    grid-column: 1 / -1;
+}
+
+.manage-categories .zc-form .MuiOutlinedInput-root {
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.manage-categories .zc-form .MuiInputLabel-root {
+    font-size: 14px;
+}
+
+.manage-categories .zc-form .MuiFormHelperText-root {
+    margin-left: 2px;
+    font-size: 12px;
+}
+
+.manage-categories .zc-form-error {
+    margin-top: 20px;
+}
+
+.manage-categories .zc-form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 25px;
+    padding-top: 19px;
+    border-top: 1px solid #edf1f6;
+}
+
+.manage-categories .zc-form-footer > span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #8290a6;
+    font-size: 12px;
+}
+
+.manage-categories .zc-form-footer > span i {
+    color: #265df5;
+}
+
+.manage-categories .zc-form-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.manage-categories .zc-form-buttons .MuiButton-root {
+    min-height: 39px;
+    padding: 8px 18px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+    box-shadow: none;
+}
+
+/* ===== SEARCH AND FILTERS ===== */
+
+.manage-categories .zc-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 19px 22px;
+    border-bottom: 1px solid #e6ecf4;
+}
+
+.manage-categories .zc-search {
+    flex: 1;
+    min-width: 180px;
+}
+
+.manage-categories .zc-filter {
+    flex: 0 0 185px;
+    width: 185px;
+}
+
+.manage-categories .zc-toolbar .MuiOutlinedInput-root,
+.manage-categories .zc-toolbar .MuiInputLabel-root {
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.manage-categories .zc-toolbar .MuiInputAdornment-root {
+    color: #8c9ab2;
+}
+
+.manage-categories .zc-reset-button.MuiButton-root {
+    min-height: 40px;
+    border: 1px solid #d8e0eb;
+    border-radius: 9px;
+    color: #697994;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.manage-categories .zc-reset-button.Mui-disabled {
+    border-color: #e1e5ec;
+    color: #b3bdca;
+}
+
+/* ===== CATEGORIES TABLE ===== */
+
+.manage-categories .zc-table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.manage-categories .zc-table {
+    min-width: 1020px;
+}
+
+.manage-categories .zc-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.manage-categories .zc-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 15px 17px;
+    border-bottom: 1px solid #e2eaf4;
+    color: #40547c;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.manage-categories .zc-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 17px;
+    border-bottom: 1px solid #edf1f6;
+    color: #3d5072;
+    font-family: inherit;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.manage-categories .zc-table .MuiTableBody-root .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.manage-categories .zc-category {
+    display: flex;
+    align-items: center;
+    min-width: 180px;
+    gap: 12px;
+}
+
+.manage-categories .zc-category-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 39px;
+    width: 39px;
+    height: 39px;
+    border: 1px solid #dce7ff;
+    border-radius: 10px;
+    color: #265df5;
+    background: #edf3ff;
+    font-size: 15px;
+}
+
+.manage-categories .zc-category-icon.is-main {
+    color: #fff;
+    background: #265df5;
+    border-color: #265df5;
+}
+
+.manage-categories .zc-category > div {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+}
+
+.manage-categories .zc-category strong {
+    color: #10254e;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.manage-categories .zc-category > div > span {
+    color: #265df5;
+    font-size: 12px;
+}
+
+.manage-categories .zc-parent-info {
+    display: grid;
+    gap: 4px;
+}
+
+.manage-categories .zc-parent-info strong {
+    color: #405474;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.manage-categories .zc-parent-info small {
+    color: #8a99b1;
+    font-size: 12px;
+}
+
+.manage-categories .zc-product-count {
+    display: inline-flex;
+    justify-content: center;
+    min-width: 30px;
+    padding: 5px 9px;
+    border: 1px solid #dce6f5;
+    border-radius: 8px;
+    color: #425c88;
+    background: #f6f9fd;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.manage-categories .zc-policy {
+    display: grid;
+    justify-items: start;
+    gap: 4px;
+}
+
+.manage-categories .zc-policy--eligible {
+    color: #07894e;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.manage-categories .zc-policy--excluded {
+    color: #c4761b;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.manage-categories .zc-policy small,
+.manage-categories .zc-muted {
+    color: #8b99b0;
+    font-size: 12px;
+}
+
+/* ===== STATUS BADGES ===== */
+
+.manage-categories .zc-badge,
+.zc-dialog-paper .zc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 17px;
+    white-space: nowrap;
+}
+
+.zc-badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.zc-badge--success {
+    border-color: #bfead0 !important;
+    color: #07894e;
+    background: #e9f9ef;
+}
+
+.zc-badge--danger {
+    border-color: #ffd3da !important;
+    color: #d83b50;
+    background: #fff0f3;
+}
+
+.zc-badge--warning {
+    border-color: #ffe0af !important;
+    color: #b87808;
+    background: #fff7e9;
+}
+
+/* ===== VIEW BUTTON ===== */
+
+.manage-categories .zc-view-button.MuiButton-root {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px;
+    border: 1px solid #d4e0ff;
+    border-radius: 8px;
+    color: #265df5;
+    background: #f7f9ff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+.manage-categories .zc-view-button.MuiButton-root:hover {
+    border-color: #265df5;
+    background: #edf2ff;
+}
+
+.manage-categories .zc-view-button i {
+    font-size: 11px;
+}
+
+/* ===== EMPTY STATE AND PAGINATION ===== */
+
+.manage-categories .zc-empty {
+    display: grid;
+    justify-items: center;
+    gap: 9px;
+    padding: 50px 20px;
+    text-align: center;
+}
+
+.manage-categories .zc-empty > span {
+    display: grid;
+    place-items: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 14px;
+    color: #265df5;
+    background: #edf2ff;
+    font-size: 21px;
+}
+
+.manage-categories .zc-empty h3 {
+    margin: 5px 0 0;
+    color: #112750;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.manage-categories .zc-empty p {
+    margin: 0 0 5px;
+    color: #8390a6;
+    font-size: 13px;
+}
+
+.manage-categories .zc-pagination {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ===== DETAILS DIALOG ===== */
+
+.zc-dialog-paper.MuiDialog-paper {
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 20px 65px rgb(16 33 70 / 15%);
+}
+
+.zc-dialog-paper .zc-dialog-title {
+    padding: 20px 23px;
+    color: #0d2146;
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.zc-dialog-paper .zc-dialog-content {
+    padding: 23px;
+}
+
+.zc-dialog-paper .zc-detail-profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 23px;
+    padding: 18px;
+    border: 1px solid #e2eafd;
+    border-radius: 12px;
+    background: #f5f8ff;
+}
+
+.zc-dialog-paper .zc-category-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    color: #fff;
+    background: #265df5;
+    font-size: 19px;
+}
+
+.zc-dialog-paper .zc-detail-profile > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.zc-dialog-paper .zc-detail-profile h3 {
+    margin: 0 0 4px;
+    color: #0d2146;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.zc-dialog-paper .zc-detail-profile p {
+    margin: 0;
+    color: #265df5;
+    font-size: 12px;
+}
+
+.zc-dialog-paper .zc-detail-section {
+    margin-bottom: 22px;
+}
+
+.zc-dialog-paper .zc-detail-section h4 {
+    margin: 0 0 13px;
+    color: #18345f;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.zc-dialog-paper .zc-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 0;
+}
+
+.zc-dialog-paper .zc-detail-item {
+    min-width: 0;
+}
+
+.zc-dialog-paper .zc-detail-item dt {
+    margin-bottom: 5px;
+    color: #8795ab;
+    font-size: 13px;
+}
+
+.zc-dialog-paper .zc-detail-item dd {
+    margin: 0;
+    color: #23395f;
+    font-size: 14px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.zc-dialog-paper .zc-detail-description {
+    margin: 15px 0 0;
+    color: #536583;
+    font-size: 13px;
+    line-height: 23px;
+}
+
+.zc-dialog-paper .zc-attributes {
+    margin-top: 20px;
+}
+
+.zc-dialog-paper .zc-attributes > span {
+    display: block;
+    margin-bottom: 11px;
+    color: #8795ab;
+    font-size: 13px;
+}
+
+.zc-dialog-paper .zc-attributes > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.zc-dialog-paper .zc-attribute {
+    padding: 6px 10px;
+    border: 1px solid #dce7ff;
+    border-radius: 7px;
+    color: #265df5;
+    background: #f3f6ff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.zc-dialog-paper .zc-confirm-text {
+    margin: 0 0 17px;
+    color: #435674;
+    font-size: 14px;
+    line-height: 24px;
+}
+
+.zc-dialog-paper .zc-confirm-alert {
+    margin-bottom: 18px;
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.zc-dialog-paper .zc-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 15px 20px;
+    border-top: 1px solid #edf1f6;
+}
+
+.zc-dialog-paper .zc-dialog-actions .MuiButton-root {
+    min-height: 36px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1199.98px) {
+    .manage-categories .zc-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .manage-categories .zc-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .manage-categories .zc-search {
+        flex-basis: 100%;
+    }
+
+    .manage-categories .zc-filter {
+        flex: 1 1 160px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .manage-categories .zc-hero {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 22px 20px;
+    }
+
+    .manage-categories .zc-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .manage-categories .zc-section-header {
+        padding: 19px;
+    }
+
+    .manage-categories .zc-form {
+        padding: 19px;
+    }
+
+    .manage-categories .zc-toolbar {
+        padding: 16px 19px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .manage-categories {
+        gap: 17px;
+    }
+
+    .manage-categories .zc-hero-actions {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .manage-categories .zc-hero-actions .MuiButton-root {
+        flex: 1;
+    }
+
+    .manage-categories .zc-stats {
+        gap: 11px;
+    }
+
+    .manage-categories .zc-stat {
+        min-height: 132px;
+        padding: 15px;
+    }
+
+    .manage-categories .zc-stat-heading {
+        font-size: 12px;
+    }
+
+    .manage-categories .zc-stat-icon {
+        flex-basis: 34px;
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+
+    .manage-categories .zc-stat-value {
+        font-size: 25px;
+    }
+
+    .manage-categories .zc-stat p {
+        font-size: 12px;
+    }
+
+    .manage-categories .zc-form-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .manage-categories .zc-form-buttons {
+        justify-content: flex-end;
+    }
+
+    .zc-dialog-paper .zc-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .zc-dialog-paper .zc-detail-profile {
+        flex-wrap: wrap;
+    }
+
+    .zc-dialog-paper .zc-dialog-actions {
+        justify-content: flex-end;
+    }
+}

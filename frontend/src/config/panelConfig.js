@@ -5,6 +5,7 @@ import LoadingState from "../components/LoadingState";
 import Sellers from "../admin/Sellers";
 import Customers from "../admin/Customers";
 import DeliveryAgents from "../admin/DeliveryAgents";
+import Categories from "../admin/Categories";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -95,7 +96,16 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("categories", "Categories", "fa-solid fa-layer-group", ["admin"]),
+    {
+        path: "categories",
+        component: Categories,
+        allowedRoles: ["admin"],
+        navigation: {
+            label: "Categories",
+            icon: "fa-solid fa-layer-group",
+            end: false,
+        },
+    },
     previewPage("products", "Manage Products", "fa-solid fa-box-open", ["admin", "seller"]),
     previewPage("orders", "Manage Orders", "fa-solid fa-cart-shopping", ["admin", "seller"]),
     previewPage("delivery-assignments", "Delivery Assignments", "fa-solid fa-truck-fast", ["admin"]),

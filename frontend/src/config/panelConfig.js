@@ -26,6 +26,9 @@ import StoreProfile from "../seller/StoreProfile";
 import SellerProducts from "../seller/Products";
 import SellerProductForm from "../seller/ProductForm";
 import SellerInventory from "../seller/Inventory";
+import SellerOrders from "../seller/Orders";
+import SellerOrderDetails from "../seller/OrderDetails";
+
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -156,7 +159,7 @@ export const panelPages = [
         path: "orders",
         components: {
             admin: Orders,
-            seller: LoadingState,
+            seller: SellerOrders,
         },
         allowedRoles: ["admin", "seller"],
         navigation: {
@@ -165,6 +168,12 @@ export const panelPages = [
             end: false,
         },
     },
+    {
+        path: "orders/:orderId/:parcelId",
+        component: SellerOrderDetails,
+        allowedRoles: ["seller"],
+    },
+
     {
         path: "delivery-assignments",
         component: DeliveryAssignments,

@@ -17755,3 +17755,924 @@
         padding: 14px;
     }
 }
+
+
+
+/* Seller: Orders and Order Details */
+.seller-orders,
+.seller-order-details {
+    --so-blue: #265df5;
+    --so-navy: #071b45;
+    --so-border: #e1e7f1;
+    min-width: 0;
+    color: var(--so-navy);
+}
+
+.seller-orders *,
+.seller-order-details *,
+.seller-orders *::before,
+.seller-order-details *::before {
+    box-sizing: border-box;
+}
+
+/* ================== PAGE HEADER ================== */
+.so-hero,
+.sod-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-height: 110px;
+    padding: 24px 27px;
+    margin-bottom: 18px;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #fff 48%, #edf4ff);
+}
+
+.so-hero h1,
+.sod-hero h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 9px;
+    color: var(--so-blue);
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -.1px;
+}
+
+.so-hero h1 i,
+.sod-hero h1 i {
+    font-size: 19px;
+}
+
+.so-hero p,
+.sod-hero p {
+    margin: 0;
+    color: #63718b;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.so-header-actions,
+.sod-hero-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+/* ================== BUTTONS AND INPUTS ================== */
+.seller-orders .MuiButton-root,
+.seller-order-details .MuiButton-root,
+.so-dialog .MuiButton-root {
+    min-height: 37px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    white-space: nowrap;
+    box-shadow: none;
+}
+
+.seller-orders .MuiButton-contained,
+.seller-order-details .MuiButton-contained,
+.so-dialog .MuiButton-contained {
+    background: #265df5;
+}
+
+.seller-orders .MuiButton-outlined,
+.seller-order-details .MuiButton-outlined {
+    border-color: #d4e1ff;
+    color: #265df5;
+}
+
+.seller-orders .MuiOutlinedInput-root,
+.seller-order-details .MuiOutlinedInput-root,
+.so-dialog .MuiOutlinedInput-root {
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.seller-orders .MuiInputLabel-root,
+.seller-order-details .MuiInputLabel-root,
+.so-dialog .MuiInputLabel-root {
+    font-size: 13px;
+}
+
+/* ================== KPI CARDS ================== */
+.so-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.so-stat {
+    --so-tone: #265df5;
+    --so-soft: #eaf0ff;
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: 7px;
+    min-width: 0;
+    min-height: 143px;
+    padding: 19px 20px;
+    border: 1px solid var(--so-border);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+    overflow: hidden;
+}
+
+.so-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--so-tone);
+}
+
+.so-stat.is-orange {
+    --so-tone: #ee9410;
+    --so-soft: #fff3df;
+}
+
+.so-stat.is-green {
+    --so-tone: #0b9d61;
+    --so-soft: #e8f8f0;
+}
+
+.so-stat.is-red {
+    --so-tone: #ed4c60;
+    --so-soft: #fff0f2;
+}
+
+.so-stat-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.so-stat-top > span:first-child {
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.so-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--so-soft);
+    color: var(--so-tone);
+    font-size: 16px;
+}
+
+.so-stat > strong {
+    font-size: 29px;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
+.so-stat > small {
+    color: #8492a8;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* ================== CONTENT CARDS ================== */
+.so-card,
+.sod-card {
+    min-width: 0;
+    padding: 23px;
+    border: 1px solid var(--so-border);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.so-list {
+    padding: 0;
+    overflow: hidden;
+}
+
+.so-card-heading,
+.sod-card-heading {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+}
+
+.so-list > .so-card-heading {
+    padding: 20px 23px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.sod-card-heading {
+    margin-bottom: 21px;
+}
+
+.so-card-heading > div,
+.sod-card-heading > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.so-heading-icon,
+.sod-heading-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: #edf2ff;
+    color: #265df5;
+    font-size: 16px;
+}
+
+.so-card-heading h2,
+.sod-card-heading h2 {
+    margin: 0 0 4px;
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.so-card-heading p,
+.sod-card-heading p {
+    margin: 0;
+    color: #77849c;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.so-record-count {
+    flex-shrink: 0;
+    padding: 6px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 24px;
+    background: #f3f6ff;
+    color: #265df5;
+    font-size: 12px;
+}
+
+/* ================== FILTERS ================== */
+.so-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(160px, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 23px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.so-filters .MuiTextField-root {
+    min-width: 0;
+}
+
+/* ================== ORDERS TABLE ================== */
+.so-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.so-table {
+    min-width: 930px;
+}
+
+.so-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.so-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 14px;
+    border-color: #e2eaf4;
+    color: #40547c;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.so-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 14px;
+    border-color: #edf1f6;
+    color: #3d5072;
+    font-size: 14px;
+    font-weight: 400;
+    vertical-align: middle;
+}
+
+.so-table .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.so-cell-stack {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.so-cell-stack strong {
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.so-cell-stack small {
+    color: #8795ad;
+    font-size: 12px;
+}
+
+.so-products-cell {
+    min-width: 190px;
+    max-width: 230px;
+}
+
+.so-order-id {
+    color: #265df5;
+}
+
+.so-amount {
+    color: #132b54;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.so-payment-label,
+.so-demo-label {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.so-payment-label {
+    color: #148653;
+}
+
+.so-demo-label {
+    color: #997024;
+}
+
+/* ================== STATUS BADGES ================== */
+.so-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 11px;
+    border: 1px solid #d6e2ff;
+    border-radius: 24px;
+    background: #eef4ff;
+    color: #265df5;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.so-status i {
+    font-size: 6px;
+}
+
+.so-status.is-success {
+    color: #07894e;
+    border-color: #bfead0;
+    background: #e9f9ef;
+}
+
+.so-status.is-warning {
+    color: #b87808;
+    border-color: #ffe0af;
+    background: #fff7e9;
+}
+
+.so-status.is-danger {
+    color: #d83b50;
+    border-color: #ffd3da;
+    background: #fff0f3;
+}
+
+/* ================== EMPTY STATE ================== */
+.so-empty {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 40px 14px;
+    text-align: center;
+}
+
+.so-empty > i {
+    color: #265df5;
+    font-size: 28px;
+}
+
+.so-empty h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.so-empty p {
+    margin: 0;
+    color: #8390a6;
+    font-size: 13px;
+}
+
+.seller-orders .MuiTablePagination-root {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ================== DEMO ORDER DIALOG ================== */
+.so-dialog .MuiDialog-paper {
+    border-radius: 16px;
+}
+
+.so-dialog .MuiDialogTitle-root {
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.so-dialog .MuiDialogActions-root {
+    padding: 14px 20px;
+}
+
+.so-demo-form {
+    display: grid;
+    gap: 17px;
+    padding: 5px 0;
+}
+
+.so-demo-form > p {
+    margin: 0;
+    color: #6e7f9a;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.so-demo-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border-radius: 10px;
+    background: #f5f8ff;
+    font-size: 13px;
+}
+
+.so-demo-summary strong {
+    color: #071b45;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+/* ================== ORDER DETAILS SUMMARY ================== */
+.sod-summary,
+.sod-grid {
+    margin-bottom: 18px;
+}
+
+.sod-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.sod-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    color: #265df5;
+}
+
+.sod-summary h2 {
+    margin: 7px 0;
+    font-size: 22px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.sod-summary p {
+    margin: 0;
+    font-size: 12px;
+    color: #78879e;
+}
+
+.sod-summary-right {
+    display: grid;
+    justify-items: end;
+    gap: 6px;
+    text-align: right;
+}
+
+.sod-summary-right > strong {
+    font-size: 21px;
+    font-weight: 600;
+}
+
+.sod-summary-right > small {
+    color: #9b7627;
+    font-size: 12px;
+}
+
+.sod-status {
+    display: inline-block;
+    padding: 6px 11px;
+    border-radius: 20px;
+    background: #edf3ff;
+    color: #265df5;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* ================== NOTICES ================== */
+.sod-notice,
+.sod-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px 15px;
+    border: 1px solid #d6e3fa;
+    border-radius: 11px;
+    background: #f1f6ff;
+    color: #51698e;
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.sod-notice {
+    margin-bottom: 18px;
+}
+
+.sod-notice i,
+.sod-info i {
+    margin-top: 2px;
+    color: #265df5;
+}
+
+.sod-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 18px;
+}
+
+/* ================== FULFILMENT TIMELINE ================== */
+.sod-timeline {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sod-timeline li {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 57px;
+}
+
+.sod-timeline li:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 27px;
+    left: 14px;
+    bottom: 3px;
+    width: 2px;
+    background: #e2e9f5;
+}
+
+.sod-timeline li > span {
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #f1f4f9;
+    color: #9aa9bc;
+    font-size: 11px;
+}
+
+.sod-timeline li.is-complete > span {
+    color: #158853;
+    background: #e8f8ee;
+}
+
+.sod-timeline li strong {
+    display: block;
+    margin: 1px 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sod-timeline li small {
+    color: #8795aa;
+    font-size: 11px;
+}
+
+.sod-cancelled {
+    padding: 14px;
+    border-radius: 10px;
+    background: #fff0f2;
+    color: #c43d50;
+    font-size: 13px;
+}
+
+/* ================== SELLER ACTIONS ================== */
+.sod-actions {
+    display: grid;
+    align-content: start;
+    gap: 12px;
+}
+
+.sod-actions > .MuiButton-root {
+    justify-self: start;
+}
+
+.sod-actions .sod-info {
+    margin-top: 3px;
+}
+
+/* ================== PARCEL ITEMS ================== */
+.sod-items-card {
+    margin-bottom: 18px;
+}
+
+.sod-items {
+    display: grid;
+    gap: 0;
+}
+
+.sod-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 0;
+    border-top: 1px solid #edf1f6;
+}
+
+.sod-item > img,
+.sod-image-placeholder {
+    display: grid;
+    place-items: center;
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    border: 1px solid #e8edf5;
+    border-radius: 10px;
+    object-fit: contain;
+    background: #f8fafd;
+}
+
+.sod-image-placeholder {
+    color: #92a0b3;
+}
+
+.sod-item-name {
+    flex: 1;
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.sod-item-name strong {
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.sod-item-name small {
+    font-size: 12px;
+    color: #8693a8;
+}
+
+.sod-item-quantity {
+    color: #526680;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.sod-item > strong {
+    color: #071b45;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ================== CUSTOMER AND DELIVERY ================== */
+.sod-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin: 0;
+}
+
+.sod-field {
+    min-width: 0;
+}
+
+.sod-field dt {
+    color: #8795aa;
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+
+.sod-field dd {
+    color: #344562;
+    font-size: 13px;
+    font-weight: 500;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.sod-address {
+    margin: 18px 0 0;
+    color: #5c6f8b;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.sod-details-grid + .sod-info {
+    margin-top: 18px;
+}
+
+/* ================== ACTIVITY HISTORY ================== */
+.sod-activity-card {
+    margin-bottom: 18px;
+}
+
+.sod-activity {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 14px;
+}
+
+.sod-activity li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.sod-activity li > span {
+    display: grid;
+    place-items: center;
+    flex: 0 0 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: #ebf4ff;
+    color: #265df5;
+    font-size: 11px;
+}
+
+.sod-activity strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sod-activity p {
+    margin: 5px 0;
+    font-size: 12px;
+    color: #657792;
+    overflow-wrap: anywhere;
+}
+
+.sod-activity small {
+    font-size: 11px;
+    color: #8c99ac;
+}
+
+.sod-muted,
+.sod-issue-intro {
+    font-size: 13px;
+    color: #76859c;
+    line-height: 1.7;
+}
+
+.sod-not-found {
+    display: grid;
+    justify-items: start;
+    gap: 12px;
+}
+
+.sod-not-found h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.sod-not-found p {
+    margin: 0;
+    font-size: 13px;
+    color: #8391a6;
+}
+
+/* ================== RESPONSIVE ================== */
+@media (max-width: 1150px) {
+    .so-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sod-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .so-hero,
+    .sod-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .so-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .so-filters .MuiTextField-root:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .so-filters > .MuiButton-root {
+        justify-self: start;
+    }
+}
+
+@media (max-width: 600px) {
+    .so-hero,
+    .sod-hero,
+    .sod-card {
+        padding: 18px;
+    }
+
+    .so-list {
+        padding: 0;
+    }
+
+    .so-list > .so-card-heading {
+        padding: 18px;
+        flex-wrap: wrap;
+    }
+
+    .so-filters {
+        padding: 15px;
+    }
+
+    .so-header-actions,
+    .sod-hero-actions {
+        width: 100%;
+    }
+
+    .sod-summary {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .sod-summary-right {
+        justify-items: start;
+        text-align: left;
+    }
+
+    .sod-item {
+        flex-wrap: wrap;
+    }
+
+    .sod-item-name {
+        flex-basis: calc(100% - 80px);
+    }
+
+    .sod-item-quantity {
+        margin-left: 80px;
+    }
+}
+
+@media (max-width: 420px) {
+    .so-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .so-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .so-filters .MuiTextField-root:first-child {
+        grid-column: auto;
+    }
+
+    .sod-details-grid {
+        grid-template-columns: 1fr;
+    }
+}

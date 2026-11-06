@@ -7834,3 +7834,838 @@
         padding: 18px;
     }
 }
+
+
+/* =========================================================
+   ADMIN: REFUND MANAGEMENT
+   ========================================================= */
+
+.manage-refunds {
+    display: grid;
+    gap: 22px;
+    min-width: 0;
+}
+
+/* ===== PAGE HEADER ===== */
+
+.manage-refunds .rf-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    min-height: 110px;
+    padding: 25px 27px;
+    overflow: hidden;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #ffffff 48%, #edf4ff 100%);
+}
+
+.manage-refunds .rf-hero::after {
+    content: "";
+    position: absolute;
+    top: -90px;
+    right: 120px;
+    width: 215px;
+    height: 215px;
+    border: 1px solid #dfe9fe;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.manage-refunds .rf-hero-content {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.manage-refunds .zs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #265df5;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -0.1px;
+}
+
+.manage-refunds .rf-hero p {
+    margin: 0;
+    color: #61718e;
+    font-size: 14px;
+    line-height: 23px;
+}
+
+.manage-refunds .rf-refresh-button.MuiButton-root {
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+    min-height: 39px;
+    padding: 8px 15px;
+    border: 1px solid #d3dff7;
+    border-radius: 9px;
+    color: #265df5;
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.manage-refunds .rf-refresh-button.MuiButton-root:hover {
+    border-color: #265df5;
+    background: #f2f6ff;
+}
+
+/* ===== KPI CARDS ===== */
+
+.manage-refunds .rf-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.manage-refunds .rf-stat {
+    position: relative;
+    min-width: 0;
+    min-height: 143px;
+    padding: 20px;
+    overflow: hidden;
+    border: 1px solid #e1e8f3;
+    border-radius: 15px;
+    background: #ffffff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.manage-refunds .rf-stat::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 3px;
+    background: var(--rf-color);
+}
+
+.manage-refunds .rf-stat--blue {
+    --rf-color: #265df5;
+    --rf-soft: #eaf0ff;
+}
+
+.manage-refunds .rf-stat--orange {
+    --rf-color: #f49a11;
+    --rf-soft: #fff3df;
+}
+
+.manage-refunds .rf-stat--green {
+    --rf-color: #0b9d61;
+    --rf-soft: #e8f8f0;
+}
+
+.manage-refunds .rf-stat--red {
+    --rf-color: #ed4c60;
+    --rf-soft: #fff0f2;
+}
+
+.manage-refunds .rf-stat-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.manage-refunds .rf-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    color: var(--rf-color);
+    background: var(--rf-soft);
+    font-size: 16px;
+}
+
+.manage-refunds .rf-stat-value {
+    display: block;
+    margin: 7px 0 1px;
+    color: #071b45;
+    font-size: 29px;
+    font-weight: 700;
+    line-height: 38px;
+}
+
+.manage-refunds .rf-stat p {
+    margin: 0;
+    color: #8a99b1;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+/* ===== REFUND SUMMARY ===== */
+
+.manage-refunds .rf-summary {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 21px 24px;
+    border: 1px solid #dce7ff;
+    border-radius: 15px;
+    background: linear-gradient(110deg, #ffffff, #f1f6ff);
+}
+
+.manage-refunds .rf-summary-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 53px;
+    width: 53px;
+    height: 53px;
+    border-radius: 13px;
+    color: #265df5;
+    background: #e7efff;
+    font-size: 21px;
+}
+
+.manage-refunds .rf-summary-main {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+    gap: 4px;
+}
+
+.manage-refunds .rf-summary-main > span,
+.manage-refunds .rf-summary-review > span {
+    color: #627694;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.manage-refunds .rf-summary-main > strong {
+    color: #102a57;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.manage-refunds .rf-summary-main small,
+.manage-refunds .rf-summary-review small {
+    color: #8796ad;
+    font-size: 12px;
+}
+
+.manage-refunds .rf-summary-review {
+    display: grid;
+    min-width: 145px;
+    gap: 4px;
+    padding-left: 25px;
+    border-left: 1px solid #dce5f6;
+}
+
+.manage-refunds .rf-summary-review strong {
+    color: #dc8b15;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+/* ===== RECORDS CARD ===== */
+
+.manage-refunds .rf-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e0e7f2;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.manage-refunds .rf-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.manage-refunds .rf-section-heading {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 13px;
+}
+
+.manage-refunds .rf-section-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 17px;
+}
+
+.manage-refunds .rf-section-heading h2 {
+    margin: 0 0 3px;
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.manage-refunds .rf-section-heading p {
+    margin: 0;
+    color: #8795ac;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.manage-refunds .rf-record-count {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 30px;
+    color: #265df5;
+    background: #f3f6ff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* ===== SEARCH AND FILTERS ===== */
+
+.manage-refunds .rf-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 19px 22px;
+    border-bottom: 1px solid #e6ecf4;
+}
+
+.manage-refunds .rf-search {
+    flex: 1;
+    min-width: 180px;
+}
+
+.manage-refunds .rf-filter {
+    flex: 0 0 185px;
+    width: 185px;
+}
+
+.manage-refunds .rf-toolbar .MuiOutlinedInput-root,
+.manage-refunds .rf-toolbar .MuiInputLabel-root {
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.manage-refunds .rf-reset-button.MuiButton-root {
+    min-height: 40px;
+    border: 1px solid #d8e0eb;
+    border-radius: 9px;
+    color: #697994;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+/* ===== REFUNDS TABLE ===== */
+
+.manage-refunds .rf-table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.manage-refunds .rf-table {
+    min-width: 1120px;
+}
+
+.manage-refunds .rf-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.manage-refunds .rf-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 15px;
+    border-bottom: 1px solid #e2eaf4;
+    color: #40547c;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.manage-refunds .rf-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 17px 15px;
+    border-bottom: 1px solid #edf1f6;
+    color: #3d5072;
+    font-family: inherit;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.manage-refunds .rf-table .MuiTableBody-root .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.manage-refunds .rf-cell {
+    display: grid;
+    gap: 5px;
+    min-width: 130px;
+}
+
+.manage-refunds .rf-cell strong {
+    color: #243b63;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.manage-refunds .rf-cell small {
+    color: #8795ad;
+    font-size: 12px;
+}
+
+.manage-refunds .rf-cell .rf-ref {
+    color: #265df5;
+}
+
+.manage-refunds .rf-amount {
+    color: #102a57;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.manage-refunds .rf-date {
+    color: #4a5c7c;
+    font-size: 13px;
+}
+
+/* ===== STATUS BADGES ===== */
+
+.rf-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 17px;
+    white-space: nowrap;
+}
+
+.rf-badge-dot {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.rf-badge--success {
+    border-color: #bfead0;
+    color: #07894e;
+    background: #e9f9ef;
+}
+
+.rf-badge--warning {
+    border-color: #ffe0af;
+    color: #b87808;
+    background: #fff7e9;
+}
+
+.rf-badge--danger {
+    border-color: #ffd3da;
+    color: #d83b50;
+    background: #fff0f3;
+}
+
+.rf-badge--neutral {
+    border-color: #dfe5ee;
+    color: #738299;
+    background: #f3f5f9;
+}
+
+/* ===== TABLE BUTTONS ===== */
+
+.manage-refunds .rf-view-button.MuiButton-root {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px;
+    border: 1px solid #d4e0ff;
+    border-radius: 8px;
+    color: #265df5;
+    background: #f7f9ff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+.manage-refunds .rf-view-button.MuiButton-root:hover {
+    border-color: #265df5;
+    background: #edf2ff;
+}
+
+.manage-refunds .rf-view-button i {
+    font-size: 11px;
+}
+
+.manage-refunds .rf-pagination {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ===== EMPTY STATE ===== */
+
+.manage-refunds .rf-empty {
+    display: grid;
+    justify-items: center;
+    gap: 9px;
+    padding: 50px 20px;
+    text-align: center;
+}
+
+.manage-refunds .rf-empty > span {
+    display: grid;
+    place-items: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 14px;
+    color: #265df5;
+    background: #edf2ff;
+    font-size: 21px;
+}
+
+.manage-refunds .rf-empty h3 {
+    margin: 5px 0 0;
+    color: #112750;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.manage-refunds .rf-empty p {
+    margin: 0 0 5px;
+    color: #8390a6;
+    font-size: 13px;
+}
+
+/* ===== DETAILS DIALOG ===== */
+
+.rf-dialog.MuiDialog-paper {
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 20px 65px rgb(16 33 70 / 15%);
+}
+
+.rf-dialog .MuiDialogTitle-root {
+    padding: 20px 23px;
+    color: #0d2146;
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.rf-dialog .MuiDialogContent-root {
+    padding: 23px;
+}
+
+.rf-dialog .rf-detail-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 19px;
+    border: 1px solid #dce7ff;
+    border-radius: 12px;
+    background: linear-gradient(110deg, #f9fbff, #edf4ff);
+}
+
+.rf-dialog .rf-detail-banner > div {
+    min-width: 0;
+}
+
+.rf-dialog .rf-detail-banner > div > span {
+    color: #7f8faa;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.rf-dialog .rf-detail-banner h3 {
+    margin: 6px 0;
+    color: #122d5a;
+    font-size: 17px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.rf-dialog .rf-detail-banner p {
+    margin: 0;
+    color: #7284a3;
+    font-size: 12px;
+}
+
+.rf-dialog .rf-detail-section {
+    margin-bottom: 23px;
+}
+
+.rf-dialog .rf-detail-section h4 {
+    margin: 0 0 14px;
+    color: #18345f;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.rf-dialog .rf-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px;
+    margin: 0;
+}
+
+.rf-dialog .rf-detail-item {
+    min-width: 0;
+}
+
+.rf-dialog .rf-detail-item dt {
+    margin-bottom: 5px;
+    color: #8795ab;
+    font-size: 13px;
+}
+
+.rf-dialog .rf-detail-item dd {
+    margin: 0;
+    color: #23395f;
+    font-size: 14px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+/* ===== REFUND ADJUSTMENTS ===== */
+
+.rf-dialog .rf-reason {
+    padding: 14px 16px;
+    border: 1px solid #e4ebf6;
+    border-radius: 10px;
+    background: #fafcff;
+}
+
+.rf-dialog .rf-reason strong {
+    color: #304b76;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rf-dialog .rf-reason p {
+    margin: 7px 0 0;
+    color: #61728f;
+    font-size: 13px;
+    line-height: 22px;
+}
+
+.rf-dialog .rf-adjustments {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.rf-dialog .rf-adjustments > div {
+    display: grid;
+    gap: 7px;
+    padding: 15px;
+    border: 1px solid #e3eaf6;
+    border-radius: 10px;
+    background: #f8faff;
+}
+
+.rf-dialog .rf-adjustments i {
+    color: #265df5;
+    font-size: 17px;
+}
+
+.rf-dialog .rf-adjustments span {
+    color: #637590;
+    font-size: 12px;
+}
+
+.rf-dialog .rf-adjustments strong {
+    color: #b57814;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rf-dialog .rf-review-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 15px;
+    color: #6b7d9b;
+    font-size: 13px;
+}
+
+.rf-dialog .rf-alert {
+    margin-bottom: 16px;
+    border-radius: 9px;
+    font-size: 13px;
+    line-height: 21px;
+}
+
+.rf-dialog .rf-history {
+    display: grid;
+    gap: 10px;
+}
+
+.rf-dialog .rf-history > div {
+    padding: 12px 14px;
+    border: 1px solid #e7edf7;
+    border-radius: 9px;
+    background: #fafcff;
+}
+
+.rf-dialog .rf-history strong {
+    color: #233c67;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rf-dialog .rf-history small {
+    display: block;
+    margin-top: 4px;
+    color: #8898af;
+    font-size: 12px;
+}
+
+.rf-dialog .rf-history p {
+    margin: 8px 0 0;
+    color: #61728f;
+    font-size: 13px;
+    line-height: 21px;
+}
+
+.rf-dialog .rf-confirm-text {
+    margin: 0 0 18px;
+    color: #435674;
+    font-size: 14px;
+}
+
+.rf-dialog .rf-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 15px 20px;
+    border-top: 1px solid #edf1f6;
+}
+
+.rf-dialog .rf-dialog-actions .MuiButton-root {
+    min-height: 36px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1199.98px) {
+    .manage-refunds .rf-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .manage-refunds .rf-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .manage-refunds .rf-search {
+        flex-basis: 100%;
+    }
+
+    .manage-refunds .rf-filter {
+        flex: 1 1 160px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .manage-refunds .rf-hero {
+        flex-wrap: wrap;
+        padding: 22px 20px;
+    }
+
+    .manage-refunds .rf-section-header {
+        padding: 19px;
+    }
+
+    .manage-refunds .rf-toolbar {
+        padding: 16px 19px;
+    }
+
+    .manage-refunds .rf-summary {
+        flex-wrap: wrap;
+    }
+
+    .manage-refunds .rf-summary-review {
+        flex: 1 1 100%;
+        padding: 15px 0 0;
+        border-top: 1px solid #dce5f6;
+        border-left: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .manage-refunds {
+        gap: 17px;
+    }
+
+    .manage-refunds .rf-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .manage-refunds .rf-stats {
+        gap: 11px;
+    }
+
+    .manage-refunds .rf-stat {
+        min-height: 132px;
+        padding: 15px;
+    }
+
+    .manage-refunds .rf-stat-heading {
+        font-size: 12px;
+    }
+
+    .manage-refunds .rf-stat-icon {
+        flex-basis: 34px;
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+
+    .manage-refunds .rf-stat-value {
+        font-size: 25px;
+    }
+
+    .manage-refunds .rf-stat p {
+        font-size: 12px;
+    }
+
+    .rf-dialog .rf-detail-grid,
+    .rf-dialog .rf-adjustments {
+        grid-template-columns: 1fr;
+    }
+
+    .rf-dialog .rf-detail-banner {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .rf-dialog .MuiDialogContent-root {
+        padding: 18px;
+    }
+}

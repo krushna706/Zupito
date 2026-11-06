@@ -10,6 +10,7 @@ import Products from "../admin/Products";
 import Orders from "../admin/Orders";
 import DeliveryAssignments from "../admin/DeliveryAssignments";
 import Payments from "../admin/Payments";
+import Refunds from "../admin/Refunds";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -156,7 +157,16 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("refunds", "Refunds", "fa-solid fa-money-bill-transfer", ["admin"]),
+    {
+        path: "refunds",
+        component: Refunds,
+        allowedRoles: ["admin"],
+        navigation: {
+            label: "Refunds",
+            icon: "fa-solid fa-money-bill-transfer",
+            end: false,
+        },
+    },
     previewPage("replacements", "Replacements", "fa-solid fa-arrow-right-arrow-left", ["admin", "seller"]),
     previewPage("settlements", "Settlements", "fa-solid fa-wallet", ["admin"]),
     previewPage("coupons", "Coupons", "fa-solid fa-ticket", ["admin"]),

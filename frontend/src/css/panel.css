@@ -22262,3 +22262,735 @@
         min-height: 48px;
     }
 }
+
+
+
+/* ================== DELIVERY AGENT: DASHBOARD ================== */
+/* Reuses Admin Dashboard styling for consistent design. */
+
+.delivery-dashboard .dd-alert {
+    margin: 0 0 18px;
+    border-radius: 10px;
+}
+
+/* ================== PRIORITY AND AVAILABILITY ================== */
+.delivery-dashboard .dd-action-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+    gap: 17px;
+    margin-bottom: 20px;
+}
+
+.delivery-dashboard .dd-priority-list,
+.delivery-dashboard .dd-activity-list {
+    display: grid;
+}
+
+.delivery-dashboard .dd-task-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 73px;
+    padding: 12px 0;
+    border-top: 1px solid #edf1f7;
+    color: #324968;
+}
+
+.delivery-dashboard .dd-task-row:hover,
+.delivery-dashboard .dd-activity-row:hover {
+    background: #f9fbff;
+}
+
+.delivery-dashboard .dd-task-icon,
+.delivery-dashboard .dd-activity-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 39px;
+    width: 39px;
+    height: 39px;
+    border-radius: 10px;
+    color: #265df5;
+    background: #ecf2ff;
+    font-size: 15px;
+}
+
+.delivery-dashboard .dd-task-info {
+    display: grid;
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
+}
+
+.delivery-dashboard .dd-task-info strong,
+.delivery-dashboard .dd-activity-row strong {
+    color: #203857;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.delivery-dashboard .dd-task-info strong span {
+    color: #8794a9;
+    font-weight: 400;
+}
+
+.delivery-dashboard .dd-task-info small,
+.delivery-dashboard .dd-task-info > span,
+.delivery-dashboard .dd-activity-row small {
+    color: #7c8ca4;
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.delivery-dashboard .dd-task-end {
+    display: grid;
+    justify-items: end;
+    gap: 9px;
+}
+
+.delivery-dashboard .dd-task-end > i {
+    color: #9baac1;
+    font-size: 10px;
+}
+
+/* ================== TASK STATUS ================== */
+.delivery-dashboard .dd-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 9px;
+    border-radius: 25px;
+    color: #ae7410;
+    background: #fff4e4;
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.delivery-dashboard .dd-badge i {
+    font-size: 6px;
+}
+
+.delivery-dashboard .dd-badge.is-transit {
+    color: #2563eb;
+    background: #ebf2ff;
+}
+
+.delivery-dashboard .dd-badge.is-failed {
+    color: #d1344d;
+    background: #fff0f2;
+}
+
+.delivery-dashboard .dd-badge.is-delivered {
+    color: #098451;
+    background: #e8f8ef;
+}
+
+.delivery-dashboard .dd-badge.is-cancelled {
+    color: #697689;
+    background: #f0f2f5;
+}
+
+/* ================== AGENT AVAILABILITY ================== */
+.delivery-dashboard .dd-agent-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.delivery-dashboard .dd-agent-card {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 11px;
+    padding: 15px;
+    border: 1px solid #e6ecf7;
+    border-radius: 12px;
+    background: #f8faff;
+}
+
+.delivery-dashboard .dd-agent-avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 41px;
+    width: 41px;
+    height: 41px;
+    border-radius: 11px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 18px;
+}
+
+.delivery-dashboard .dd-agent-card > div {
+    display: grid;
+    gap: 4px;
+    flex: 1;
+    min-width: 110px;
+}
+
+.delivery-dashboard .dd-agent-card strong {
+    color: #203857;
+    font-size: 12px;
+}
+
+.delivery-dashboard .dd-agent-card small {
+    color: #8391a7;
+    font-size: 11px;
+}
+
+.delivery-dashboard .dd-availability {
+    padding: 6px 9px;
+    border-radius: 20px;
+    color: #a97212;
+    background: #fff2e1;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.delivery-dashboard .dd-availability.is-available {
+    color: #087d4b;
+    background: #e6f8ee;
+}
+
+.delivery-dashboard .dd-availability.is-unavailable,
+.delivery-dashboard .dd-availability.is-suspended {
+    color: #cf4157;
+    background: #fff0f3;
+}
+
+/* ================== AGENT CAPACITY ================== */
+.delivery-dashboard .dd-capacity-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 20px 0 9px;
+    color: #60718c;
+    font-size: 11px;
+}
+
+.delivery-dashboard .dd-capacity-head strong {
+    color: #203857;
+}
+
+.delivery-dashboard .dd-capacity-bar {
+    display: block;
+    width: 100%;
+    height: 9px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 12px;
+    appearance: none;
+    background: #edf1f8;
+}
+
+.delivery-dashboard .dd-capacity-bar::-webkit-progress-bar {
+    background: #edf1f8;
+}
+
+.delivery-dashboard .dd-capacity-bar::-webkit-progress-value {
+    background: #265df5;
+    border-radius: 12px;
+}
+
+.delivery-dashboard .dd-capacity-bar::-moz-progress-bar {
+    background: #265df5;
+    border-radius: 12px;
+}
+
+.delivery-dashboard .dd-availability-note {
+    margin: 13px 0 16px;
+    color: #7988a1;
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+
+/* ================== PERFORMANCE CHART ================== */
+.delivery-dashboard .dd-chart-total {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.delivery-dashboard .dd-chart-total strong {
+    color: #071b45;
+    font-size: 27px;
+    font-weight: 650;
+}
+
+.delivery-dashboard .dd-chart-total span {
+    color: #8190a8;
+    font-size: 11px;
+}
+
+.delivery-dashboard .dd-chart-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.delivery-dashboard .dd-chart-wrap svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.delivery-dashboard .dd-grid-line {
+    stroke: #e6edf6;
+    stroke-dasharray: 4 5;
+}
+
+.delivery-dashboard .dd-axis {
+    fill: #8391a6;
+    font-size: 11px;
+}
+
+.delivery-dashboard .dd-bar {
+    fill: #265df5;
+}
+
+.delivery-dashboard .dd-chart-empty {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    width: 90%;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    color: #9aa7ba;
+    font-size: 12px;
+    text-align: center;
+}
+
+/* ================== DONUT CHART ================== */
+.delivery-dashboard .dd-distribution {
+    display: grid;
+    justify-items: center;
+    gap: 13px;
+}
+
+.delivery-dashboard .dd-donut {
+    position: relative;
+    width: 190px;
+    height: 190px;
+}
+
+.delivery-dashboard .dd-donut svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.delivery-dashboard .dd-donut-track {
+    fill: none;
+    stroke: #eef2f8;
+    stroke-width: 19;
+}
+
+.delivery-dashboard .dd-donut-segment {
+    fill: none;
+    stroke-width: 19;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+}
+
+.delivery-dashboard .dd-donut-center {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 4px;
+    text-align: center;
+}
+
+.delivery-dashboard .dd-donut-center strong {
+    font-size: 27px;
+    font-weight: 650;
+}
+
+.delivery-dashboard .dd-donut-center small {
+    color: #8391a6;
+    font-size: 11px;
+}
+
+/* ================== CHART LEGEND ================== */
+.delivery-dashboard .dd-legend {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+}
+
+.delivery-dashboard .dd-legend > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.delivery-dashboard .dd-legend span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6b7c96;
+    font-size: 11px;
+}
+
+.delivery-dashboard .dd-legend strong {
+    color: #172e52;
+    font-size: 11px;
+}
+
+.delivery-dashboard .dd-legend-dot {
+    display: block;
+    flex: 0 0 9px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.delivery-dashboard .dd-legend-dot.is-pickup {
+    background: #f59e0b;
+}
+
+.delivery-dashboard .dd-legend-dot.is-transit {
+    background: #2563eb;
+}
+
+.delivery-dashboard .dd-legend-dot.is-failed {
+    background: #ef4444;
+}
+
+.delivery-dashboard .dd-legend-dot.is-delivered {
+    background: #16a34a;
+}
+
+.delivery-dashboard .dd-legend-dot.is-cancelled {
+    background: #94a3b8;
+}
+
+/* ================== RECENT ACTIVITY ================== */
+.delivery-dashboard .dd-activity-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 13px 0;
+    border-top: 1px solid #edf1f7;
+    color: #364b68;
+}
+
+.delivery-dashboard .dd-activity-row > div {
+    display: grid;
+    flex: 1;
+    gap: 5px;
+    min-width: 0;
+}
+
+.delivery-dashboard .dd-activity-row > i:last-child {
+    color: #a1aec1;
+    font-size: 10px;
+}
+
+.delivery-dashboard .dd-empty {
+    margin: 0;
+    padding: 18px 0;
+    color: #8998af;
+    font-size: 12px;
+    text-align: center;
+}
+
+/* ================== RESPONSIVE ================== */
+@media (max-width: 1080px) {
+    .delivery-dashboard .dd-action-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .delivery-dashboard .zd-welcome {
+        gap: 15px;
+    }
+
+    .delivery-dashboard .zd-welcome-link {
+        justify-content: center;
+        min-height: 46px;
+    }
+
+    .delivery-dashboard .zd-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .delivery-dashboard .zd-kpi {
+        padding: 14px;
+        min-height: 136px;
+    }
+
+    .delivery-dashboard .zd-kpi-label {
+        font-size: 11px;
+    }
+
+    .delivery-dashboard .zd-kpi strong {
+        font-size: 22px;
+    }
+
+    .delivery-dashboard .zd-panel {
+        padding: 16px;
+    }
+
+    .delivery-dashboard .dd-chart-wrap {
+        overflow: visible;
+    }
+
+    .delivery-dashboard .dd-chart-wrap svg {
+        min-width: 0;
+    }
+
+    .delivery-dashboard .dd-task-row {
+        flex-wrap: wrap;
+    }
+
+    .delivery-dashboard .dd-task-end {
+        flex: 1 1 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-left: 51px;
+    }
+
+    .delivery-dashboard .dd-donut {
+        width: 175px;
+        height: 175px;
+    }
+}
+
+@media (max-width: 360px) {
+    .delivery-dashboard .zd-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* ================== DELIVERY DASHBOARD FINISHING ================== */
+.delivery-dashboard .zd-welcome {
+    box-shadow: 0 14px 32px rgba(7, 27, 69, 0.11);
+}
+
+.delivery-dashboard .zd-kpi,
+.delivery-dashboard .zd-panel {
+    border-color: #dce5f3;
+    box-shadow: 0 6px 24px rgba(7, 27, 69, 0.045);
+}
+
+.delivery-dashboard .zd-kpi:focus-visible,
+.delivery-dashboard .dd-task-row:focus-visible,
+.delivery-dashboard .dd-activity-row:focus-visible {
+    outline: 3px solid #9cbaff;
+    outline-offset: 3px;
+}
+
+.delivery-dashboard .dd-task-row,
+.delivery-dashboard .dd-activity-row {
+    border-radius: 9px;
+    transition: background 0.18s ease;
+}
+
+.delivery-dashboard .dd-chart-wrap,
+.delivery-dashboard .dd-distribution {
+    min-width: 0;
+}
+
+/* ================== AGENT CARD ================== */
+.delivery-dashboard .dd-agent-panel {
+    gap: 0;
+}
+
+.delivery-dashboard .dd-agent-card {
+    border-color: #d9e5f8;
+    background: linear-gradient(110deg, #f6f9ff, #eef4ff);
+}
+
+.delivery-dashboard .dd-availability {
+    border: 1px solid transparent;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.delivery-dashboard .dd-availability.is-available {
+    border-color: #b8e8cb;
+}
+
+.delivery-dashboard .dd-availability.is-unavailable {
+    border-color: #f5c5ce;
+}
+
+/* ================== AVAILABILITY CONTROL ================== */
+.delivery-dashboard .dd-shift-control {
+    margin-top: 18px;
+    padding: 16px;
+    border: 1px solid #dbe6f7;
+    border-radius: 13px;
+    background: linear-gradient(
+        145deg,
+        #f9fbff 0%,
+        #f1f6ff 100%
+    );
+}
+
+.delivery-dashboard .dd-shift-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.delivery-dashboard .dd-shift-heading > div {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.delivery-dashboard .dd-shift-heading strong {
+    color: #193657;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.delivery-dashboard .dd-shift-heading small {
+    color: #71819b;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* ================== CURRENT STATUS ================== */
+.delivery-dashboard .dd-shift-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 9px;
+    border-radius: 20px;
+    background: #edf2f8;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.delivery-dashboard .dd-shift-indicator i {
+    font-size: 7px;
+}
+
+.delivery-dashboard .dd-shift-indicator.is-available {
+    color: #087c4c;
+    background: #e0f6e9;
+}
+
+.delivery-dashboard .dd-shift-indicator.is-unavailable {
+    color: #be344c;
+    background: #ffe9ec;
+}
+
+/* ================== AVAILABLE / UNAVAILABLE BUTTONS ================== */
+.delivery-dashboard .dd-shift-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.delivery-dashboard .dd-shift-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 50px;
+    padding: 10px 8px;
+    border: 1.5px solid #cfdaeb;
+    border-radius: 10px;
+    background: #fff;
+    color: #4b607d;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        border-color 0.2s,
+        background 0.2s,
+        box-shadow 0.2s,
+        transform 0.2s;
+}
+
+.delivery-dashboard .dd-shift-option i {
+    font-size: 15px;
+}
+
+.delivery-dashboard .dd-shift-option:hover:not(:disabled) {
+    border-color: #a9bee3;
+    background: #f8faff;
+    transform: translateY(-1px);
+}
+
+/* Selected Available */
+.delivery-dashboard .dd-shift-option.is-available.is-selected {
+    border-color: #0c9560;
+    background: #078451;
+    color: #fff;
+    box-shadow: 0 5px 14px rgba(7, 132, 81, 0.18);
+}
+
+/* Selected Unavailable */
+.delivery-dashboard .dd-shift-option.is-unavailable.is-selected {
+    border-color: #cc3b51;
+    background: #c93650;
+    color: #fff;
+    box-shadow: 0 5px 14px rgba(201, 54, 80, 0.16);
+}
+
+.delivery-dashboard .dd-shift-option:focus-visible {
+    outline: 3px solid #8db2ff;
+    outline-offset: 3px;
+}
+
+.delivery-dashboard .dd-shift-option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ================== CAPACITY FINISHING ================== */
+.delivery-dashboard .dd-capacity-head {
+    margin-top: 19px;
+    font-size: 12px;
+}
+
+.delivery-dashboard .dd-capacity-bar {
+    height: 11px;
+}
+
+.delivery-dashboard .dd-availability-note {
+    margin-bottom: 0;
+}
+
+/* ================== MOBILE ================== */
+@media (max-width: 640px) {
+    .delivery-dashboard .dd-shift-control {
+        padding: 13px;
+    }
+
+    .delivery-dashboard .dd-shift-options {
+        gap: 8px;
+    }
+
+    .delivery-dashboard .dd-shift-option {
+        min-height: 52px;
+        font-size: 12px;
+    }
+
+    .delivery-dashboard .dd-agent-card {
+        gap: 10px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .delivery-dashboard .dd-shift-option {
+        transition: none;
+    }
+}
+

@@ -34,7 +34,8 @@ import SellerReplacementDetails from "../seller/ReplacementDetails";
 import SellerEarnings from "../seller/Earnings";
 import SellerReviews from "../seller/Reviews";
 
-// Seller panel
+// Delivery panel
+import DeliveryDashboard from "../delivery/Dashboard";
 import AssignedTasks from "../delivery/AssignedTasks";
 import TaskDetails from "../delivery/TaskDetails";
 import DeliveryHistory from "../delivery/DeliveryHistory";
@@ -56,7 +57,7 @@ export const panelRoles = {
     },
     delivery: {
         label: "Delivery Agent",
-        dashboard: LoadingState,
+        dashboard: DeliveryDashboard,
         profile: ReuseProfile,
     },
 };

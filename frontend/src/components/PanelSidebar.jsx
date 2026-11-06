@@ -47,22 +47,6 @@ function SidebarContent({ navigationItems, isMobile = false, collapsed = false, 
                 </ul>
             </nav>
 
-            <div className="panel-sidebar-bottom">
-                <Link
-                    to="/"
-                    className="panel-sidebar-home"
-                    onClick={onClose}
-                    tabIndex={collapsed ? -1 : undefined}
-                >
-                    <span className="panel-nav-icon" aria-hidden="true">
-                        <i className="fa-solid fa-arrow-left" />
-                    </span>
-
-                    <span>Back to Website</span>
-
-                    <i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" />
-                </Link>
-            </div>
         </>
     );
 }

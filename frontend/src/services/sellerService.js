@@ -380,6 +380,7 @@ export function applyInventoryMovements(user, updates) {
         remove: "Damage/Loss",
         sale: "Sale",
         return: "Return",
+        replacement_out: "Replacement Dispatch",
     };
 
     updates.forEach((change) => {
@@ -432,7 +433,7 @@ export function applyInventoryMovements(user, updates) {
             ) || 0
         );
 
-        const release = change.mode === "sale"
+        const release = ["sale", "replacement_out"].includes(change.mode)
             ? Number(change.releaseReserved || 0)
             : 0;
 
@@ -441,6 +442,7 @@ export function applyInventoryMovements(user, updates) {
             release < 0 ||
             release > reserved ||
             (change.mode === "sale" && release > quantity)
+            (change.mode === "replacement_out" && release !== quantity)
         ) {
             result.errors.push(`${change.sku}: Invalid reservation release.`);
             return;

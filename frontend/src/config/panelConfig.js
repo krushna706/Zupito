@@ -28,6 +28,8 @@ import SellerProductForm from "../seller/ProductForm";
 import SellerInventory from "../seller/Inventory";
 import SellerOrders from "../seller/Orders";
 import SellerOrderDetails from "../seller/OrderDetails";
+import SellerReplacements from "../seller/Replacements";
+import SellerReplacementDetails from "../seller/ReplacementDetails";
 
 
 /* ===== REGISTERED ROLES ===== */
@@ -208,7 +210,7 @@ export const panelPages = [
         path: "replacements",
         components: {
             admin: Replacements,
-            seller: LoadingState,
+            seller: SellerReplacements,
         },
         allowedRoles: ["admin", "seller"],
         navigation: {
@@ -216,6 +218,11 @@ export const panelPages = [
             icon: "fa-solid fa-arrow-right-arrow-left",
             end: false,
         },
+    },
+    {
+        path: "replacements/:replacementId",
+        component: SellerReplacementDetails,
+        allowedRoles: ["seller"],
     },
     {
         path: "settlements",

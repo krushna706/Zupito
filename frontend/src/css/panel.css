@@ -18676,3 +18676,734 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+
+/* ================== SELLER REPLACEMENTS ================== */
+.seller-replacements {
+    --sr-blue: #265df5;
+    --sr-navy: #071b45;
+    --sr-border: #e1e7f1;
+    color: var(--sr-navy);
+    min-width: 0;
+}
+
+.seller-replacements *,
+.seller-replacements *::before,
+.seller-replacements *::after {
+    box-sizing: border-box;
+}
+
+/* ================== PAGE HEADER ================== */
+.seller-replacements .sr-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-height: 110px;
+    padding: 24px 27px;
+    margin-bottom: 18px;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #fff 48%, #edf4ff);
+}
+
+.seller-replacements .sr-hero h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 9px;
+    color: var(--sr-blue);
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -.1px;
+}
+
+.seller-replacements .sr-hero h1 i {
+    font-size: 19px;
+}
+
+.seller-replacements .sr-hero p {
+    margin: 0;
+    color: #63718b;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.seller-replacements .sr-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+/* ================== BUTTONS AND INPUTS ================== */
+.seller-replacements .MuiButton-root,
+.sr-demo-dialog .MuiButton-root {
+    min-height: 37px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    white-space: nowrap;
+    box-shadow: none;
+}
+
+.seller-replacements .MuiButton-contained,
+.sr-demo-dialog .MuiButton-contained {
+    background: var(--sr-blue, #265df5);
+}
+
+.seller-replacements .MuiButton-outlined {
+    border-color: #d4e1ff;
+    color: var(--sr-blue);
+}
+
+.seller-replacements .MuiOutlinedInput-root,
+.sr-demo-dialog .MuiOutlinedInput-root {
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.seller-replacements .MuiInputLabel-root,
+.sr-demo-dialog .MuiInputLabel-root {
+    font-size: 13px;
+}
+
+/* ================== STATISTIC CARDS ================== */
+.seller-replacements .sr-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.seller-replacements .sr-stat {
+    --sr-tone: #265df5;
+    --sr-soft: #eaf0ff;
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    min-width: 0;
+    min-height: 143px;
+    padding: 19px 20px;
+    overflow: hidden;
+    border: 1px solid var(--sr-border);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.seller-replacements .sr-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--sr-tone);
+}
+
+.seller-replacements .sr-stat-orange {
+    --sr-tone: #ef9d18;
+    --sr-soft: #fff3df;
+}
+
+.seller-replacements .sr-stat-green {
+    --sr-tone: #0b9d61;
+    --sr-soft: #e8f8f0;
+}
+
+.seller-replacements .sr-stat-purple {
+    --sr-tone: #7a58d8;
+    --sr-soft: #f1edff;
+}
+
+.seller-replacements .sr-stat-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.seller-replacements .sr-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--sr-soft);
+    color: var(--sr-tone);
+    font-size: 16px;
+}
+
+.seller-replacements .sr-stat > strong {
+    font-size: 29px;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
+.seller-replacements .sr-stat > small {
+    color: #8492a8;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* ================== CONTENT CARDS ================== */
+.seller-replacements .sr-card {
+    min-width: 0;
+    padding: 23px;
+    border: 1px solid var(--sr-border);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.seller-replacements .sr-card-heading {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+    margin-bottom: 21px;
+}
+
+.seller-replacements .sr-heading-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: #edf2ff;
+    color: var(--sr-blue);
+    font-size: 16px;
+}
+
+.seller-replacements .sr-card-heading > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.seller-replacements .sr-card-heading h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.seller-replacements .sr-card-heading p {
+    margin: 0;
+    color: #77849c;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* ================== REQUEST LIST ================== */
+.seller-replacements .sr-list-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.seller-replacements .sr-list-heading {
+    padding: 20px 23px;
+    margin: 0;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.seller-replacements .sr-record-count {
+    flex-shrink: 0;
+    padding: 6px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 24px;
+    background: #f3f6ff;
+    color: var(--sr-blue);
+    font-size: 12px;
+}
+
+.seller-replacements .sr-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(160px, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 23px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.seller-replacements .sr-toolbar .MuiTextField-root {
+    min-width: 0;
+}
+
+/* ================== REQUEST TABLE ================== */
+.seller-replacements .sr-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.seller-replacements .sr-table {
+    min-width: 970px;
+}
+
+.seller-replacements .sr-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.seller-replacements .sr-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 14px;
+    border-color: #e2eaf4;
+    color: #40547c;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.seller-replacements .sr-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 14px;
+    border-color: #edf1f6;
+    color: #3d5072;
+    font-size: 14px;
+    font-weight: 400;
+    vertical-align: middle;
+}
+
+.seller-replacements .sr-table .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.seller-replacements .sr-cell-stack {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.seller-replacements .sr-cell-stack strong {
+    color: #344562;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.seller-replacements .sr-cell-stack small {
+    color: #8795ad;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.seller-replacements .sr-product-cell {
+    min-width: 190px;
+    max-width: 240px;
+}
+
+/* ================== STATUS BADGES ================== */
+.seller-replacements .sr-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 11px;
+    border: 1px solid #d6e2ff;
+    border-radius: 24px;
+    background: #eef4ff;
+    color: var(--sr-blue);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.seller-replacements .sr-badge-success {
+    border-color: #bfead0;
+    background: #e9f9ef;
+    color: #07894e;
+}
+
+.seller-replacements .sr-badge-warning {
+    border-color: #ffe0af;
+    background: #fff7e9;
+    color: #b87808;
+}
+
+.seller-replacements .sr-badge-danger {
+    border-color: #ffd3da;
+    background: #fff0f3;
+    color: #d83b50;
+}
+
+/* ================== EMPTY STATES ================== */
+.seller-replacements .sr-empty,
+.seller-replacements .sr-not-found {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 40px 18px;
+    text-align: center;
+}
+
+.seller-replacements .sr-empty > i {
+    color: var(--sr-blue);
+    font-size: 28px;
+}
+
+.seller-replacements .sr-empty h3,
+.seller-replacements .sr-not-found h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.seller-replacements .sr-empty p,
+.seller-replacements .sr-not-found p {
+    max-width: 480px;
+    margin: 0;
+    color: #8390a6;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.seller-replacements .MuiTablePagination-root {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ================== REQUEST SUMMARY ================== */
+.seller-replacements .sr-request-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+
+.seller-replacements .sr-subtitle {
+    color: var(--sr-blue);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .25px;
+}
+
+.seller-replacements .sr-request-summary h2 {
+    margin: 7px 0;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.seller-replacements .sr-request-summary p {
+    margin: 0;
+    color: #77849c;
+    font-size: 12px;
+}
+
+.seller-replacements .sr-summary-status {
+    display: grid;
+    justify-items: end;
+    gap: 9px;
+}
+
+.seller-replacements .sr-summary-status small {
+    color: #8390a6;
+    font-size: 12px;
+}
+
+/* ================== WARNINGS ================== */
+.seller-replacements .sr-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 15px 17px;
+    margin-bottom: 18px;
+    border: 1px solid #f3dfb8;
+    border-radius: 12px;
+    background: #fff8ea;
+    color: #926a26;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* ================== DETAIL GRID ================== */
+.seller-replacements .sr-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.seller-replacements .sr-section {
+    margin-bottom: 18px;
+}
+
+.seller-replacements .sr-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin: 0;
+}
+
+.seller-replacements .sr-detail-item {
+    min-width: 0;
+}
+
+.seller-replacements .sr-detail-item dt {
+    margin: 0 0 6px;
+    color: #8795aa;
+    font-size: 12px;
+}
+
+.seller-replacements .sr-detail-item dd {
+    margin: 0;
+    color: #344562;
+    font-size: 13px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+/* ================== DESCRIPTION ================== */
+.seller-replacements .sr-description {
+    padding: 15px;
+    margin-top: 20px;
+    border: 1px solid #e6ecf5;
+    border-radius: 11px;
+    background: #f9fbff;
+}
+
+.seller-replacements .sr-description strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.seller-replacements .sr-description p {
+    margin: 6px 0 0;
+    color: #657792;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+/* ================== WORKFLOW TIMELINE ================== */
+.seller-replacements .sr-steps {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.seller-replacements .sr-step {
+    position: relative;
+    display: flex;
+    gap: 13px;
+    min-height: 62px;
+}
+
+.seller-replacements .sr-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 30px;
+    bottom: 6px;
+    left: 15px;
+    width: 2px;
+    background: #e5ebf4;
+}
+
+.seller-replacements .sr-step-dot {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f0f3f9;
+    color: #9faac0;
+    font-size: 11px;
+}
+
+.seller-replacements .sr-step.is-complete .sr-step-dot {
+    background: #e9f8ef;
+    color: #07894e;
+}
+
+.seller-replacements .sr-step.is-active .sr-step-dot {
+    background: #eaf0ff;
+    color: #265df5;
+}
+
+.seller-replacements .sr-step strong,
+.seller-replacements .sr-step small {
+    display: block;
+}
+
+.seller-replacements .sr-step strong {
+    padding-top: 2px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.seller-replacements .sr-step small {
+    margin-top: 5px;
+    color: #8390a6;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* ================== ACTION FORMS ================== */
+.seller-replacements .sr-action-form {
+    display: grid;
+    gap: 17px;
+    justify-items: start;
+    padding: 18px;
+    margin-top: 20px;
+    border: 1px solid #dce7fb;
+    border-radius: 12px;
+    background: #f8faff;
+}
+
+.seller-replacements .sr-action-form > .MuiTextField-root {
+    width: 100%;
+}
+
+.seller-replacements .sr-action-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    width: 100%;
+}
+
+.seller-replacements .sr-action-fields .MuiTextField-root {
+    min-width: 0;
+}
+
+.seller-replacements .sr-help-text {
+    margin: 16px 0 0;
+    color: #70809a;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+/* ================== REQUEST HISTORY ================== */
+.seller-replacements .sr-history {
+    display: grid;
+    gap: 16px;
+}
+
+.seller-replacements .sr-history-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.seller-replacements .sr-history-marker {
+    display: grid;
+    place-items: center;
+    flex: 0 0 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: #edf3ff;
+    color: #265df5;
+    font-size: 11px;
+}
+
+.seller-replacements .sr-history-entry strong,
+.seller-replacements .sr-history-entry small {
+    display: block;
+}
+
+.seller-replacements .sr-history-entry strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.seller-replacements .sr-history-entry small {
+    margin-top: 4px;
+    color: #8794a8;
+    font-size: 11px;
+}
+
+.seller-replacements .sr-history-entry p {
+    margin: 6px 0 0;
+    color: #63738d;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+/* ================== DEMO DIALOG ================== */
+.sr-demo-dialog .MuiDialog-paper {
+    border-radius: 16px;
+}
+
+.sr-demo-dialog .MuiDialogTitle-root {
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.sr-demo-dialog .MuiDialogActions-root {
+    padding: 14px 22px;
+}
+
+.sr-demo-fields {
+    display: grid;
+    gap: 16px;
+    padding: 6px 0;
+}
+
+.sr-demo-fields p {
+    margin: 0;
+    color: #75849a;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+/* ================== RESPONSIVE ================== */
+@media (max-width: 1150px) {
+    .seller-replacements .sr-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .seller-replacements .sr-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-replacements .sr-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 700px) {
+    .seller-replacements .sr-stats,
+    .seller-replacements .sr-toolbar,
+    .seller-replacements .sr-action-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-replacements .sr-toolbar {
+        padding: 15px;
+    }
+
+    .seller-replacements .sr-list-heading {
+        flex-wrap: wrap;
+        padding: 18px;
+    }
+}
+
+@media (max-width: 500px) {
+    .seller-replacements .sr-hero,
+    .seller-replacements .sr-card {
+        padding: 18px;
+    }
+
+    .seller-replacements .sr-list-card {
+        padding: 0;
+    }
+
+    .seller-replacements .sr-request-summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .seller-replacements .sr-summary-status {
+        justify-items: start;
+    }
+
+    .seller-replacements .sr-fields {
+        grid-template-columns: 1fr;
+    }
+}

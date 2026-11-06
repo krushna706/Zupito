@@ -49,6 +49,7 @@ const movementTypes = [
     "Damage/Loss",
     "Sale",
     "Return",
+    "Replacement Dispatch",
 ];
 
 function isValidQuantity(value) {

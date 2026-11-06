@@ -23,7 +23,8 @@ import AdminProfile from "../admin/Profile";
 // Seller panel
 import SellerApprovalStatus from "../seller/ApprovalStatus";
 import StoreProfile from "../seller/StoreProfile";
-
+import SellerProducts from "../seller/Products";
+import SellerProductForm from "../seller/ProductForm";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -124,11 +125,12 @@ export const panelPages = [
             end: false,
         },
     },
+    
     {
         path: "products",
         components: {
             admin: Products,
-            seller: LoadingState,
+            seller: SellerProducts,
         },
         allowedRoles: ["admin", "seller"],
         navigation: {
@@ -137,6 +139,18 @@ export const panelPages = [
             end: false,
         },
     },
+    {
+        path: "products/new",
+        component: SellerProductForm,
+        allowedRoles: ["seller"],
+    },
+    {
+        path: "products/:productId/edit",
+        component: SellerProductForm,
+        allowedRoles: ["seller"],
+    },
+
+
     {
         path: "orders",
         components: {

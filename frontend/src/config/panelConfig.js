@@ -31,6 +31,8 @@ import SellerOrderDetails from "../seller/OrderDetails";
 import SellerReplacements from "../seller/Replacements";
 import SellerReplacementDetails from "../seller/ReplacementDetails";
 import SellerEarnings from "../seller/Earnings";
+import SellerReviews from "../seller/Reviews";
+
 
 
 /* ===== REGISTERED ROLES ===== */
@@ -252,7 +254,7 @@ export const panelPages = [
         path: "reviews",
         components: {
             admin: Reviews,
-            seller: LoadingState,
+            seller: SellerReviews,
         },
         allowedRoles: ["admin", "seller"],
         navigation: {

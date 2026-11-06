@@ -7,6 +7,7 @@ import {
     TableHead, TablePagination, TableRow, TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
+import { sortNewestFirst } from "../utils/sortNewestFirst";
 
 // ================== DELIVERY CONFIGURATION ==================
 const TASK_KEY = "zupito_admin_delivery_assignments";
@@ -155,7 +156,17 @@ function assignReadyTasks(tasks, agents) {
 }
 
 function loadState() {
-    const tasks = readList(TASK_KEY) || previewTasks;
+    const savedTasks = readList(TASK_KEY);
+
+    const tasks = savedTasks
+        ? [
+            ...previewTasks.filter((preview) =>
+                !savedTasks.some((task) => task.id === preview.id)
+            ),
+            ...savedTasks,
+        ]
+        : previewTasks;
+
     const agents = readList(AGENT_KEY) || [];
     const orders = readList(ORDER_KEY) || [];
 
@@ -287,7 +298,7 @@ function DeliveryAssignments() {
     ];
 
     // ================== TABLE FILTERS ==================
-    const filtered = tasks.filter((task) => {
+   const filtered = sortNewestFirst(tasks.filter((task) => {
         const query = search.trim().toLowerCase();
         const agentName = agentById(task.agentId)?.name || "";
 
@@ -308,7 +319,7 @@ function DeliveryAssignments() {
                 (agentFilter === "Unassigned"
                     ? !task.agentId
                     : task.agentId === agentFilter));
-    });
+    }));
 
     const visible = filtered.slice(
         page * rowsPerPage,

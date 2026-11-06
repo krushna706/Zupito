@@ -20,6 +20,7 @@ import {
     TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
+import { sortNewestFirst } from "../utils/sortNewestFirst";
 
 import { productCatalog } from "../data/productCatalog";
 
@@ -287,7 +288,9 @@ function Products() {
             (groupFilter === "All" || product.group === groupFilter);
     });
 
-    const visibleProducts = filteredProducts.slice(
+    const sortedProducts = sortNewestFirst(filteredProducts, "submittedAt");
+
+    const visibleProducts = sortedProducts.slice(
         page * rowsPerPage,
         (page + 1) * rowsPerPage
     );

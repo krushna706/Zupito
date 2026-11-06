@@ -19,6 +19,7 @@ import {
     TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
+import { sortNewestFirst } from "../utils/sortNewestFirst";
 
 // ================== AGENT CONFIGURATION ==================
 const STORAGE_KEY = "zupito_admin_delivery_agents";
@@ -192,7 +193,9 @@ function DeliveryAgents() {
         return matchesSearch && matchesStatus && matchesAvailability;
     });
 
-    const visibleAgents = filteredAgents.slice(
+    const sortedAgents = sortNewestFirst(filteredAgents);
+
+    const visibleAgents = sortedAgents.slice(
         page * rowsPerPage,
         (page + 1) * rowsPerPage
     );

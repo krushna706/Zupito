@@ -11,6 +11,7 @@ import Orders from "../admin/Orders";
 import DeliveryAssignments from "../admin/DeliveryAssignments";
 import Payments from "../admin/Payments";
 import Refunds from "../admin/Refunds";
+import Replacements from "../admin/Replacements";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -167,7 +168,19 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("replacements", "Replacements", "fa-solid fa-arrow-right-arrow-left", ["admin", "seller"]),
+    {
+        path: "replacements",
+        components: {
+            admin: Replacements,
+            seller: LoadingState,
+        },
+        allowedRoles: ["admin", "seller"],
+        navigation: {
+            label: "Replacements",
+            icon: "fa-solid fa-arrow-right-arrow-left",
+            end: false,
+        },
+    },
     previewPage("settlements", "Settlements", "fa-solid fa-wallet", ["admin"]),
     previewPage("coupons", "Coupons", "fa-solid fa-ticket", ["admin"]),
     previewPage("reviews", "Reviews", "fa-solid fa-star", ["admin", "seller"]),

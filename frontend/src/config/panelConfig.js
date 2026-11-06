@@ -8,6 +8,8 @@ import DeliveryAgents from "../admin/DeliveryAgents";
 import Categories from "../admin/Categories";
 import Products from "../admin/Products";
 import Orders from "../admin/Orders";
+import DeliveryAssignments from "../admin/DeliveryAssignments";
+import Payments from "../admin/Payments";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -134,8 +136,26 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("delivery-assignments", "Delivery Assignments", "fa-solid fa-truck-fast", ["admin"]),
-    previewPage("payments", "Payments", "fa-solid fa-credit-card", ["admin"]),
+    {
+        path: "delivery-assignments",
+        component: DeliveryAssignments,
+        allowedRoles: ["admin"],
+        navigation: {
+            label: "Delivery Assignments",
+            icon: "fa-solid fa-truck-fast",
+            end: false,
+        },
+    },
+    {
+        path: "payments",
+        component: Payments,
+        allowedRoles: ["admin"],
+        navigation: {
+            label: "Payments",
+            icon: "fa-solid fa-credit-card",
+            end: false,
+        },
+    },
     previewPage("refunds", "Refunds", "fa-solid fa-money-bill-transfer", ["admin"]),
     previewPage("replacements", "Replacements", "fa-solid fa-arrow-right-arrow-left", ["admin", "seller"]),
     previewPage("settlements", "Settlements", "fa-solid fa-wallet", ["admin"]),

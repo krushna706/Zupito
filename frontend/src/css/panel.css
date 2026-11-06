@@ -1810,8 +1810,14 @@
 }
 
 .manage-sellers .zs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #265df5;
     font-size: 18px;
     font-weight: 700;
+    line-height: 28px;
     letter-spacing: -0.1px;
 }
 
@@ -2073,11 +2079,12 @@
 .mc-eyebrow {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 10px;
+    margin-bottom: 10px;
     color: #265df5;
     font-size: 18px;
     font-weight: 700;
+    line-height: 28px;
     letter-spacing: -0.1px;
 }
 
@@ -6282,5 +6289,1548 @@
 
     .mo-dialog-paper .mo-dialog-actions {
         justify-content: flex-end;
+    }
+}
+
+
+
+/* =========================================================
+   ADMIN: DELIVERY ASSIGNMENTS
+   ========================================================= */
+
+.manage-delivery-assignments {
+    display: grid;
+    gap: 22px;
+    min-width: 0;
+}
+
+/* ===== PAGE HEADER ===== */
+
+.manage-delivery-assignments .dda-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-height: 110px;
+    padding: 25px 27px;
+    overflow: hidden;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #fff 48%, #edf4ff 100%);
+}
+
+.manage-delivery-assignments .dda-hero::after {
+    content: "";
+    position: absolute;
+    top: -90px;
+    right: 120px;
+    width: 215px;
+    height: 215px;
+    border: 1px solid #dfe9fe;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.manage-delivery-assignments .zs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #265df5;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -0.1px;
+}
+
+.manage-delivery-assignments .dda-hero p {
+    margin: 0;
+    color: #61718e;
+    font-size: 14px;
+    line-height: 23px;
+}
+
+.manage-delivery-assignments .dda-refresh.MuiButton-root {
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+    min-height: 39px;
+    padding: 8px 15px;
+    border: 1px solid #d3dff7;
+    border-radius: 9px;
+    color: #265df5;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* ===== STATISTICS ===== */
+
+.manage-delivery-assignments .dda-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.manage-delivery-assignments .dda-stat {
+    position: relative;
+    min-width: 0;
+    min-height: 143px;
+    padding: 20px;
+    overflow: hidden;
+    border: 1px solid #e1e8f3;
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.manage-delivery-assignments .dda-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--dda-color);
+}
+
+.manage-delivery-assignments .dda-stat.is-blue {
+    --dda-color: #265df5;
+    --dda-soft: #eaf0ff;
+}
+
+.manage-delivery-assignments .dda-stat.is-green {
+    --dda-color: #0b9d61;
+    --dda-soft: #e8f8f0;
+}
+
+.manage-delivery-assignments .dda-stat.is-orange {
+    --dda-color: #f49a11;
+    --dda-soft: #fff3df;
+}
+
+.manage-delivery-assignments .dda-stat.is-red {
+    --dda-color: #ed4c60;
+    --dda-soft: #fff0f2;
+}
+
+.manage-delivery-assignments .dda-stat-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.manage-delivery-assignments .dda-stat-heading i {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    color: var(--dda-color);
+    background: var(--dda-soft);
+    font-size: 16px;
+}
+
+.manage-delivery-assignments .dda-stat > strong {
+    display: block;
+    margin: 7px 0 1px;
+    color: #071b45;
+    font-size: 29px;
+    font-weight: 700;
+    line-height: 38px;
+}
+
+.manage-delivery-assignments .dda-stat p {
+    margin: 0;
+    color: #8a99b1;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+/* ===== CONTENT CARD ===== */
+
+.manage-delivery-assignments .dda-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e0e7f2;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.manage-delivery-assignments .dda-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.manage-delivery-assignments .dda-title-row {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.manage-delivery-assignments .dda-title-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 17px;
+}
+
+.manage-delivery-assignments .dda-title-row h2 {
+    margin: 0 0 3px;
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.manage-delivery-assignments .dda-title-row p {
+    margin: 0;
+    color: #8795ac;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.manage-delivery-assignments .dda-records {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 30px;
+    color: #265df5;
+    background: #f3f6ff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* ===== SEARCH AND FILTERS ===== */
+
+.manage-delivery-assignments .dda-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 19px 22px;
+    border-bottom: 1px solid #e6ecf4;
+}
+
+.manage-delivery-assignments .dda-search {
+    flex: 1;
+    min-width: 180px;
+}
+
+.manage-delivery-assignments .dda-filter {
+    flex: 0 0 190px;
+    width: 190px;
+}
+
+.manage-delivery-assignments .dda-toolbar .MuiOutlinedInput-root,
+.manage-delivery-assignments .dda-toolbar .MuiInputLabel-root {
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.manage-delivery-assignments .dda-reset.MuiButton-root {
+    min-height: 40px;
+    border: 1px solid #d8e0eb;
+    border-radius: 9px;
+    color: #697994;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* ===== ASSIGNMENTS TABLE ===== */
+
+.manage-delivery-assignments .dda-table-scroll {
+    overflow-x: auto;
+}
+
+.manage-delivery-assignments .dda-table {
+    min-width: 1200px;
+}
+
+.manage-delivery-assignments .dda-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.manage-delivery-assignments .dda-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 15px;
+    border-bottom: 1px solid #e2eaf4;
+    color: #40547c;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.manage-delivery-assignments .dda-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 16px 15px;
+    border-bottom: 1px solid #edf1f6;
+    color: #3d5072;
+    font-family: inherit;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.manage-delivery-assignments .dda-table .MuiTableBody-root .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.manage-delivery-assignments .dda-cell {
+    display: grid;
+    gap: 4px;
+    min-width: 130px;
+}
+
+.manage-delivery-assignments .dda-cell strong {
+    color: #243b63;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.manage-delivery-assignments .dda-cell small {
+    color: #8795ad;
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.manage-delivery-assignments .dda-cell .dda-code {
+    color: #265df5;
+}
+
+.manage-delivery-assignments .dda-route {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #475e82;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.manage-delivery-assignments .dda-route i {
+    color: #93a8ce;
+    font-size: 12px;
+}
+
+/* ===== ASSIGNED AGENT ===== */
+
+.manage-delivery-assignments .dda-agent {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 145px;
+}
+
+.manage-delivery-assignments .dda-agent > span {
+    display: grid;
+    place-items: center;
+    flex: 0 0 35px;
+    width: 35px;
+    height: 35px;
+    border-radius: 9px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.manage-delivery-assignments .dda-agent > div {
+    display: grid;
+    gap: 3px;
+}
+
+.manage-delivery-assignments .dda-agent strong {
+    color: #243b63;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.manage-delivery-assignments .dda-agent small {
+    color: #8795ad;
+    font-size: 12px;
+}
+
+.manage-delivery-assignments .dda-unassigned {
+    color: #d18a12;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.manage-delivery-assignments .dda-custody {
+    color: #61718e;
+    font-size: 13px;
+}
+
+/* ===== STATUS BADGES ===== */
+
+.manage-delivery-assignments .dda-badge,
+.dda-dialog .dda-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border: 1px solid;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.manage-delivery-assignments .dda-badge i,
+.dda-dialog .dda-badge i {
+    font-size: 6px;
+}
+
+.manage-delivery-assignments .dda-badge.is-green,
+.dda-dialog .dda-badge.is-green {
+    color: #07894e;
+    border-color: #bfead0;
+    background: #e9f9ef;
+}
+
+.manage-delivery-assignments .dda-badge.is-blue,
+.dda-dialog .dda-badge.is-blue {
+    color: #265df5;
+    border-color: #d5e2ff;
+    background: #eef3ff;
+}
+
+.manage-delivery-assignments .dda-badge.is-warning,
+.dda-dialog .dda-badge.is-warning {
+    color: #b87808;
+    border-color: #ffe0af;
+    background: #fff7e9;
+}
+
+.manage-delivery-assignments .dda-badge.is-danger,
+.dda-dialog .dda-badge.is-danger {
+    color: #d83b50;
+    border-color: #ffd3da;
+    background: #fff0f3;
+}
+
+.manage-delivery-assignments .dda-badge.is-neutral,
+.dda-dialog .dda-badge.is-neutral {
+    color: #738299;
+    border-color: #dfe5ee;
+    background: #f3f5f9;
+}
+
+/* ===== TABLE ACTION BUTTONS ===== */
+
+.manage-delivery-assignments .dda-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.manage-delivery-assignments .dda-actions .MuiButton-root {
+    min-height: 32px;
+    padding: 5px 10px;
+    border-color: #d4e0ff;
+    border-radius: 8px;
+    color: #265df5;
+    background: #f7f9ff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+.manage-delivery-assignments .dda-pagination {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ===== EMPTY STATE ===== */
+
+.manage-delivery-assignments .dda-empty {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 50px 20px;
+}
+
+.manage-delivery-assignments .dda-empty > i {
+    color: #265df5;
+    font-size: 27px;
+}
+
+.manage-delivery-assignments .dda-empty h3 {
+    margin: 0;
+    color: #112750;
+    font-size: 17px;
+}
+
+.manage-delivery-assignments .dda-empty p {
+    margin: 0;
+    color: #8390a6;
+    font-size: 13px;
+}
+
+/* ===== DETAILS DIALOG ===== */
+
+.dda-dialog.MuiDialog-paper {
+    border-radius: 15px;
+    box-shadow: 0 20px 65px rgb(16 33 70 / 15%);
+}
+
+.dda-dialog .MuiDialogTitle-root {
+    padding: 20px 23px;
+    color: #0d2146;
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.dda-dialog .MuiDialogContent-root {
+    padding: 22px 23px;
+}
+
+.dda-dialog .MuiDialogActions-root {
+    gap: 8px;
+    padding: 15px 20px;
+    border-top: 1px solid #edf1f6;
+}
+
+.dda-dialog .MuiDialogActions-root .MuiButton-root {
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.dda-dialog .dda-detail-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding: 17px;
+    border: 1px solid #e2eafd;
+    border-radius: 12px;
+    background: #f5f8ff;
+}
+
+.dda-dialog .dda-detail-banner strong {
+    color: #10254e;
+    font-size: 16px;
+}
+
+.dda-dialog .dda-detail-banner p {
+    margin: 5px 0 0;
+    color: #8392aa;
+    font-size: 13px;
+}
+
+.dda-dialog .dda-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin: 0;
+}
+
+.dda-dialog .dda-detail dt {
+    margin-bottom: 5px;
+    color: #8795ab;
+    font-size: 13px;
+}
+
+.dda-dialog .dda-detail dd {
+    margin: 0;
+    color: #23395f;
+    font-size: 14px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.dda-dialog .dda-history {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #edf1f6;
+}
+
+.dda-dialog .dda-history h3 {
+    color: #18345f;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.dda-dialog .dda-history p {
+    display: flex;
+    gap: 9px;
+    margin: 10px 0;
+    color: #657896;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.dda-dialog .dda-assignment-intro {
+    padding: 16px;
+    border: 1px solid #e2eafd;
+    border-radius: 10px;
+    background: #f5f8ff;
+}
+
+.dda-dialog .dda-assignment-intro strong {
+    color: #10254e;
+    font-size: 15px;
+}
+
+.dda-dialog .dda-assignment-intro p {
+    margin: 5px 0 0;
+    color: #61718e;
+    font-size: 13px;
+}
+
+.dda-dialog .dda-custody-confirm {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 18px;
+    color: #435674;
+    font-size: 13px;
+    line-height: 22px;
+}
+
+.dda-dialog .dda-custody-confirm span {
+    padding-top: 7px;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1199.98px) {
+    .manage-delivery-assignments .dda-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .manage-delivery-assignments .dda-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .manage-delivery-assignments .dda-search {
+        flex-basis: 100%;
+    }
+
+    .manage-delivery-assignments .dda-filter {
+        flex: 1 1 170px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .manage-delivery-assignments .dda-hero {
+        flex-wrap: wrap;
+        padding: 22px 20px;
+    }
+
+    .manage-delivery-assignments .dda-card-heading {
+        padding: 19px;
+    }
+
+    .manage-delivery-assignments .dda-toolbar {
+        padding: 16px 19px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .manage-delivery-assignments {
+        gap: 17px;
+    }
+
+    .manage-delivery-assignments .dda-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .manage-delivery-assignments .dda-stats {
+        gap: 11px;
+    }
+
+    .manage-delivery-assignments .dda-stat {
+        min-height: 132px;
+        padding: 15px;
+    }
+
+    .manage-delivery-assignments .dda-stat-heading {
+        font-size: 12px;
+    }
+
+    .manage-delivery-assignments .dda-stat-heading i {
+        flex-basis: 34px;
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+
+    .manage-delivery-assignments .dda-stat > strong {
+        font-size: 25px;
+    }
+
+    .manage-delivery-assignments .dda-stat p {
+        font-size: 12px;
+    }
+
+    .manage-delivery-assignments .dda-card-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .dda-dialog .dda-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dda-dialog .dda-detail-banner {
+        flex-wrap: wrap;
+    }
+}
+
+
+
+/* =========================================================
+   ADMIN: PAYMENT MANAGEMENT
+   ========================================================= */
+
+.manage-payments {
+    display: grid;
+    gap: 22px;
+    min-width: 0;
+}
+
+/* ===== PAGE HEADER ===== */
+
+.manage-payments .pay-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    min-height: 110px;
+    padding: 25px 27px;
+    overflow: hidden;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #ffffff 48%, #edf4ff 100%);
+}
+
+.manage-payments .pay-hero::after {
+    content: "";
+    position: absolute;
+    top: -90px;
+    right: 120px;
+    width: 215px;
+    height: 215px;
+    border: 1px solid #dfe9fe;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.manage-payments .pay-hero-content {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.manage-payments .zs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #265df5;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -0.1px;
+}
+
+.manage-payments .pay-hero p {
+    margin: 0;
+    color: #61718e;
+    font-size: 14px;
+    line-height: 23px;
+}
+
+.manage-payments .pay-refresh-button.MuiButton-root {
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+    min-height: 39px;
+    padding: 8px 15px;
+    border: 1px solid #d3dff7;
+    border-radius: 9px;
+    color: #265df5;
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.manage-payments .pay-refresh-button.MuiButton-root:hover {
+    border-color: #265df5;
+    background: #f2f6ff;
+}
+
+/* ===== KPI CARDS ===== */
+
+.manage-payments .pay-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.manage-payments .pay-stat {
+    position: relative;
+    min-width: 0;
+    min-height: 143px;
+    padding: 20px;
+    overflow: hidden;
+    border: 1px solid #e1e8f3;
+    border-radius: 15px;
+    background: #ffffff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.manage-payments .pay-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--pay-color);
+}
+
+.manage-payments .pay-stat--blue {
+    --pay-color: #265df5;
+    --pay-soft: #eaf0ff;
+}
+
+.manage-payments .pay-stat--green {
+    --pay-color: #0b9d61;
+    --pay-soft: #e8f8f0;
+}
+
+.manage-payments .pay-stat--orange {
+    --pay-color: #f49a11;
+    --pay-soft: #fff3df;
+}
+
+.manage-payments .pay-stat--red {
+    --pay-color: #ed4c60;
+    --pay-soft: #fff0f2;
+}
+
+.manage-payments .pay-stat-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.manage-payments .pay-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    color: var(--pay-color);
+    background: var(--pay-soft);
+    font-size: 16px;
+}
+
+.manage-payments .pay-stat-value {
+    display: block;
+    margin: 7px 0 1px;
+    color: #071b45;
+    font-size: 29px;
+    font-weight: 700;
+    line-height: 38px;
+}
+
+.manage-payments .pay-stat p {
+    margin: 0;
+    color: #8a99b1;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+/* ===== PAYMENT SUMMARY ===== */
+
+.manage-payments .pay-summary {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 21px 24px;
+    border: 1px solid #dce7ff;
+    border-radius: 15px;
+    background: linear-gradient(110deg, #ffffff, #f1f6ff);
+}
+
+.manage-payments .pay-summary-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 53px;
+    width: 53px;
+    height: 53px;
+    border-radius: 13px;
+    color: #265df5;
+    background: #e7efff;
+    font-size: 21px;
+}
+
+.manage-payments .pay-summary > div:nth-child(2) {
+    display: grid;
+    flex: 1;
+    gap: 4px;
+    min-width: 0;
+}
+
+.manage-payments .pay-summary > div:nth-child(2) > span,
+.manage-payments .pay-summary-review > span {
+    color: #627694;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.manage-payments .pay-summary > div:nth-child(2) > strong {
+    color: #102a57;
+    font-size: 25px;
+    font-weight: 700;
+    line-height: 32px;
+}
+
+.manage-payments .pay-summary p,
+.manage-payments .pay-summary-review small {
+    margin: 0;
+    color: #8796ad;
+    font-size: 12px;
+}
+
+.manage-payments .pay-summary-review {
+    display: grid;
+    gap: 4px;
+    min-width: 145px;
+    padding-left: 25px;
+    border-left: 1px solid #dce5f6;
+}
+
+.manage-payments .pay-summary-review strong {
+    color: #d88b15;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+/* ===== CONTENT CARD ===== */
+
+.manage-payments .pay-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e0e7f2;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.manage-payments .pay-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.manage-payments .pay-section-heading {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 13px;
+}
+
+.manage-payments .pay-section-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 17px;
+}
+
+.manage-payments .pay-section-heading h2 {
+    margin: 0 0 3px;
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.manage-payments .pay-section-heading p {
+    margin: 0;
+    color: #8795ac;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.manage-payments .pay-record-count {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 30px;
+    color: #265df5;
+    background: #f3f6ff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* ===== SEARCH AND FILTERS ===== */
+
+.manage-payments .pay-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 19px 22px;
+    border-bottom: 1px solid #e6ecf4;
+}
+
+.manage-payments .pay-search {
+    flex: 1;
+    min-width: 180px;
+}
+
+.manage-payments .pay-filter {
+    flex: 0 0 185px;
+    width: 185px;
+}
+
+.manage-payments .pay-toolbar .MuiOutlinedInput-root,
+.manage-payments .pay-toolbar .MuiInputLabel-root {
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.manage-payments .pay-toolbar .MuiInputAdornment-root {
+    color: #8c9ab2;
+}
+
+.manage-payments .pay-reset-button.MuiButton-root {
+    min-height: 40px;
+    border: 1px solid #d8e0eb;
+    border-radius: 9px;
+    color: #697994;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+.manage-payments .pay-preview-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 11px 22px;
+    border-bottom: 1px solid #e6ecf4;
+    color: #6d7f9a;
+    background: #f8faff;
+    font-size: 12px;
+    line-height: 20px;
+}
+
+.manage-payments .pay-preview-note i {
+    margin-top: 3px;
+    color: #265df5;
+}
+
+/* ===== PAYMENTS TABLE ===== */
+
+.manage-payments .pay-table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.manage-payments .pay-table {
+    min-width: 1200px;
+}
+
+.manage-payments .pay-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.manage-payments .pay-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 15px;
+    border-bottom: 1px solid #e2eaf4;
+    color: #40547c;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.manage-payments .pay-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 16px 15px;
+    border-bottom: 1px solid #edf1f6;
+    color: #3d5072;
+    font-family: inherit;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.manage-payments .pay-table .MuiTableBody-root .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.manage-payments .pay-cell {
+    display: grid;
+    min-width: 130px;
+    gap: 5px;
+}
+
+.manage-payments .pay-cell strong {
+    color: #243b63;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.manage-payments .pay-cell small {
+    color: #8795ad;
+    font-size: 12px;
+}
+
+.manage-payments .pay-cell .pay-reference {
+    color: #265df5;
+}
+
+.manage-payments .pay-customer,
+.manage-payments .pay-date {
+    color: #415679;
+    font-size: 13px;
+}
+
+.manage-payments .pay-amount {
+    color: #102a57;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ===== STATUS BADGES ===== */
+
+.manage-payments .pay-badge,
+.pay-dialog .pay-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 17px;
+    white-space: nowrap;
+}
+
+.pay-badge-dot {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.pay-badge--success {
+    border-color: #bfead0 !important;
+    color: #07894e;
+    background: #e9f9ef;
+}
+
+.pay-badge--warning {
+    border-color: #ffe0af !important;
+    color: #b87808;
+    background: #fff7e9;
+}
+
+.pay-badge--danger {
+    border-color: #ffd3da !important;
+    color: #d83b50;
+    background: #fff0f3;
+}
+
+.pay-badge--neutral {
+    border-color: #dfe5ee !important;
+    color: #738299;
+    background: #f3f5f9;
+}
+
+/* ===== TABLE ACTION ===== */
+
+.manage-payments .pay-view-button.MuiButton-root {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px;
+    border: 1px solid #d4e0ff;
+    border-radius: 8px;
+    color: #265df5;
+    background: #f7f9ff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+.manage-payments .pay-view-button.MuiButton-root:hover {
+    border-color: #265df5;
+    background: #edf2ff;
+}
+
+.manage-payments .pay-view-button i {
+    font-size: 11px;
+}
+
+.manage-payments .pay-pagination {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ===== EMPTY STATE ===== */
+
+.manage-payments .pay-empty {
+    display: grid;
+    justify-items: center;
+    gap: 9px;
+    padding: 50px 20px;
+    text-align: center;
+}
+
+.manage-payments .pay-empty > span {
+    display: grid;
+    place-items: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 14px;
+    color: #265df5;
+    background: #edf2ff;
+    font-size: 21px;
+}
+
+.manage-payments .pay-empty h3 {
+    margin: 5px 0 0;
+    color: #112750;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.manage-payments .pay-empty p {
+    margin: 0 0 5px;
+    color: #8390a6;
+    font-size: 13px;
+}
+
+/* ===== DETAILS DIALOG ===== */
+
+.pay-dialog.MuiDialog-paper {
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 20px 65px rgb(16 33 70 / 15%);
+}
+
+.pay-dialog .MuiDialogTitle-root {
+    padding: 20px 23px;
+    color: #0d2146;
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.pay-dialog .MuiDialogContent-root {
+    padding: 23px;
+}
+
+.pay-dialog .pay-detail-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 19px;
+    border: 1px solid #dce7ff;
+    border-radius: 12px;
+    background: linear-gradient(110deg, #f9fbff, #edf4ff);
+}
+
+.pay-dialog .pay-detail-banner > div {
+    min-width: 0;
+}
+
+.pay-dialog .pay-detail-banner > div > span {
+    color: #7f8faa;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.pay-dialog .pay-detail-banner h3 {
+    margin: 6px 0;
+    color: #122d5a;
+    font-size: 17px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.pay-dialog .pay-detail-banner p {
+    margin: 0;
+    color: #7284a3;
+    font-size: 12px;
+}
+
+.pay-dialog .pay-detail-section {
+    margin-bottom: 23px;
+}
+
+.pay-dialog .pay-detail-section h4 {
+    margin: 0 0 14px;
+    color: #18345f;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.pay-dialog .pay-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px;
+    margin: 0;
+}
+
+.pay-dialog .pay-detail-item {
+    min-width: 0;
+}
+
+.pay-dialog .pay-detail-item dt {
+    margin-bottom: 5px;
+    color: #8795ab;
+    font-size: 13px;
+}
+
+.pay-dialog .pay-detail-item dd {
+    margin: 0;
+    color: #23395f;
+    font-size: 14px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.pay-dialog .pay-linked-order {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 15px;
+    border: 1px solid #e3eaf7;
+    border-radius: 11px;
+    background: #f8faff;
+}
+
+.pay-dialog .pay-linked-order > div {
+    display: grid;
+    min-width: 0;
+    gap: 5px;
+}
+
+.pay-dialog .pay-linked-order strong {
+    color: #265df5;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.pay-dialog .pay-linked-order span {
+    color: #7a8aa6;
+    font-size: 12px;
+}
+
+.pay-dialog .pay-linked-order .MuiButton-root {
+    flex-shrink: 0;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.pay-dialog .pay-review-overview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 15px;
+    color: #6b7d9b;
+    font-size: 13px;
+}
+
+.pay-dialog .pay-detail-alert {
+    margin-bottom: 15px;
+    border-radius: 9px;
+    font-size: 13px;
+    line-height: 21px;
+}
+
+.pay-dialog .pay-review-history {
+    display: grid;
+    gap: 10px;
+}
+
+.pay-dialog .pay-review-history > div {
+    padding: 12px 14px;
+    border: 1px solid #e7edf7;
+    border-radius: 9px;
+    background: #fafcff;
+}
+
+.pay-dialog .pay-review-history strong {
+    color: #233c67;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.pay-dialog .pay-review-history small {
+    display: block;
+    margin-top: 4px;
+    color: #8898af;
+    font-size: 12px;
+}
+
+.pay-dialog .pay-review-history p {
+    margin: 8px 0 0;
+    color: #61728f;
+    font-size: 13px;
+    line-height: 21px;
+}
+
+.pay-dialog .pay-confirm-text {
+    margin: 0 0 18px;
+    color: #435674;
+    font-size: 14px;
+}
+
+.pay-dialog .pay-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 15px 20px;
+    border-top: 1px solid #edf1f6;
+}
+
+.pay-dialog .pay-dialog-actions .MuiButton-root {
+    min-height: 36px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1199.98px) {
+    .manage-payments .pay-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .manage-payments .pay-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .manage-payments .pay-search {
+        flex-basis: 100%;
+    }
+
+    .manage-payments .pay-filter {
+        flex: 1 1 160px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .manage-payments .pay-hero {
+        flex-wrap: wrap;
+        padding: 22px 20px;
+    }
+
+    .manage-payments .pay-section-header {
+        padding: 19px;
+    }
+
+    .manage-payments .pay-toolbar {
+        padding: 16px 19px;
+    }
+
+    .manage-payments .pay-summary {
+        flex-wrap: wrap;
+    }
+
+    .manage-payments .pay-summary-review {
+        flex: 1 1 100%;
+        padding: 15px 0 0;
+        border-top: 1px solid #dce5f6;
+        border-left: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .manage-payments {
+        gap: 17px;
+    }
+
+    .manage-payments .pay-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .manage-payments .pay-stats {
+        gap: 11px;
+    }
+
+    .manage-payments .pay-stat {
+        min-height: 132px;
+        padding: 15px;
+    }
+
+    .manage-payments .pay-stat-heading {
+        font-size: 12px;
+    }
+
+    .manage-payments .pay-stat-icon {
+        flex-basis: 34px;
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+
+    .manage-payments .pay-stat-value {
+        font-size: 25px;
+    }
+
+    .manage-payments .pay-stat p {
+        font-size: 12px;
+    }
+
+    .pay-dialog .pay-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pay-dialog .pay-detail-banner,
+    .pay-dialog .pay-linked-order {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .pay-dialog .MuiDialogContent-root {
+        padding: 18px;
     }
 }

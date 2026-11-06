@@ -57,7 +57,7 @@ export const panelRoles = {
     delivery: {
         label: "Delivery Agent",
         dashboard: LoadingState,
-        profile: LoadingState,
+        profile: ReuseProfile,
     },
 };
 
@@ -365,7 +365,7 @@ export const panelPages = [
 
 
 
-    
+
 
 ];
 

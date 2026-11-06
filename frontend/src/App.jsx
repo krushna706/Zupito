@@ -66,22 +66,13 @@ function PanelAccess() {
 // ================== ROLE-BASED DASHBOARD AND PROFILE ==================
 function RolePage({ user, page }) {
     const roleConfig = getPanelRole(user?.role);
-
-    if (!roleConfig) {
-        return <AccessDenied />;
-    }
-
-    if (page === "profile") {
-        return <StaffProfile />;
-    }
-
-    const PageComponent = roleConfig[page];
+    const PageComponent = roleConfig?.[page];
 
     if (!PageComponent) {
         return <AccessDenied />;
     }
 
-    const title = `${roleConfig.label} Dashboard`;
+    const title = page === "dashboard" ? `${roleConfig.label} Dashboard` : "My Profile";
 
     return <PageComponent user={user} title={title} />;
 }

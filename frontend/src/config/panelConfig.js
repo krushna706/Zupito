@@ -2,6 +2,7 @@
 import LoadingState from "../components/LoadingState";
 
 // Admin panel
+import AdminDashboard from "../admin/Dashboard";
 import Sellers from "../admin/Sellers";
 import Customers from "../admin/Customers";
 import DeliveryAgents from "../admin/DeliveryAgents";
@@ -17,14 +18,15 @@ import Coupons from "../admin/Coupons";
 import Reviews from "../admin/Reviews";
 import Complaints from "../admin/Complaints";
 import Reports from "../admin/Reports";
+import AdminProfile from "../admin/Profile";
 
 /* ===== REGISTERED ROLES ===== */
 
 export const panelRoles = {
     admin: {
         label: "Administrator",
-        dashboard: LoadingState,
-        profile: LoadingState,
+        dashboard: AdminDashboard,
+        profile: AdminProfile,
     },
     seller: {
         label: "Seller",

@@ -16,6 +16,7 @@ import Settlements from "../admin/Settlements";
 import Coupons from "../admin/Coupons";
 import Reviews from "../admin/Reviews";
 import Complaints from "../admin/Complaints";
+import Reports from "../admin/Reports";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -231,7 +232,16 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("reports", "Reports", "fa-solid fa-chart-column", ["admin"]),
+    {
+        path: "reports",
+        component: Reports,
+        allowedRoles: ["admin"],
+        navigation: {
+            label: "Reports",
+            icon: "fa-solid fa-chart-column",
+            end: false,
+        },
+    },
 
     // ================== SELLER PANEL ==================
     previewPage("approval-status", "Approval Status", "fa-solid fa-circle-check", ["seller"]),

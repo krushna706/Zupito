@@ -18,7 +18,7 @@ import Coupons from "../admin/Coupons";
 import Reviews from "../admin/Reviews";
 import Complaints from "../admin/Complaints";
 import Reports from "../admin/Reports";
-import AdminProfile from "../admin/Profile";
+import ReuseProfile from "../admin/Profile";
 
 // Seller panel
 import SellerApprovalStatus from "../seller/ApprovalStatus";
@@ -41,12 +41,12 @@ export const panelRoles = {
     admin: {
         label: "Administrator",
         dashboard: AdminDashboard,
-        profile: AdminProfile,
+        profile: ReuseProfile,
     },
     seller: {
         label: "Seller",
         dashboard: LoadingState,
-        profile: LoadingState,
+        profile: ReuseProfile,
     },
     delivery: {
         label: "Delivery Agent",

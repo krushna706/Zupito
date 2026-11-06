@@ -21,6 +21,7 @@ import Reports from "../admin/Reports";
 import ReuseProfile from "../admin/Profile";
 
 // Seller panel
+import SellerDashboard from "../seller/Dashboard";
 import SellerApprovalStatus from "../seller/ApprovalStatus";
 import StoreProfile from "../seller/StoreProfile";
 import SellerProducts from "../seller/Products";
@@ -45,7 +46,7 @@ export const panelRoles = {
     },
     seller: {
         label: "Seller",
-        dashboard: LoadingState,
+        dashboard: SellerDashboard,
         profile: ReuseProfile,
     },
     delivery: {
@@ -231,9 +232,8 @@ export const panelPages = [
         path: "settlements",
         components: {
             admin: Settlements,
-            seller: LoadingState,
         },
-        allowedRoles: ["admin", "seller"],
+        allowedRoles: ["admin"],
         navigation: {
             label: "Commissions & Settlements",
             icon: "fa-solid fa-hand-holding-dollar",

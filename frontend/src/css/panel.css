@@ -20692,3 +20692,195 @@
         padding: 17px;
     }
 }
+
+
+
+/* Seller Dashboard: additions to the existing Admin Dashboard design system. */
+.seller-dashboard .zd-welcome {
+    scroll-margin-top: 20px;
+}
+
+/* Order distribution colors */
+.seller-dashboard .sd-legend-new { background: #f59e0b; }
+.seller-dashboard .sd-legend-packing { background: #2563eb; }
+.seller-dashboard .sd-legend-ready { background: #8b5cf6; }
+.seller-dashboard .sd-legend-transit { background: #06a6a6; }
+.seller-dashboard .sd-legend-delivered { background: #16a34a; }
+.seller-dashboard .sd-legend-issue { background: #ef4444; }
+.seller-dashboard .sd-legend-cancelled { background: #94a3b8; }
+
+.seller-dashboard .sd-order-status-new {
+    background: #fff7e6;
+    color: #ad7400;
+}
+
+.seller-dashboard .sd-order-status-packing,
+.seller-dashboard .sd-order-status-ready {
+    background: #eaf2ff;
+    color: #2563eb;
+}
+
+.seller-dashboard .sd-order-status-transit {
+    background: #f1eaff;
+    color: #8052d9;
+}
+
+.seller-dashboard .sd-order-status-delivered {
+    background: #e7f7ed;
+    color: #15803d;
+}
+
+.seller-dashboard .sd-order-status-issue,
+.seller-dashboard .sd-order-status-cancelled {
+    background: #fff0f0;
+    color: #dc2626;
+}
+
+/* Inventory snapshot */
+.seller-dashboard .sd-stock-list {
+    display: grid;
+}
+
+.seller-dashboard .sd-stock-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 72px;
+    padding: 10px 0;
+    border-top: 1px solid #f0f2f6;
+    color: #344963;
+}
+
+.seller-dashboard .sd-stock-row:hover {
+    color: #285cf5;
+}
+
+.seller-dashboard .sd-stock-row img,
+.seller-dashboard .sd-stock-placeholder {
+    display: grid;
+    place-items: center;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    padding: 4px;
+    border: 1px solid #e5ebf4;
+    border-radius: 9px;
+    background: #f9fbfd;
+    object-fit: contain;
+}
+
+.seller-dashboard .sd-stock-placeholder {
+    color: #8b9bb1;
+}
+
+.seller-dashboard .sd-stock-row > div {
+    display: grid;
+    flex: 1;
+    gap: 5px;
+    min-width: 0;
+}
+
+.seller-dashboard .sd-stock-row strong {
+    font-size: 12px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.seller-dashboard .sd-stock-row small {
+    color: #8492aa;
+    font-size: 11px;
+}
+
+.seller-dashboard .sd-stock-row > span:last-child {
+    color: #168a54;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.seller-dashboard .sd-stock-row > span.is-low {
+    color: #be7009;
+    font-weight: 600;
+}
+
+.seller-dashboard .sd-stock-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f2f6;
+    color: #71819b;
+    font-size: 12px;
+}
+
+.seller-dashboard .sd-stock-summary strong {
+    color: #071b45;
+}
+
+/* Earnings summary */
+.seller-dashboard .sd-finance-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.seller-dashboard .sd-finance-grid > div {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    min-width: 0;
+    padding: 17px;
+    border: 1px solid #e5ebf5;
+    border-radius: 12px;
+    background: #f8faff;
+}
+
+.seller-dashboard .sd-finance-grid span {
+    color: #6b7b94;
+    font-size: 12px;
+}
+
+.seller-dashboard .sd-finance-grid strong {
+    color: #071b45;
+    font-size: clamp(18px, 1.8vw, 23px);
+    overflow-wrap: anywhere;
+}
+
+.seller-dashboard .sd-finance-grid small {
+    color: #8292aa;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.seller-dashboard .sd-finance-footer {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+    color: #75859d;
+    font-size: 11px;
+}
+
+.seller-dashboard .sd-finance-footer i {
+    margin-right: 5px;
+    color: #285cf5;
+}
+
+.seller-dashboard .sd-footnote {
+    margin: 0;
+    color: #8997aa;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+@media (max-width: 450px) {
+    .seller-dashboard .sd-finance-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-dashboard .sd-stock-row {
+        flex-wrap: wrap;
+    }
+
+    .seller-dashboard .sd-stock-row > span:last-child {
+        margin-left: 57px;
+    }
+}

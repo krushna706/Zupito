@@ -30,6 +30,7 @@ import SellerOrders from "../seller/Orders";
 import SellerOrderDetails from "../seller/OrderDetails";
 import SellerReplacements from "../seller/Replacements";
 import SellerReplacementDetails from "../seller/ReplacementDetails";
+import SellerEarnings from "../seller/Earnings";
 
 
 /* ===== REGISTERED ROLES ===== */
@@ -313,7 +314,18 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("earnings", "Earnings", "fa-solid fa-wallet", ["seller"]),
+    
+    {
+        path: "earnings",
+        component: SellerEarnings,
+        allowedRoles: ["seller"],
+        navigation: {
+            label: "Earnings",
+            icon: "fa-solid fa-wallet",
+            end: false,
+        },
+    },
+
 
     // ================== DELIVERY AGENT PANEL ==================
     previewPage("tasks", "Assigned Tasks", "fa-solid fa-clipboard-list", ["delivery"]),

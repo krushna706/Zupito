@@ -19407,3 +19407,615 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+
+/* ================== SELLER EARNINGS ================== */
+.seller-earnings {
+    --se-blue: #265df5;
+    --se-border: #e1e7f1;
+    min-width: 0;
+    color: #071b45;
+}
+
+.seller-earnings *,
+.seller-earnings *::before,
+.seller-earnings *::after {
+    box-sizing: border-box;
+}
+
+/* ================== PAGE HEADER ================== */
+.seller-earnings .se-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-height: 110px;
+    padding: 24px 27px;
+    margin-bottom: 18px;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #fff 48%, #edf4ff);
+}
+
+.seller-earnings .se-hero h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 9px;
+    color: var(--se-blue);
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+}
+
+.seller-earnings .se-hero h1 i {
+    font-size: 19px;
+}
+
+.seller-earnings .se-hero p {
+    margin: 0;
+    color: #63718b;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* ================== BUTTONS AND INPUTS ================== */
+.seller-earnings .MuiButton-root {
+    min-height: 37px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    white-space: nowrap;
+    box-shadow: none;
+}
+
+.seller-earnings .MuiButton-contained {
+    background: var(--se-blue);
+}
+
+.seller-earnings .MuiButton-outlined {
+    border-color: #d4e1ff;
+    color: var(--se-blue);
+}
+
+.seller-earnings .MuiOutlinedInput-root {
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.seller-earnings .MuiInputLabel-root {
+    font-size: 13px;
+}
+
+/* ================== SUMMARY CARDS ================== */
+.seller-earnings .se-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.seller-earnings .se-stat {
+    --se-tone: #265df5;
+    --se-soft: #eaf0ff;
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: 9px;
+    min-width: 0;
+    min-height: 143px;
+    padding: 19px 20px;
+    overflow: hidden;
+    border: 1px solid var(--se-border);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.seller-earnings .se-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--se-tone);
+}
+
+.seller-earnings .se-stat-orange {
+    --se-tone: #f49a11;
+    --se-soft: #fff3df;
+}
+
+.seller-earnings .se-stat-purple {
+    --se-tone: #7a58d8;
+    --se-soft: #f1edff;
+}
+
+.seller-earnings .se-stat-green {
+    --se-tone: #0b9d61;
+    --se-soft: #e8f8f0;
+}
+
+.seller-earnings .se-stat-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.seller-earnings .se-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--se-soft);
+    color: var(--se-tone);
+    font-size: 16px;
+}
+
+.seller-earnings .se-stat > strong {
+    font-size: clamp(19px, 1.7vw, 26px);
+    font-weight: 650;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.seller-earnings .se-stat > small {
+    color: #8492a8;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* ================== FUNDS BREAKDOWN ================== */
+.seller-earnings .se-funds {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 18px;
+    overflow: hidden;
+    border: 1px solid #dce7ff;
+    border-radius: 15px;
+    background: linear-gradient(115deg, #fff, #f1f6ff);
+}
+
+.seller-earnings .se-funds > div {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 19px 23px;
+}
+
+.seller-earnings .se-funds > div + div {
+    border-left: 1px solid #dce5f6;
+}
+
+.seller-earnings .se-funds span {
+    color: #627694;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.seller-earnings .se-funds strong {
+    color: #102a57;
+    font-size: 21px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.seller-earnings .se-funds small {
+    color: #8796ad;
+    font-size: 12px;
+}
+
+/* ================== NOTICES ================== */
+.seller-earnings .se-notice,
+.seller-earnings .se-empty-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 14px 17px;
+    margin-bottom: 18px;
+    border: 1px solid #dce7ff;
+    border-radius: 12px;
+    background: #f6f9ff;
+    color: #617594;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.seller-earnings .se-notice i {
+    margin-top: 4px;
+    color: var(--se-blue);
+}
+
+.seller-earnings .se-notice p {
+    margin: 0;
+}
+
+.seller-earnings .se-empty-notice {
+    border-color: #f3e1bc;
+    background: #fffaf0;
+}
+
+/* ================== CONTENT CARDS ================== */
+.seller-earnings .se-card {
+    min-width: 0;
+    margin-bottom: 18px;
+    overflow: hidden;
+    border: 1px solid var(--se-border);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.seller-earnings .se-search-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 17px 20px;
+}
+
+.seller-earnings .se-search-card .MuiTextField-root {
+    flex: 1;
+}
+
+.seller-earnings .se-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 20px 23px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.seller-earnings .se-heading-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: #edf2ff;
+    color: var(--se-blue);
+    font-size: 16px;
+}
+
+.seller-earnings .se-section-heading > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.seller-earnings .se-section-heading h2 {
+    margin: 0 0 4px;
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.seller-earnings .se-section-heading p {
+    margin: 0;
+    color: #77849c;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* ================== FILTERS ================== */
+.seller-earnings .se-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 17px 23px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.seller-earnings .se-toolbar .MuiTextField-root {
+    min-width: 190px;
+}
+
+.seller-earnings .se-toolbar > span {
+    color: #8492a8;
+    font-size: 12px;
+}
+
+/* ================== TABLES ================== */
+.seller-earnings .se-table-scroll {
+    overflow-x: auto;
+}
+
+.seller-earnings .se-table {
+    min-width: 900px;
+}
+
+.seller-earnings .se-allocation-table {
+    min-width: 980px;
+}
+
+.seller-earnings .se-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.seller-earnings .se-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 14px;
+    border-color: #e2eaf4;
+    color: #40547c;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.seller-earnings .se-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 14px;
+    border-color: #edf1f6;
+    color: #3d5072;
+    font-size: 14px;
+    font-weight: 400;
+    vertical-align: middle;
+}
+
+.seller-earnings .se-table .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.seller-earnings .se-cell {
+    display: grid;
+    gap: 5px;
+}
+
+.seller-earnings .se-cell strong {
+    color: #344562;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.seller-earnings .se-cell small {
+    color: #8795ad;
+    font-size: 12px;
+}
+
+.seller-earnings .se-negative {
+    color: #d83b50;
+}
+
+.seller-earnings .se-remark {
+    display: block;
+    max-width: 240px;
+    color: #697b96;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+/* ================== STATUS BADGES ================== */
+.seller-earnings .se-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 11px;
+    border: 1px solid #dce3ec;
+    border-radius: 24px;
+    background: #f3f5f9;
+    color: #68778f;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.seller-earnings .se-badge-success {
+    border-color: #bfead0;
+    background: #e9f9ef;
+    color: #07894e;
+}
+
+.seller-earnings .se-badge-warning {
+    border-color: #ffe0af;
+    background: #fff7e9;
+    color: #b87808;
+}
+
+.seller-earnings .se-badge-danger {
+    border-color: #ffd3da;
+    background: #fff0f3;
+    color: #d83b50;
+}
+
+/* ================== EMPTY STATE ================== */
+.seller-earnings .se-empty {
+    padding: 38px 16px;
+    color: #8390a6;
+    font-size: 13px;
+    text-align: center;
+}
+
+.seller-earnings .MuiTablePagination-root {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ================== BATCH DETAILS ================== */
+.seller-earnings .se-batch-details {
+    padding: 22px 23px;
+    border-top: 1px solid #dce7fb;
+    background: #fafcff;
+}
+
+.seller-earnings .se-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.seller-earnings .se-detail-header h3 {
+    margin: 0;
+    color: #071b45;
+    font-size: 16px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.seller-earnings .se-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.seller-earnings .se-detail-grid > div {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+    padding: 13px;
+    border: 1px solid #e4ebf8;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.seller-earnings .se-detail-grid span {
+    color: #8190a6;
+    font-size: 11px;
+}
+
+.seller-earnings .se-detail-grid strong {
+    color: #263b5d;
+    font-size: 12px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.seller-earnings .se-batch-details h4 {
+    margin: 20px 0 10px;
+    color: #263b5d;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.seller-earnings .se-detail-note,
+.seller-earnings .se-unallocated > p {
+    margin: 0 0 15px;
+    color: #667996;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.seller-earnings .se-batch-line {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid #e7eef9;
+    color: #526681;
+    font-size: 13px;
+}
+
+.seller-earnings .se-batch-line strong {
+    color: #071b45;
+}
+
+.seller-earnings .se-activity {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    padding: 11px 0;
+    border-bottom: 1px solid #e7eef9;
+    color: #526681;
+    font-size: 12px;
+}
+
+.seller-earnings .se-activity small {
+    margin-left: auto;
+    color: #8a98af;
+}
+
+/* ================== UNALLOCATED ORDERS ================== */
+.seller-earnings .se-unallocated > p,
+.seller-earnings .se-unallocated-orders {
+    margin: 18px 23px;
+}
+
+.seller-earnings .se-unallocated-order {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid #edf1f6;
+    color: #526681;
+    font-size: 13px;
+}
+
+.seller-earnings .se-unallocated-order strong {
+    margin-left: auto;
+    color: #071b45;
+}
+
+.seller-earnings .se-unallocated-order small {
+    color: #b87808;
+}
+
+/* ================== RESPONSIVE ================== */
+@media (max-width: 1150px) {
+    .seller-earnings .se-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 850px) {
+    .seller-earnings .se-funds {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-earnings .se-funds > div + div {
+        border-top: 1px solid #dce5f6;
+        border-left: 0;
+    }
+
+    .seller-earnings .se-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .seller-earnings .se-hero,
+    .seller-earnings .se-section-heading,
+    .seller-earnings .se-search-card,
+    .seller-earnings .se-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .seller-earnings .se-hero {
+        padding: 18px;
+    }
+
+    .seller-earnings .se-section-heading,
+    .seller-earnings .se-toolbar,
+    .seller-earnings .se-search-card {
+        padding: 16px;
+    }
+
+    .seller-earnings .se-toolbar .MuiTextField-root,
+    .seller-earnings .se-search-card .MuiTextField-root {
+        width: 100%;
+    }
+
+    .seller-earnings .se-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-earnings .se-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-earnings .se-batch-line {
+        grid-template-columns: 1fr auto;
+    }
+
+    .seller-earnings .se-batch-line span:nth-child(2) {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+}

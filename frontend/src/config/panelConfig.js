@@ -20,6 +20,10 @@ import Complaints from "../admin/Complaints";
 import Reports from "../admin/Reports";
 import AdminProfile from "../admin/Profile";
 
+// Seller panel
+import SellerApprovalStatus from "../seller/ApprovalStatus";
+
+
 /* ===== REGISTERED ROLES ===== */
 
 export const panelRoles = {
@@ -246,7 +250,17 @@ export const panelPages = [
     },
 
     // ================== SELLER PANEL ==================
-    previewPage("approval-status", "Approval Status", "fa-solid fa-circle-check", ["seller"]),
+    
+    {
+        path: "approval-status",
+        component: SellerApprovalStatus,
+        allowedRoles: ["seller"],
+        navigation: {
+            label: "Approval Status",
+            icon: "fa-solid fa-circle-check",
+            end: false,
+        },
+    },
     previewPage("store", "Store Profile", "fa-solid fa-store", ["seller"]),
     previewPage("inventory", "Inventory", "fa-solid fa-boxes-stacked", ["seller"]),
     previewPage("earnings", "Earnings", "fa-solid fa-wallet", ["seller"]),

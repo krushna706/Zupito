@@ -15039,40 +15039,54 @@
 
 /* KPI cards */
 .zd-kpi-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
 }
 
 .zd-kpi strong {
-    font-size: 26px;
+    font-size: 29px;
     font-weight: 650;
 }
 
 .zd-kpi small {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 400;
 }
 
-/* Section headings */
+/* Chart headings and descriptions */
 .zd-heading h2 {
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 600;
+    line-height: 1.5;
 }
 
 .zd-heading p {
-    font-size: 11.5px;
+    font-size: 13px;
     font-weight: 400;
+    line-height: 1.6;
 }
 
-/* Charts */
 .zd-revenue strong {
     font-size: 27px;
     font-weight: 650;
 }
 
+.zd-revenue span {
+    font-size: 12px;
+    font-weight: 400;
+}
+
 .zd-donut-label strong {
     font-size: 27px;
     font-weight: 650;
+}
+
+.zd-donut-label span {
+    font-size: 12px;
+}
+
+.zd-legend > div {
+    font-size: 13px;
 }
 
 .zd-legend strong {
@@ -15081,8 +15095,13 @@
 
 /* Performance indicators */
 .zd-ring-card strong {
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 600;
+}
+
+.zd-ring-card small {
+    font-size: 12px;
+    font-weight: 400;
 }
 
 .zd-mini-ring b {
@@ -15092,24 +15111,26 @@
 
 /* Action and module lists */
 .zd-list-row > span:nth-child(2) {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
 }
 
 .zd-list-row strong {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
 }
 
-/* Recent orders */
+/* Recent orders table */
 .zd-table th {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
+    letter-spacing: .2px;
 }
 
 .zd-table td {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 400;
+    line-height: 1.6;
 }
 
 .zd-table td strong {
@@ -15117,8 +15138,8 @@
 }
 
 .zd-order-status {
-    font-size: 11px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .zd-view-all {
@@ -15126,8 +15147,496 @@
     font-weight: 600;
 }
 
+/* Mobile typography */
 @media (max-width: 640px) {
     .zd-welcome h2 { font-size: 24px; }
+    .zd-kpi-label { font-size: 12px; }
     .zd-kpi strong { font-size: 22px; }
     .zd-revenue strong { font-size: 24px; }
+    .zd-heading h2 { font-size: 16px; }
+    .zd-table td { font-size: 13px; }
+}
+
+
+
+/* Seller: Approval Status */
+.seller-approval {
+    --sa-blue: #265df5;
+    --sa-navy: #172747;
+    --sa-border: #e1e7f1;
+    color: var(--sa-navy);
+}
+
+.seller-approval .sa-hero,
+.seller-approval .sa-preview-bar,
+.seller-approval .sa-card-heading,
+.seller-approval .sa-info-item {
+    display: flex;
+    align-items: center;
+}
+
+/* Page Header */
+.seller-approval .sa-hero {
+    justify-content: space-between;
+    gap: 20px;
+    padding: 27px 30px;
+    margin-bottom: 18px;
+    border: 1px solid #dce7fb;
+    border-radius: 18px;
+    background: linear-gradient(115deg, #fff 48%, #edf4ff);
+    box-shadow: 0 8px 28px rgb(24 36 59 / 4%);
+}
+
+.seller-approval .sa-hero h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 9px;
+    color: var(--sa-blue);
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -.1px;
+}
+
+.seller-approval .sa-hero h1 i { font-size: 19px; }
+
+.seller-approval .sa-hero p {
+    margin: 0;
+    color: #63718b;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.65;
+}
+
+.seller-approval .sa-refresh {
+    flex-shrink: 0;
+    min-height: 38px;
+    padding: 7px 14px;
+    border-color: #d4e1ff;
+    border-radius: 9px;
+    color: var(--sa-blue);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.seller-approval .sa-refresh:hover {
+    border-color: var(--sa-blue);
+    background: #f2f6ff;
+}
+
+/* Status Preview */
+.seller-approval .sa-preview-bar {
+    justify-content: space-between;
+    gap: 15px;
+    padding: 11px 17px;
+    margin-bottom: 19px;
+    border: 1px solid #dce7fb;
+    border-radius: 12px;
+    background: #f1f6ff;
+}
+
+.seller-approval .sa-preview-bar > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: #597093;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.6;
+}
+
+.seller-approval .sa-preview-bar > span i {
+    color: var(--sa-blue);
+}
+
+.seller-approval .sa-preview-select {
+    flex: 0 0 190px;
+}
+
+.seller-approval .sa-preview-select .MuiOutlinedInput-root {
+    border-radius: 9px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.seller-approval .sa-preview-select .MuiInputLabel-root {
+    font-size: 13px;
+}
+
+/* Application Status Banner */
+.seller-approval .sa-status-banner {
+    --sa-status: #b77908;
+    --sa-status-bg: #fff7e6;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-height: 178px;
+    padding: 28px 30px;
+    margin-bottom: 19px;
+    overflow: hidden;
+    border: 1px solid #ffe3a9;
+    border-radius: 16px;
+    background: linear-gradient(115deg, #fff 30%, var(--sa-status-bg));
+}
+
+.seller-approval .sa-status-banner.is-approved {
+    --sa-status: #147a4d;
+    --sa-status-bg: #eaf9f0;
+    border-color: #b9eacc;
+}
+
+.seller-approval .sa-status-banner.is-rejected {
+    --sa-status: #c23c49;
+    --sa-status-bg: #fff0f1;
+    border-color: #f8c8ce;
+}
+
+.seller-approval .sa-status-banner.is-suspended {
+    --sa-status: #647087;
+    --sa-status-bg: #f1f3f7;
+    border-color: #dce1ea;
+}
+
+.seller-approval .sa-status-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 65px;
+    width: 65px;
+    height: 65px;
+    border-radius: 18px;
+    background: var(--sa-status-bg);
+    color: var(--sa-status);
+    font-size: 27px;
+}
+
+.seller-approval .sa-status-copy {
+    position: relative;
+    z-index: 1;
+    max-width: 670px;
+}
+
+.seller-approval .sa-status-eyebrow {
+    color: var(--sa-status);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .1px;
+}
+
+.seller-approval .sa-status-copy h2 {
+    margin: 7px 0;
+    color: var(--sa-navy);
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: -.3px;
+}
+
+.seller-approval .sa-status-copy p {
+    margin: 0 0 13px;
+    color: #6d7b91;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.7;
+}
+
+.seller-approval .sa-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border: 1px solid var(--sa-status);
+    border-radius: 30px;
+    color: var(--sa-status);
+    background: var(--sa-status-bg);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+}
+
+.seller-approval .sa-badge i { font-size: 6px; }
+
+.seller-approval .sa-status-art {
+    position: absolute;
+    top: 50%;
+    right: 42px;
+    transform: translateY(-50%);
+    color: var(--sa-status);
+    opacity: .09;
+    font-size: 108px;
+}
+
+/* Content Cards */
+.seller-approval .sa-grid,
+.seller-approval .sa-bottom-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr);
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.seller-approval .sa-bottom-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.seller-approval .sa-card {
+    min-width: 0;
+    padding: 24px;
+    border: 1px solid var(--sa-border);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 6px 22px rgb(24 36 59 / 4%);
+}
+
+.seller-approval .sa-card-heading {
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.seller-approval .sa-card-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    color: var(--sa-blue);
+    background: #edf2ff;
+    font-size: 17px;
+}
+
+.seller-approval .sa-card-heading h2 {
+    margin: 0 0 4px;
+    color: var(--sa-navy);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.seller-approval .sa-card-heading p {
+    margin: 0;
+    color: #77849c;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.6;
+}
+
+/* Application Details */
+.seller-approval .sa-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 17px;
+}
+
+.seller-approval .sa-info-item {
+    align-items: flex-start;
+    gap: 11px;
+    min-width: 0;
+}
+
+.seller-approval .sa-info-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: #f1f5fc;
+    color: #7185a8;
+    font-size: 13px;
+}
+
+.seller-approval .sa-info-item div {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.seller-approval .sa-info-item small {
+    color: #8995aa;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.seller-approval .sa-info-item strong {
+    color: #344562;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+/* Application Progress */
+.seller-approval .sa-timeline {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.seller-approval .sa-timeline li {
+    position: relative;
+    display: flex;
+    gap: 13px;
+    min-height: 78px;
+}
+
+.seller-approval .sa-timeline li:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    top: 25px;
+    left: 14px;
+    bottom: 1px;
+    width: 2px;
+    background: #e5ecf6;
+}
+
+.seller-approval .sa-step-marker {
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #e8f4ed;
+    color: #199456;
+    font-size: 11px;
+}
+
+.seller-approval .sa-timeline li.is-active .sa-step-marker {
+    background: #fff4e1;
+    color: #b6780c;
+}
+
+.seller-approval .sa-timeline strong {
+    display: block;
+    margin: 1px 0 6px;
+    color: #31415d;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.seller-approval .sa-timeline p {
+    margin: 0;
+    color: #8793a5;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.6;
+}
+
+/* Admin Remarks and Next Steps */
+.seller-approval .sa-message .sa-card-heading,
+.seller-approval .sa-next .sa-card-heading {
+    margin-bottom: 15px;
+}
+
+.seller-approval .sa-remarks {
+    margin: 0;
+    padding: 15px 17px;
+    border: 1px solid #e8edf5;
+    border-radius: 10px;
+    background: #f7f9fd;
+    color: #546783;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.seller-approval .sa-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.seller-approval .sa-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 1px solid #d9e4ff;
+    border-radius: 9px;
+    color: var(--sa-blue);
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .2s;
+}
+
+.seller-approval .sa-links a:hover {
+    background: #f0f5ff;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+    .seller-approval .sa-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .seller-approval .sa-hero,
+    .seller-approval .sa-preview-bar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .seller-approval .sa-status-banner {
+        padding: 23px;
+    }
+
+    .seller-approval .sa-bottom-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-approval .sa-preview-select {
+        flex: auto;
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .seller-approval .sa-hero,
+    .seller-approval .sa-card {
+        padding: 18px;
+    }
+
+    .seller-approval .sa-status-banner {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 13px;
+    }
+
+    .seller-approval .sa-status-icon {
+        flex: 0 0 50px;
+        width: 50px;
+        height: 50px;
+        font-size: 22px;
+    }
+
+    .seller-approval .sa-status-copy h2 {
+        font-size: 19px;
+    }
+
+    .seller-approval .sa-status-art {
+        right: 15px;
+        opacity: .045;
+    }
+
+    .seller-approval .sa-info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .seller-approval .sa-links a {
+        transition: none;
+    }
 }

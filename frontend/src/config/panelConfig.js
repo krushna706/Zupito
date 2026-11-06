@@ -14,6 +14,7 @@ import Refunds from "../admin/Refunds";
 import Replacements from "../admin/Replacements";
 import Settlements from "../admin/Settlements";
 import Coupons from "../admin/Coupons";
+import Reviews from "../admin/Reviews";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -206,7 +207,19 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("reviews", "Reviews", "fa-solid fa-star", ["admin", "seller"]),
+    {
+        path: "reviews",
+        components: {
+            admin: Reviews,
+            seller: LoadingState,
+        },
+        allowedRoles: ["admin", "seller"],
+        navigation: {
+            label: "Reviews",
+            icon: "fa-solid fa-star",
+            end: false,
+        },
+    },
     previewPage("complaints", "Complaints", "fa-solid fa-headset", ["admin"]),
     previewPage("reports", "Reports", "fa-solid fa-chart-column", ["admin"]),
 

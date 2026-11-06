@@ -9419,3 +9419,816 @@
         flex-wrap: wrap;
     }
 }
+
+
+
+/* =========================================================
+   ADMIN: COMMISSIONS & SETTLEMENTS
+   ========================================================= */
+
+.manage-settlements {
+    display: grid;
+    gap: 22px;
+    min-width: 0;
+}
+
+/* ===== PAGE HEADER ===== */
+
+.manage-settlements .st-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-height: 110px;
+    padding: 25px 27px;
+    overflow: hidden;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #fff 48%, #edf4ff 100%);
+}
+
+.manage-settlements .st-hero::after {
+    content: "";
+    position: absolute;
+    top: -90px;
+    right: 120px;
+    width: 215px;
+    height: 215px;
+    border: 1px solid #dfe9fe;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.manage-settlements .st-hero > div,
+.manage-settlements .st-refresh {
+    position: relative;
+    z-index: 1;
+}
+
+.manage-settlements .zs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #265df5;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -0.1px;
+}
+
+.manage-settlements .st-hero p {
+    margin: 0;
+    color: #61718e;
+    font-size: 14px;
+    line-height: 23px;
+}
+
+.manage-settlements .st-refresh.MuiButton-root {
+    flex-shrink: 0;
+    min-height: 39px;
+    padding: 8px 15px;
+    border: 1px solid #d3dff7;
+    border-radius: 9px;
+    color: #265df5;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* ===== KPI CARDS ===== */
+
+.manage-settlements .st-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.manage-settlements .st-stat {
+    position: relative;
+    min-width: 0;
+    min-height: 143px;
+    padding: 20px;
+    overflow: hidden;
+    border: 1px solid #e1e8f3;
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.manage-settlements .st-stat::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 3px;
+    background: var(--st-color);
+}
+
+.manage-settlements .st-stat--blue {
+    --st-color: #265df5;
+    --st-soft: #eaf0ff;
+}
+
+.manage-settlements .st-stat--orange {
+    --st-color: #f49a11;
+    --st-soft: #fff3df;
+}
+
+.manage-settlements .st-stat--green {
+    --st-color: #0b9d61;
+    --st-soft: #e8f8f0;
+}
+
+.manage-settlements .st-stat--red {
+    --st-color: #ed4c60;
+    --st-soft: #fff0f2;
+}
+
+.manage-settlements .st-stat-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.manage-settlements .st-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    color: var(--st-color);
+    background: var(--st-soft);
+    font-size: 16px;
+}
+
+.manage-settlements .st-stat > strong {
+    display: block;
+    margin: 7px 0 1px;
+    color: #071b45;
+    font-size: 29px;
+    font-weight: 700;
+    line-height: 38px;
+}
+
+.manage-settlements .st-stat p {
+    margin: 0;
+    color: #8a99b1;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+/* ===== EARNINGS SUMMARY ===== */
+
+.manage-settlements .st-earnings {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    border: 1px solid #dce7ff;
+    border-radius: 15px;
+    background: linear-gradient(110deg, #fff, #f1f6ff);
+    overflow: hidden;
+}
+
+.manage-settlements .st-earnings > div {
+    display: grid;
+    align-content: center;
+    min-width: 0;
+    gap: 5px;
+    padding: 22px 25px;
+}
+
+.manage-settlements .st-earnings > div + div {
+    border-left: 1px solid #dce5f6;
+}
+
+.manage-settlements .st-earnings span {
+    color: #627694;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.manage-settlements .st-earnings strong {
+    color: #102a57;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.manage-settlements .st-earnings small {
+    color: #8796ad;
+    font-size: 12px;
+}
+
+.manage-settlements .st-earnings > div:last-child strong {
+    color: #c18119;
+}
+
+/* ===== CONTENT CARDS ===== */
+
+.manage-settlements .st-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e0e7f2;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.manage-settlements .st-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.manage-settlements .st-section-heading {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 13px;
+}
+
+.manage-settlements .st-section-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 17px;
+}
+
+.manage-settlements .st-section-heading h2 {
+    margin: 0 0 3px;
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 26px;
+}
+
+.manage-settlements .st-section-heading p {
+    margin: 0;
+    color: #8795ac;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.manage-settlements .st-record-count {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 30px;
+    color: #265df5;
+    background: #f3f6ff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* ===== FILTERS ===== */
+
+.manage-settlements .st-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 19px 22px;
+    border-bottom: 1px solid #e6ecf4;
+}
+
+.manage-settlements .st-search {
+    flex: 1;
+    min-width: 180px;
+}
+
+.manage-settlements .st-filter {
+    flex: 0 0 185px;
+    width: 185px;
+}
+
+.manage-settlements .st-toolbar .MuiOutlinedInput-root,
+.manage-settlements .st-toolbar .MuiInputLabel-root,
+.manage-settlements .st-allocation-toolbar .MuiOutlinedInput-root,
+.manage-settlements .st-allocation-toolbar .MuiInputLabel-root {
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.manage-settlements .st-reset.MuiButton-root {
+    min-height: 40px;
+    border: 1px solid #d8e0eb;
+    border-radius: 9px;
+    color: #697994;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+.manage-settlements .st-allocation-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 22px;
+    border-bottom: 1px solid #e6ecf4;
+}
+
+.manage-settlements .st-allocation-toolbar .MuiTextField-root {
+    width: 220px;
+}
+
+.manage-settlements .st-allocation-toolbar > span {
+    color: #8a99b1;
+    font-size: 12px;
+}
+
+/* ===== TABLES ===== */
+
+.manage-settlements .st-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.manage-settlements .st-table {
+    min-width: 1170px;
+}
+
+.manage-settlements .st-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.manage-settlements .st-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 15px;
+    border-bottom: 1px solid #e2eaf4;
+    color: #40547c;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.manage-settlements .st-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 17px 15px;
+    border-bottom: 1px solid #edf1f6;
+    color: #3d5072;
+    font-family: inherit;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.manage-settlements .st-table .MuiTableBody-root .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.manage-settlements .st-cell {
+    display: grid;
+    gap: 5px;
+    min-width: 130px;
+}
+
+.manage-settlements .st-cell strong {
+    color: #243b63;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.manage-settlements .st-cell small,
+.manage-settlements .st-subvalue {
+    display: block;
+    color: #8795ad;
+    font-size: 12px;
+}
+
+.manage-settlements .st-cell .st-reference {
+    color: #265df5;
+}
+
+.manage-settlements .st-period,
+.manage-settlements .st-reason {
+    color: #526482;
+    font-size: 13px;
+}
+
+.manage-settlements .st-payable {
+    color: #102a57;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* ===== BADGES AND ACTIONS ===== */
+
+.st-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.st-badge--success {
+    border-color: #bfead0;
+    color: #07894e;
+    background: #e9f9ef;
+}
+
+.st-badge--warning {
+    border-color: #ffe0af;
+    color: #b87808;
+    background: #fff7e9;
+}
+
+.st-badge--danger {
+    border-color: #ffd3da;
+    color: #d83b50;
+    background: #fff0f3;
+}
+
+.st-badge--neutral {
+    border-color: #dfe5ee;
+    color: #738299;
+    background: #f3f5f9;
+}
+
+.manage-settlements .st-view.MuiButton-root {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px;
+    border: 1px solid #d4e0ff;
+    border-radius: 8px;
+    color: #265df5;
+    background: #f7f9ff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+.manage-settlements .st-view i {
+    font-size: 11px;
+}
+
+.manage-settlements .st-pagination {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ===== EMPTY STATE ===== */
+
+.manage-settlements .st-empty {
+    display: grid;
+    justify-items: center;
+    gap: 9px;
+    padding: 50px 20px;
+    text-align: center;
+}
+
+.manage-settlements .st-empty i {
+    display: grid;
+    place-items: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 14px;
+    color: #265df5;
+    background: #edf2ff;
+    font-size: 21px;
+}
+
+.manage-settlements .st-empty h3 {
+    margin: 5px 0 0;
+    color: #112750;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.manage-settlements .st-empty p {
+    margin: 0;
+    color: #8390a6;
+    font-size: 13px;
+}
+
+/* ===== DETAILS AND CONFIRMATION DIALOG ===== */
+
+.st-dialog.MuiDialog-paper {
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 20px 65px rgb(16 33 70 / 15%);
+}
+
+.st-dialog .MuiDialogTitle-root {
+    padding: 20px 23px;
+    color: #0d2146;
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.st-dialog .MuiDialogContent-root {
+    padding: 23px;
+}
+
+.st-dialog .st-detail-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 24px;
+    padding: 18px;
+    border: 1px solid #dce7ff;
+    border-radius: 12px;
+    background: linear-gradient(110deg, #f9fbff, #edf4ff);
+}
+
+.st-dialog .st-detail-banner strong {
+    color: #122d5a;
+    font-size: 17px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.st-dialog .st-detail-banner p {
+    margin: 5px 0 0;
+    color: #7284a3;
+    font-size: 13px;
+}
+
+.st-dialog .st-detail-section {
+    margin-bottom: 23px;
+}
+
+.st-dialog .st-detail-section h4 {
+    margin: 0 0 14px;
+    color: #18345f;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.st-dialog .st-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px;
+    margin: 0;
+}
+
+.st-dialog .st-detail-item dt {
+    margin-bottom: 5px;
+    color: #8795ab;
+    font-size: 13px;
+}
+
+.st-dialog .st-detail-item dd {
+    margin: 0;
+    color: #23395f;
+    font-size: 14px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.st-dialog .st-calculation {
+    padding: 15px;
+    border: 1px solid #e4ebf6;
+    border-radius: 10px;
+    background: #fafcff;
+}
+
+.st-dialog .st-calculation > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 9px 0;
+}
+
+.st-dialog .st-calculation span {
+    color: #647691;
+    font-size: 13px;
+}
+
+.st-dialog .st-calculation strong {
+    color: #233b61;
+    font-size: 14px;
+}
+
+.st-dialog .st-calculation .st-calculation-total {
+    margin-top: 8px;
+    padding-top: 15px;
+    border-top: 1px solid #dce6f4;
+}
+
+.st-dialog .st-calculation-total span,
+.st-dialog .st-calculation-total strong {
+    color: #265df5;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.st-dialog .st-included-sales {
+    overflow: hidden;
+    border: 1px solid #e5ecf6;
+    border-radius: 10px;
+}
+
+.st-dialog .st-included-sales > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 13px 15px;
+    border-bottom: 1px solid #edf1f6;
+}
+
+.st-dialog .st-included-sales > div:last-child {
+    border-bottom: none;
+}
+
+.st-dialog .st-included-sales > div > div {
+    display: grid;
+    gap: 4px;
+}
+
+.st-dialog .st-included-sales strong {
+    color: #29436d;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.st-dialog .st-included-sales small {
+    color: #8998b0;
+    font-size: 12px;
+}
+
+.st-dialog .st-dialog-alert {
+    margin: 15px 0;
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.st-dialog .st-confirm-info {
+    display: grid;
+    gap: 6px;
+    padding: 16px;
+    border: 1px solid #dce7ff;
+    border-radius: 10px;
+    background: #f5f8ff;
+}
+
+.st-dialog .st-confirm-info span {
+    color: #627694;
+    font-size: 13px;
+}
+
+.st-dialog .st-confirm-info strong {
+    color: #102a57;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.st-dialog .st-confirm-info small {
+    color: #265df5;
+    font-size: 12px;
+}
+
+.st-dialog .st-confirm-fields {
+    display: grid;
+    gap: 20px;
+    margin-top: 18px;
+}
+
+.st-dialog .st-confirm-fields .MuiInputLabel-root,
+.st-dialog .st-confirm-fields .MuiOutlinedInput-root {
+    font-size: 14px;
+}
+
+.st-dialog .st-dialog-actions {
+    display: flex;
+    gap: 8px;
+    padding: 15px 20px;
+    border-top: 1px solid #edf1f6;
+}
+
+.st-dialog .st-dialog-actions .MuiButton-root {
+    min-height: 36px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1199.98px) {
+    .manage-settlements .st-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .manage-settlements .st-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .manage-settlements .st-search {
+        flex-basis: 100%;
+    }
+
+    .manage-settlements .st-filter {
+        flex: 1 1 160px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .manage-settlements .st-hero {
+        flex-wrap: wrap;
+        padding: 22px 20px;
+    }
+
+    .manage-settlements .st-section-header {
+        padding: 19px;
+    }
+
+    .manage-settlements .st-toolbar {
+        padding: 16px 19px;
+    }
+
+    .manage-settlements .st-earnings {
+        grid-template-columns: 1fr;
+    }
+
+    .manage-settlements .st-earnings > div + div {
+        border-top: 1px solid #dce5f6;
+        border-left: none;
+    }
+
+    .manage-settlements .st-allocation-toolbar {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .manage-settlements {
+        gap: 17px;
+    }
+
+    .manage-settlements .st-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .manage-settlements .st-stats {
+        gap: 11px;
+    }
+
+    .manage-settlements .st-stat {
+        min-height: 132px;
+        padding: 15px;
+    }
+
+    .manage-settlements .st-stat-heading {
+        font-size: 12px;
+    }
+
+    .manage-settlements .st-stat-icon {
+        flex-basis: 34px;
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+
+    .manage-settlements .st-stat > strong {
+        font-size: 25px;
+    }
+
+    .manage-settlements .st-stat p {
+        font-size: 12px;
+    }
+
+    .manage-settlements .st-section-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .st-dialog .st-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .st-dialog .st-detail-banner {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .st-dialog .MuiDialogContent-root {
+        padding: 18px;
+    }
+}

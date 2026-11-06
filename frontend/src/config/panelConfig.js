@@ -12,6 +12,7 @@ import DeliveryAssignments from "../admin/DeliveryAssignments";
 import Payments from "../admin/Payments";
 import Refunds from "../admin/Refunds";
 import Replacements from "../admin/Replacements";
+import Settlements from "../admin/Settlements";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -181,7 +182,19 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("settlements", "Settlements", "fa-solid fa-wallet", ["admin"]),
+    {
+        path: "settlements",
+        components: {
+            admin: Settlements,
+            seller: LoadingState,
+        },
+        allowedRoles: ["admin", "seller"],
+        navigation: {
+            label: "Commissions & Settlements",
+            icon: "fa-solid fa-hand-holding-dollar",
+            end: false,
+        },
+    },
     previewPage("coupons", "Coupons", "fa-solid fa-ticket", ["admin"]),
     previewPage("reviews", "Reviews", "fa-solid fa-star", ["admin", "seller"]),
     previewPage("complaints", "Complaints", "fa-solid fa-headset", ["admin"]),

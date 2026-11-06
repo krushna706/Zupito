@@ -1,5 +1,7 @@
 
+
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     Alert,
     Button,
@@ -200,6 +202,7 @@ function MobileTaskCard({ task, onView }) {
 
 // ================== ASSIGNED TASKS ==================
 function AssignedTasks({ user }) {
+    const navigate = useNavigate();
     const isMobile = useMediaQuery("(max-width:600px)");
 
     const [agent, setAgent] = useState(() =>
@@ -885,14 +888,31 @@ function AssignedTasks({ user }) {
                     )}
                 </DialogContent>
 
-                <DialogActions className="dta-dialog-actions">
-                    <Button
-                        variant="contained"
-                        onClick={() => setSelectedId(null)}
-                    >
-                        Close
-                    </Button>
-                </DialogActions>
+            <DialogActions>
+                <Button
+                    onClick={() => setSelectedId(null)}
+                >
+                    Close
+                </Button>
+
+                <Button
+                    variant="contained"
+                    disabled={!selected}
+                    onClick={() => {
+                        navigate(
+                            `/manage/tasks/${encodeURIComponent(selected.id)}`
+                        );
+
+                        setSelectedId(null);
+                    }}
+                    endIcon={
+                        <i className="fa-solid fa-arrow-right" />
+                    }
+                >
+                    Open Task Workflow
+                </Button>
+            </DialogActions>
+
             </Dialog>
         </main>
     );

@@ -36,6 +36,9 @@ import SellerReviews from "../seller/Reviews";
 
 // Seller panel
 import AssignedTasks from "../delivery/AssignedTasks";
+import TaskDetails from "../delivery/TaskDetails";
+import DeliveryHistory from "../delivery/DeliveryHistory";
+
 
 
 /* ===== REGISTERED ROLES ===== */
@@ -343,8 +346,27 @@ export const panelPages = [
             end: false,
         },
     },
+    {
+        path: "tasks/:taskId",
+        component: TaskDetails,
+        allowedRoles: ["delivery"],
+    },
+    {
+        path: "history",
+        component: DeliveryHistory,
+        allowedRoles: ["delivery"],
+        navigation: {
+            label: "Delivery History",
+            icon: "fa-solid fa-clock-rotate-left",
+            end: false,
+        },
+    },
 
-    previewPage("history", "Delivery History", "fa-solid fa-clock-rotate-left", ["delivery"]),
+
+
+
+    
+
 ];
 
 /* ===== SIDEBAR MENU ===== */

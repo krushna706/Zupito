@@ -10232,3 +10232,878 @@
         padding: 18px;
     }
 }
+
+
+
+/* =========================================================
+   ADMIN: COUPON MANAGEMENT
+   ========================================================= */
+
+.manage-coupons {
+    display: grid;
+    gap: 22px;
+    min-width: 0;
+}
+
+/* ===== PAGE HEADER ===== */
+
+.manage-coupons .mc-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    min-height: 110px;
+    padding: 25px 27px;
+    overflow: hidden;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #ffffff 48%, #edf4ff 100%);
+}
+
+.manage-coupons .mc-hero::after {
+    content: "";
+    position: absolute;
+    top: -90px;
+    right: 120px;
+    width: 215px;
+    height: 215px;
+    border: 1px solid #dfe9fe;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.manage-coupons .mc-hero-content,
+.manage-coupons .mc-hero-actions {
+    position: relative;
+    z-index: 1;
+}
+
+.manage-coupons .zs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #265df5;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -0.1px;
+}
+
+.manage-coupons .mc-hero p {
+    margin: 0;
+    color: #61718e;
+    font-size: 14px;
+    line-height: 23px;
+}
+
+.manage-coupons .mc-hero-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 10px;
+}
+
+.manage-coupons .mc-hero-actions .MuiButton-root {
+    min-height: 39px;
+    padding: 8px 15px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+    box-shadow: none;
+}
+
+.manage-coupons .mc-hero-actions .MuiButton-outlined {
+    border-color: #d3dff7;
+    color: #265df5;
+    background: #ffffff;
+}
+
+.manage-coupons .mc-hero-actions .MuiButton-contained {
+    background: #265df5;
+}
+
+/* ===== STATISTICS ===== */
+
+.manage-coupons .mc-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.manage-coupons .mc-stat {
+    position: relative;
+    min-width: 0;
+    min-height: 143px;
+    padding: 20px;
+    overflow: hidden;
+    border: 1px solid #e1e8f3;
+    border-radius: 15px;
+    background: #ffffff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.manage-coupons .mc-stat::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 3px;
+    background: var(--mc-color);
+}
+
+.manage-coupons .mc-stat--blue {
+    --mc-color: #265df5;
+    --mc-soft: #eaf0ff;
+}
+
+.manage-coupons .mc-stat--green {
+    --mc-color: #0b9d61;
+    --mc-soft: #e8f8f0;
+}
+
+.manage-coupons .mc-stat--orange {
+    --mc-color: #f49a11;
+    --mc-soft: #fff3df;
+}
+
+.manage-coupons .mc-stat--red {
+    --mc-color: #ed4c60;
+    --mc-soft: #fff0f2;
+}
+
+.manage-coupons .mc-stat-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.manage-coupons .mc-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    color: var(--mc-color);
+    background: var(--mc-soft);
+    font-size: 16px;
+}
+
+.manage-coupons .mc-stat > strong {
+    display: block;
+    margin: 7px 0 1px;
+    color: #071b45;
+    font-size: 29px;
+    font-weight: 700;
+    line-height: 38px;
+}
+
+.manage-coupons .mc-stat p {
+    margin: 0;
+    color: #8a99b1;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+/* ===== CONTENT CARDS ===== */
+
+.manage-coupons .mc-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e0e7f2;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.manage-coupons .mc-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.manage-coupons .mc-section-heading {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 13px;
+}
+
+.manage-coupons .mc-section-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 17px;
+}
+
+.manage-coupons .mc-section-heading h2 {
+    margin: 0 0 3px;
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 26px;
+}
+
+.manage-coupons .mc-section-heading p {
+    margin: 0;
+    color: #8795ac;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.manage-coupons .mc-record-count {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 30px;
+    color: #265df5;
+    background: #f3f6ff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* ===== ADD / EDIT FORM ===== */
+
+.manage-coupons .mc-form {
+    padding: 24px;
+}
+
+.manage-coupons .mc-form h3 {
+    margin: 0 0 21px;
+    color: #18345f;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.manage-coupons .mc-form h3:not(:first-child) {
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid #edf1f6;
+}
+
+.manage-coupons .mc-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 23px 22px;
+}
+
+.manage-coupons .mc-form-full {
+    grid-column: 1 / -1;
+}
+
+.manage-coupons .mc-form .MuiOutlinedInput-root,
+.manage-coupons .mc-form .MuiInputLabel-root {
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.manage-coupons .mc-form .MuiFormHelperText-root {
+    font-size: 12px;
+}
+
+.manage-coupons .mc-form-error {
+    margin-top: 22px;
+}
+
+.manage-coupons .mc-form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 1px solid #edf1f6;
+}
+
+.manage-coupons .mc-form-footer > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #8391a7;
+    font-size: 12px;
+}
+
+.manage-coupons .mc-form-footer > span i {
+    color: #265df5;
+}
+
+.manage-coupons .mc-form-footer > div {
+    display: flex;
+    gap: 10px;
+}
+
+.manage-coupons .mc-form-footer .MuiButton-root {
+    min-height: 39px;
+    padding: 8px 17px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+    box-shadow: none;
+}
+
+/* ===== SEARCH AND FILTERS ===== */
+
+.manage-coupons .mc-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 19px 22px;
+    border-bottom: 1px solid #e6ecf4;
+}
+
+.manage-coupons .mc-search {
+    flex: 1;
+    min-width: 180px;
+}
+
+.manage-coupons .mc-filter {
+    flex: 0 0 175px;
+    width: 175px;
+}
+
+.manage-coupons .mc-toolbar .MuiOutlinedInput-root,
+.manage-coupons .mc-toolbar .MuiInputLabel-root {
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.manage-coupons .mc-toolbar .MuiInputAdornment-root {
+    color: #8c9ab2;
+}
+
+.manage-coupons .mc-reset.MuiButton-root {
+    min-height: 40px;
+    border: 1px solid #d8e0eb;
+    border-radius: 9px;
+    color: #697994;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+/* ===== COUPONS TABLE ===== */
+
+.manage-coupons .mc-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.manage-coupons .mc-table {
+    min-width: 1190px;
+}
+
+.manage-coupons .mc-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.manage-coupons .mc-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 15px;
+    border-bottom: 1px solid #e2eaf4;
+    color: #40547c;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.manage-coupons .mc-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 17px 15px;
+    border-bottom: 1px solid #edf1f6;
+    color: #3d5072;
+    font-family: inherit;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.manage-coupons .mc-table .MuiTableBody-root .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.manage-coupons .mc-coupon {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 180px;
+}
+
+.manage-coupons .mc-coupon-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 16px;
+}
+
+.manage-coupons .mc-coupon > div,
+.manage-coupons .mc-cell {
+    display: grid;
+    gap: 5px;
+}
+
+.manage-coupons .mc-coupon strong {
+    color: #265df5;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.manage-coupons .mc-coupon small,
+.manage-coupons .mc-cell small {
+    color: #8795ad;
+    font-size: 12px;
+}
+
+.manage-coupons .mc-cell strong {
+    color: #243b63;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.manage-coupons .mc-scope {
+    color: #536789;
+    font-size: 13px;
+}
+
+.manage-coupons .mc-amount {
+    color: #102a57;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.manage-coupons .mc-usage {
+    display: grid;
+    gap: 8px;
+    min-width: 100px;
+}
+
+.manage-coupons .mc-usage strong {
+    color: #425675;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.manage-coupons .mc-usage progress,
+.mc-dialog .mc-detail-usage progress {
+    display: block;
+    width: 100%;
+    height: 6px;
+    overflow: hidden;
+    border: none;
+    border-radius: 20px;
+    background: #e5ebf5;
+    appearance: none;
+}
+
+.manage-coupons .mc-usage progress::-webkit-progress-bar,
+.mc-dialog .mc-detail-usage progress::-webkit-progress-bar {
+    border-radius: 20px;
+    background: #e5ebf5;
+}
+
+.manage-coupons .mc-usage progress::-webkit-progress-value,
+.mc-dialog .mc-detail-usage progress::-webkit-progress-value {
+    border-radius: 20px;
+    background: #265df5;
+}
+
+.manage-coupons .mc-usage progress::-moz-progress-bar,
+.mc-dialog .mc-detail-usage progress::-moz-progress-bar {
+    border-radius: 20px;
+    background: #265df5;
+}
+
+/* ===== STATUS BADGES ===== */
+
+.mc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 17px;
+    white-space: nowrap;
+}
+
+.mc-badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.mc-badge--success {
+    border-color: #bfead0;
+    color: #07894e;
+    background: #e9f9ef;
+}
+
+.mc-badge--blue {
+    border-color: #d5e2ff;
+    color: #265df5;
+    background: #eef3ff;
+}
+
+.mc-badge--warning {
+    border-color: #ffe0af;
+    color: #b87808;
+    background: #fff7e9;
+}
+
+.mc-badge--danger {
+    border-color: #ffd3da;
+    color: #d83b50;
+    background: #fff0f3;
+}
+
+.mc-badge--neutral {
+    border-color: #dfe5ee;
+    color: #738299;
+    background: #f3f5f9;
+}
+
+/* ===== TABLE ACTION ===== */
+
+.manage-coupons .mc-view.MuiButton-root {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px;
+    border: 1px solid #d4e0ff;
+    border-radius: 8px;
+    color: #265df5;
+    background: #f7f9ff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+.manage-coupons .mc-view i {
+    font-size: 11px;
+}
+
+.manage-coupons .mc-pagination {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ===== EMPTY STATE ===== */
+
+.manage-coupons .mc-empty {
+    display: grid;
+    justify-items: center;
+    gap: 9px;
+    padding: 50px 20px;
+    text-align: center;
+}
+
+.manage-coupons .mc-empty > i {
+    display: grid;
+    place-items: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 14px;
+    color: #265df5;
+    background: #edf2ff;
+    font-size: 21px;
+}
+
+.manage-coupons .mc-empty h3 {
+    margin: 5px 0 0;
+    color: #112750;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.manage-coupons .mc-empty p {
+    margin: 0;
+    color: #8390a6;
+    font-size: 13px;
+}
+
+/* ===== DETAILS AND STATUS DIALOG ===== */
+
+.mc-dialog.MuiDialog-paper {
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 20px 65px rgb(16 33 70 / 15%);
+}
+
+.mc-dialog .MuiDialogTitle-root {
+    padding: 20px 23px;
+    color: #0d2146;
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.mc-dialog .MuiDialogContent-root {
+    padding: 23px;
+}
+
+.mc-dialog .mc-detail-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 19px;
+    border: 1px solid #dce7ff;
+    border-radius: 12px;
+    background: linear-gradient(110deg, #f9fbff, #edf4ff);
+}
+
+.mc-dialog .mc-detail-banner > div > span {
+    color: #7f8faa;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+}
+
+.mc-dialog .mc-detail-banner h3 {
+    margin: 6px 0;
+    color: #265df5;
+    font-size: 18px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.mc-dialog .mc-detail-banner p {
+    margin: 0;
+    color: #7284a3;
+    font-size: 13px;
+}
+
+.mc-dialog .mc-detail-section {
+    margin-bottom: 24px;
+}
+
+.mc-dialog .mc-detail-section h4 {
+    margin: 0 0 14px;
+    color: #18345f;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.mc-dialog .mc-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px;
+    margin: 0;
+}
+
+.mc-dialog .mc-detail-item dt {
+    margin-bottom: 5px;
+    color: #8795ab;
+    font-size: 13px;
+}
+
+.mc-dialog .mc-detail-item dd {
+    margin: 0;
+    color: #23395f;
+    font-size: 14px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.mc-dialog .mc-detail-usage {
+    margin-top: 18px;
+}
+
+.mc-dialog .mc-description {
+    margin: 0;
+    color: #61728f;
+    font-size: 13px;
+    line-height: 22px;
+}
+
+.mc-dialog .mc-history {
+    display: grid;
+    gap: 10px;
+}
+
+.mc-dialog .mc-history > div {
+    padding: 12px 14px;
+    border: 1px solid #e7edf7;
+    border-radius: 9px;
+    background: #fafcff;
+}
+
+.mc-dialog .mc-history strong {
+    color: #233c67;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.mc-dialog .mc-history small {
+    display: block;
+    margin-top: 5px;
+    color: #8898af;
+    font-size: 12px;
+}
+
+.mc-dialog .mc-history p {
+    margin: 7px 0 0;
+    color: #61728f;
+    font-size: 13px;
+    line-height: 21px;
+}
+
+.mc-dialog .mc-dialog-alert {
+    margin: 15px 0;
+    border-radius: 9px;
+    font-size: 13px;
+    line-height: 21px;
+}
+
+.mc-dialog .mc-confirm-text {
+    margin: 0 0 18px;
+    color: #435674;
+    font-size: 14px;
+}
+
+.mc-dialog .mc-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 15px 20px;
+    border-top: 1px solid #edf1f6;
+}
+
+.mc-dialog .mc-dialog-actions .MuiButton-root {
+    min-height: 36px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1199.98px) {
+    .manage-coupons .mc-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .manage-coupons .mc-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .manage-coupons .mc-search {
+        flex-basis: 100%;
+    }
+
+    .manage-coupons .mc-filter {
+        flex: 1 1 160px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .manage-coupons .mc-hero {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 22px 20px;
+    }
+
+    .manage-coupons .mc-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .manage-coupons .mc-section-header,
+    .manage-coupons .mc-form {
+        padding: 19px;
+    }
+
+    .manage-coupons .mc-toolbar {
+        padding: 16px 19px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .manage-coupons {
+        gap: 17px;
+    }
+
+    .manage-coupons .mc-hero-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .manage-coupons .mc-hero-actions .MuiButton-root {
+        flex: 1;
+    }
+
+    .manage-coupons .mc-stats {
+        gap: 11px;
+    }
+
+    .manage-coupons .mc-stat {
+        min-height: 132px;
+        padding: 15px;
+    }
+
+    .manage-coupons .mc-stat-heading {
+        font-size: 12px;
+    }
+
+    .manage-coupons .mc-stat-icon {
+        flex-basis: 34px;
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+
+    .manage-coupons .mc-stat > strong {
+        font-size: 25px;
+    }
+
+    .manage-coupons .mc-stat p {
+        font-size: 12px;
+    }
+
+    .manage-coupons .mc-section-header,
+    .manage-coupons .mc-form-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .manage-coupons .mc-form-footer > div {
+        align-self: flex-end;
+    }
+
+    .mc-dialog .mc-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mc-dialog .mc-detail-banner {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .mc-dialog .MuiDialogContent-root {
+        padding: 18px;
+    }
+}

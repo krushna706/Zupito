@@ -13,6 +13,7 @@ import Payments from "../admin/Payments";
 import Refunds from "../admin/Refunds";
 import Replacements from "../admin/Replacements";
 import Settlements from "../admin/Settlements";
+import Coupons from "../admin/Coupons";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -195,7 +196,16 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("coupons", "Coupons", "fa-solid fa-ticket", ["admin"]),
+    {
+        path: "coupons",
+        component: Coupons,
+        allowedRoles: ["admin"],
+        navigation: {
+            label: "Coupons",
+            icon: "fa-solid fa-ticket",
+            end: false,
+        },
+    },
     previewPage("reviews", "Reviews", "fa-solid fa-star", ["admin", "seller"]),
     previewPage("complaints", "Complaints", "fa-solid fa-headset", ["admin"]),
     previewPage("reports", "Reports", "fa-solid fa-chart-column", ["admin"]),

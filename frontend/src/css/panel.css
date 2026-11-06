@@ -20884,3 +20884,878 @@
         margin-left: 57px;
     }
 }
+
+
+
+
+/* ================== DELIVERY: ASSIGNED TASKS ================== */
+.delivery-tasks {
+    --dta-primary: #265df5;
+    --dta-border: #e1e7f1;
+    display: grid;
+    gap: 18px;
+    min-width: 0;
+    color: #071b45;
+}
+
+.delivery-tasks *,
+.delivery-tasks *::before,
+.delivery-tasks *::after {
+    box-sizing: border-box;
+}
+
+/* ================== PAGE HEADER ================== */
+.delivery-tasks .dta-hero {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    min-height: 110px;
+    padding: 25px 27px;
+    overflow: hidden;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #fff 48%, #edf4ff);
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.delivery-tasks .dta-hero::after {
+    content: "";
+    position: absolute;
+    top: -85px;
+    right: 115px;
+    width: 215px;
+    height: 215px;
+    border: 1px solid #dfe9fe;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.delivery-tasks .dta-hero-content,
+.delivery-tasks .dta-refresh {
+    position: relative;
+    z-index: 1;
+}
+
+.delivery-tasks .dta-hero h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 8px;
+    color: var(--dta-primary);
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.1px;
+}
+
+.delivery-tasks .dta-hero h1 i {
+    font-size: 19px;
+}
+
+.delivery-tasks .dta-hero p {
+    max-width: 660px;
+    margin: 0;
+    color: #61718e;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.delivery-tasks .dta-alert {
+    margin: 0;
+    border-radius: 11px;
+}
+
+/* ================== BUTTONS AND INPUTS ================== */
+.delivery-tasks .MuiButton-root,
+.dta-dialog .MuiButton-root {
+    min-height: 40px;
+    padding: 8px 14px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    box-shadow: none;
+}
+
+.delivery-tasks .MuiButton-outlined {
+    border-color: #d3dff7;
+    color: var(--dta-primary);
+    background: #fff;
+}
+
+.delivery-tasks .MuiButton-contained,
+.dta-dialog .MuiButton-contained {
+    background: #265df5;
+}
+
+.delivery-tasks .MuiOutlinedInput-root {
+    border-radius: 9px;
+    background: #fff;
+    font-size: 13px;
+}
+
+.delivery-tasks .MuiInputLabel-root {
+    font-size: 13px;
+}
+
+.delivery-tasks .MuiInputAdornment-root i {
+    color: #8a98ad;
+}
+
+/* ================== KPI CARDS ================== */
+.delivery-tasks .dta-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.delivery-tasks .dta-stat {
+    --tone: #265df5;
+    --soft: #eaf0ff;
+    position: relative;
+    min-width: 0;
+    min-height: 143px;
+    padding: 20px;
+    overflow: hidden;
+    border: 1px solid #e1e8f3;
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.delivery-tasks .dta-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--tone);
+}
+
+.delivery-tasks .dta-stat.is-orange {
+    --tone: #f49a11;
+    --soft: #fff3df;
+}
+
+.delivery-tasks .dta-stat.is-green {
+    --tone: #0b9d61;
+    --soft: #e8f8f0;
+}
+
+.delivery-tasks .dta-stat.is-red {
+    --tone: #ed4c60;
+    --soft: #fff0f2;
+}
+
+.delivery-tasks .dta-stat-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.delivery-tasks .dta-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    height: 40px;
+    border-radius: 11px;
+    color: var(--tone);
+    background: var(--soft);
+    font-size: 16px;
+}
+
+.delivery-tasks .dta-stat > strong {
+    display: block;
+    margin: 7px 0 1px;
+    font-size: 29px;
+    font-weight: 700;
+    line-height: 38px;
+}
+
+.delivery-tasks .dta-stat p {
+    margin: 0;
+    color: #8a99b1;
+    font-size: 12px;
+}
+
+/* ================== CONTENT CARD ================== */
+.delivery-tasks .dta-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--dta-border);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.delivery-tasks .dta-card-heading {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.delivery-tasks .dta-heading-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    height: 42px;
+    border-radius: 11px;
+    color: var(--dta-primary);
+    background: #eaf0ff;
+    font-size: 17px;
+}
+
+.delivery-tasks .dta-card-heading > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.delivery-tasks .dta-card-heading h2 {
+    margin: 0 0 3px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.delivery-tasks .dta-card-heading p {
+    margin: 0;
+    color: #8795ac;
+    font-size: 13px;
+}
+
+.delivery-tasks .dta-record-count {
+    flex-shrink: 0;
+    padding: 6px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 25px;
+    color: var(--dta-primary);
+    background: #f3f6ff;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* ================== SEARCH AND FILTERS ================== */
+.delivery-tasks .dta-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 19px 22px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.delivery-tasks .dta-search {
+    flex: 1;
+    min-width: 220px;
+}
+
+.delivery-tasks .dta-filter {
+    flex: 0 0 170px;
+    width: 170px;
+}
+
+/* ================== DESKTOP TABLE ================== */
+.delivery-tasks .dta-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.delivery-tasks .dta-table {
+    min-width: 1040px;
+}
+
+.delivery-tasks .dta-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.delivery-tasks .dta-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 15px;
+    border-color: #e2eaf4;
+    color: #40547c;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.delivery-tasks .dta-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 15px;
+    border-color: #edf1f6;
+    color: #3d5072;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.delivery-tasks .dta-table .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.delivery-tasks .dta-cell {
+    display: grid;
+    gap: 5px;
+    min-width: 115px;
+}
+
+.delivery-tasks .dta-cell strong {
+    color: #344562;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.delivery-tasks .dta-cell small {
+    color: #8795ad;
+    font-size: 12px;
+}
+
+.delivery-tasks .dta-task-code {
+    color: #265df5 !important;
+}
+
+.delivery-tasks .dta-location small i,
+.delivery-tasks .dta-type i {
+    margin-right: 6px;
+    color: var(--dta-primary);
+}
+
+.delivery-tasks .dta-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 130px;
+    font-size: 12px;
+}
+
+.delivery-tasks .dta-product {
+    display: block;
+    min-width: 120px;
+    max-width: 210px;
+}
+
+/* ================== STATUS AND EMPTY STATE ================== */
+.delivery-tasks .dta-status,
+.dta-dialog .dta-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 10px;
+    border: 1px solid #d6e2ff;
+    border-radius: 25px;
+    color: #265df5;
+    background: #eef4ff;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.delivery-tasks .dta-status i,
+.dta-dialog .dta-status i {
+    font-size: 6px;
+}
+
+.delivery-tasks .dta-status.is-warning,
+.dta-dialog .dta-status.is-warning {
+    border-color: #ffe0af;
+    color: #b87808;
+    background: #fff7e9;
+}
+
+.delivery-tasks .dta-status.is-purple,
+.dta-dialog .dta-status.is-purple {
+    border-color: #ded4ff;
+    color: #7656c9;
+    background: #f1edff;
+}
+
+.delivery-tasks .dta-status.is-danger,
+.dta-dialog .dta-status.is-danger {
+    border-color: #ffd3da;
+    color: #d83b50;
+    background: #fff0f3;
+}
+
+.delivery-tasks .dta-empty {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 36px 14px;
+    text-align: center;
+}
+
+.delivery-tasks .dta-empty > span {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 15px;
+    color: #265df5;
+    background: #edf3ff;
+    font-size: 24px;
+}
+
+.delivery-tasks .dta-empty h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.delivery-tasks .dta-empty p {
+    max-width: 400px;
+    margin: 0;
+    color: #8390a6;
+    font-size: 13px;
+}
+
+.delivery-tasks .dta-pagination {
+    border-top: 1px solid #edf1f6;
+}
+
+/* ================== MOBILE TASK CARDS ================== */
+.delivery-tasks .dta-mobile-list,
+.delivery-tasks .dta-mobile-pagination {
+    display: none;
+}
+
+.delivery-tasks .dta-mobile-card {
+    padding: 16px;
+    border: 1px solid #e1e8f4;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 4px 15px rgb(24 36 59 / 4%);
+}
+
+.delivery-tasks .dta-mobile-card-top {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.delivery-tasks .dta-task-icon,
+.delivery-tasks .dta-route-marker {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    border-radius: 10px;
+    color: #265df5;
+    background: #edf3ff;
+}
+
+.delivery-tasks .dta-task-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+}
+
+.delivery-tasks .dta-mobile-identity {
+    display: grid;
+    gap: 4px;
+    flex: 1;
+    min-width: 100px;
+}
+
+.delivery-tasks .dta-mobile-identity strong {
+    color: #152b52;
+    font-size: 13px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.delivery-tasks .dta-mobile-identity small {
+    color: #8996ac;
+    font-size: 11px;
+}
+
+.delivery-tasks .dta-mobile-type,
+.delivery-tasks .dta-mobile-product {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #64758f;
+    font-size: 12px;
+}
+
+.delivery-tasks .dta-mobile-type {
+    margin: 13px 0;
+}
+
+.delivery-tasks .dta-mobile-type i,
+.delivery-tasks .dta-mobile-product i {
+    color: #265df5;
+}
+
+.delivery-tasks .dta-mobile-route {
+    display: grid;
+    gap: 14px;
+    padding: 15px;
+    border: 1px solid #e7edf7;
+    border-radius: 11px;
+    background: #f8faff;
+}
+
+.delivery-tasks .dta-route-point {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+}
+
+.delivery-tasks .dta-route-marker {
+    width: 27px;
+    height: 27px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.delivery-tasks .dta-route-marker.is-destination {
+    color: #0b9d61;
+    background: #e8f8f0;
+}
+
+.delivery-tasks .dta-route-point > div {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.delivery-tasks .dta-route-point small {
+    color: #8594aa;
+    font-size: 11px;
+}
+
+.delivery-tasks .dta-route-point strong {
+    color: #253d60;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.delivery-tasks .dta-route-point > div > span {
+    color: #677c98;
+    font-size: 12px;
+}
+
+.delivery-tasks .dta-mobile-product {
+    padding: 12px 1px;
+}
+
+.delivery-tasks .dta-mobile-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 13px;
+    border-top: 1px solid #edf1f6;
+}
+
+.delivery-tasks .dta-mobile-footer > span {
+    color: #8291a7;
+    font-size: 11px;
+}
+
+.delivery-tasks .dta-mobile-footer > span i {
+    margin-right: 6px;
+    color: #265df5;
+}
+
+.delivery-tasks .dta-mobile-footer .MuiButton-root {
+    min-height: 44px;
+}
+
+.delivery-tasks .dta-mobile-pagination {
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-top: 1px solid #edf1f6;
+}
+
+.delivery-tasks .dta-mobile-pagination > span {
+    color: #6e7f9a;
+    font-size: 12px;
+}
+
+.delivery-tasks .dta-mobile-pagination > div {
+    display: flex;
+    gap: 8px;
+}
+
+/* ================== TASK DETAILS DIALOG ================== */
+.dta-dialog .MuiDialog-paper {
+    border-radius: 16px;
+}
+
+.dta-dialog .dta-dialog-title,
+.dta-dialog .dta-detail-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.dta-dialog .dta-dialog-title {
+    padding: 18px 22px;
+}
+
+.dta-dialog .dta-dialog-title > span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #071b45;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.dta-dialog .dta-dialog-title > span i,
+.dta-dialog .dta-detail-section h3 i,
+.dta-dialog .dta-dialog-note i {
+    color: #265df5;
+}
+
+.dta-dialog .dta-close {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e2e8f2;
+    border-radius: 9px;
+    color: #6b7890;
+    background: #fff;
+}
+
+.dta-dialog .MuiDialogContent-root {
+    padding: 20px 22px;
+}
+
+.dta-dialog .dta-dialog-body {
+    display: grid;
+    gap: 20px;
+}
+
+.dta-dialog .dta-detail-banner {
+    flex-wrap: wrap;
+    padding: 16px;
+    border: 1px solid #dce7fb;
+    border-radius: 12px;
+    background: #f4f8ff;
+}
+
+.dta-dialog .dta-detail-banner > div {
+    display: grid;
+    gap: 4px;
+}
+
+.dta-dialog .dta-detail-banner small,
+.dta-dialog .dta-detail-banner > div > span {
+    color: #8492a7;
+    font-size: 11px;
+}
+
+.dta-dialog .dta-detail-banner strong {
+    color: #173661;
+    font-size: 16px;
+}
+
+.dta-dialog .dta-detail-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 14px;
+    color: #102b54;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.dta-dialog .dta-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 0;
+}
+
+.dta-dialog .dta-detail dt {
+    margin-bottom: 5px;
+    color: #8795aa;
+    font-size: 12px;
+}
+
+.dta-dialog .dta-detail dd {
+    margin: 0;
+    color: #344562;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.dta-dialog .dta-dialog-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px 14px;
+    border-radius: 10px;
+    color: #657991;
+    background: #f3f7ff;
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.dta-dialog .dta-dialog-actions {
+    padding: 14px 22px;
+}
+
+/* ================== RESPONSIVE ================== */
+@media (max-width: 1150px) {
+    .delivery-tasks .dta-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .delivery-tasks .dta-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .delivery-tasks .dta-search {
+        flex-basis: 100%;
+    }
+
+    .delivery-tasks .dta-filter {
+        flex: 1 1 190px;
+        width: auto;
+    }
+}
+
+@media (max-width: 800px) {
+    .delivery-tasks .dta-table-scroll,
+    .delivery-tasks .dta-pagination {
+        display: none;
+    }
+
+    .delivery-tasks .dta-mobile-list {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        background: #f8faff;
+    }
+
+    .delivery-tasks .dta-mobile-pagination {
+        display: flex;
+    }
+}
+
+@media (max-width: 600px) {
+    .delivery-tasks .dta-hero {
+        align-items: flex-start;
+        flex-direction: column;
+        min-height: auto;
+        padding: 19px;
+    }
+
+    .delivery-tasks .dta-hero p {
+        font-size: 13px;
+    }
+
+    .delivery-tasks .dta-refresh.MuiButton-root {
+        min-height: 44px;
+    }
+
+    .delivery-tasks .dta-stats {
+        gap: 10px;
+    }
+
+    .delivery-tasks .dta-stat {
+        min-height: 130px;
+        padding: 15px;
+    }
+
+    .delivery-tasks .dta-stat-heading {
+        font-size: 12px;
+    }
+
+    .delivery-tasks .dta-stat-icon {
+        flex-basis: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+
+    .delivery-tasks .dta-stat > strong {
+        font-size: 27px;
+        line-height: 33px;
+    }
+
+    .delivery-tasks .dta-card-heading {
+        flex-wrap: wrap;
+        padding: 17px;
+    }
+
+    .delivery-tasks .dta-record-count {
+        margin-left: 55px;
+    }
+
+    .delivery-tasks .dta-toolbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 11px;
+        padding: 15px;
+    }
+
+    .delivery-tasks .dta-search,
+    .delivery-tasks .dta-reset {
+        grid-column: 1 / -1;
+    }
+
+    .delivery-tasks .dta-search,
+    .delivery-tasks .dta-filter {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .delivery-tasks .dta-reset.MuiButton-root {
+        min-height: 43px;
+    }
+
+    .dta-dialog .MuiDialog-paper {
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .dta-dialog .dta-dialog-title {
+        padding: 14px 17px;
+        border-bottom: 1px solid #e5ebf4;
+    }
+
+    .dta-dialog .MuiDialogContent-root {
+        padding: 17px;
+    }
+
+    .dta-dialog .dta-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dta-dialog .dta-dialog-actions {
+        padding: 13px 17px;
+        border-top: 1px solid #e5ebf4;
+    }
+
+    .dta-dialog .dta-dialog-actions .MuiButton-root {
+        width: 100%;
+        min-height: 45px;
+    }
+}
+
+@media (max-width: 380px) {
+    .delivery-tasks .dta-stat-heading {
+        flex-wrap: wrap-reverse;
+        gap: 7px;
+    }
+
+    .delivery-tasks .dta-mobile-card-top .dta-status {
+        margin-left: 50px;
+    }
+
+    .delivery-tasks .dta-mobile-footer .MuiButton-root {
+        width: 100%;
+    }
+}

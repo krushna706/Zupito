@@ -34,6 +34,8 @@ import SellerReplacementDetails from "../seller/ReplacementDetails";
 import SellerEarnings from "../seller/Earnings";
 import SellerReviews from "../seller/Reviews";
 
+// Seller panel
+import AssignedTasks from "../delivery/AssignedTasks";
 
 
 /* ===== REGISTERED ROLES ===== */
@@ -330,7 +332,18 @@ export const panelPages = [
 
 
     // ================== DELIVERY AGENT PANEL ==================
-    previewPage("tasks", "Assigned Tasks", "fa-solid fa-clipboard-list", ["delivery"]),
+    
+    {
+        path: "tasks",
+        component: AssignedTasks,
+        allowedRoles: ["delivery"],
+        navigation: {
+            label: "Assigned Tasks",
+            icon: "fa-solid fa-clipboard-list",
+            end: false,
+        },
+    },
+
     previewPage("history", "Delivery History", "fa-solid fa-clock-rotate-left", ["delivery"]),
 ];
 

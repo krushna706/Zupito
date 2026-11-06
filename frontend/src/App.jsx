@@ -36,6 +36,7 @@ import SellerRegister from "./auth/SellerRegister";
 
 // Panel configuration
 import { panelPages, getPanelRole } from "./config/panelConfig";
+import StaffProfile from "./admin/Profile";
 
 // Shared components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -65,13 +66,22 @@ function PanelAccess() {
 // ================== ROLE-BASED DASHBOARD AND PROFILE ==================
 function RolePage({ user, page }) {
     const roleConfig = getPanelRole(user?.role);
-    const PageComponent = roleConfig?.[page];
+
+    if (!roleConfig) {
+        return <AccessDenied />;
+    }
+
+    if (page === "profile") {
+        return <StaffProfile />;
+    }
+
+    const PageComponent = roleConfig[page];
 
     if (!PageComponent) {
         return <AccessDenied />;
     }
 
-    const title = page === "dashboard" ? `${roleConfig.label} Dashboard` : "My Profile";
+    const title = `${roleConfig.label} Dashboard`;
 
     return <PageComponent user={user} title={title} />;
 }

@@ -13695,3 +13695,613 @@
         padding: 10px;
     }
 }
+
+
+
+/* =========================================================
+   PANEL: SHARED STAFF PROFILE
+   ========================================================= */
+
+.staff-profile {
+    display: grid;
+    gap: 22px;
+    min-width: 0;
+}
+
+/* ===== PAGE HEADER ===== */
+
+.staff-profile .spf-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-height: 110px;
+    padding: 25px 27px;
+    overflow: hidden;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #fff 48%, #edf4ff 100%);
+}
+
+.staff-profile .spf-hero::after {
+    content: "";
+    position: absolute;
+    top: -90px;
+    right: 120px;
+    width: 215px;
+    height: 215px;
+    border: 1px solid #dfe9fe;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.staff-profile .spf-hero > div,
+.staff-profile .spf-hero-icon {
+    position: relative;
+    z-index: 1;
+}
+
+.staff-profile .spf-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #265df5;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 28px;
+}
+
+.staff-profile .spf-hero p {
+    margin: 0;
+    color: #61718e;
+    font-size: 14px;
+    line-height: 23px;
+}
+
+.staff-profile .spf-hero-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    color: #265df5;
+    background: #e9f0ff;
+    font-size: 24px;
+}
+
+/* ===== PROFILE GRID ===== */
+
+.staff-profile .spf-grid {
+    display: grid;
+    grid-template-columns: minmax(270px, 0.85fr) minmax(0, 1.7fr);
+    align-items: stretch;
+    gap: 20px;
+    min-width: 0;
+}
+
+.staff-profile .spf-identity,
+.staff-profile .spf-details {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e0e7f2;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+/* ===== IDENTITY CARD ===== */
+
+.staff-profile .spf-identity {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.staff-profile .spf-identity-top {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    padding: 26px 22px;
+    text-align: center;
+}
+
+.staff-profile .spf-section-label {
+    display: block;
+    color: #7185a5;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+}
+
+.staff-profile .spf-identity-top > .spf-section-label {
+    align-self: flex-start;
+}
+
+.staff-profile .spf-avatar-container {
+    position: relative;
+    margin: 32px 0 18px;
+}
+
+.staff-profile .spf-avatar {
+    display: grid;
+    place-items: center;
+    width: 120px;
+    height: 120px;
+    overflow: hidden;
+    border: 4px solid #fff;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #265df5, #071b45);
+    box-shadow: 0 0 0 3px #e4edff;
+}
+
+.staff-profile .spf-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.staff-profile .spf-avatar > span {
+    color: #fff;
+    font-size: 37px;
+    font-weight: 700;
+}
+
+.staff-profile .spf-camera {
+    position: absolute;
+    right: 1px;
+    bottom: 4px;
+    display: grid;
+    place-items: center;
+    width: 35px;
+    height: 35px;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    color: #fff;
+    background: #265df5;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.staff-profile .spf-camera:hover {
+    background: #174bd1;
+}
+
+.staff-profile .spf-camera:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.staff-profile .spf-identity h2 {
+    margin: 0 0 10px;
+    color: #102a57;
+    font-size: 21px;
+    font-weight: 700;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.staff-profile .spf-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid #d5e2ff;
+    border-radius: 20px;
+    color: #265df5;
+    background: #eef3ff;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.staff-profile .spf-file-input {
+    display: none;
+}
+
+.staff-profile .spf-upload-button.MuiButton-root {
+    min-height: 39px;
+    margin-top: 25px;
+    padding: 8px 18px;
+    border-color: #d3dff7;
+    border-radius: 9px;
+    color: #265df5;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.staff-profile .spf-upload-button.MuiButton-root:hover {
+    border-color: #265df5;
+    background: #f3f6ff;
+}
+
+.staff-profile .spf-selected-file {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    max-width: 100%;
+    margin-top: 14px;
+    padding: 9px 12px;
+    border: 1px solid #c8e9d6;
+    border-radius: 9px;
+    color: #07894e;
+    background: #effbf3;
+    font-size: 12px;
+}
+
+.staff-profile .spf-selected-file > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.staff-profile .spf-selected-file button {
+    flex-shrink: 0;
+    border: none;
+    color: #60768a;
+    background: transparent;
+    cursor: pointer;
+}
+
+.staff-profile .spf-image-note {
+    display: grid;
+    gap: 4px;
+    margin: 17px 0 0;
+    color: #7f91ac;
+    font-size: 12px;
+    line-height: 19px;
+    text-align: center;
+}
+
+.staff-profile .spf-identity-bottom {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 19px 21px;
+    border-top: 1px solid #e8edf6;
+    background: #f7faff;
+}
+
+.staff-profile .spf-identity-bottom > i {
+    margin-top: 4px;
+    color: #265df5;
+    font-size: 15px;
+}
+
+.staff-profile .spf-identity-bottom p {
+    margin: 0;
+    color: #71819b;
+    font-size: 12px;
+    line-height: 20px;
+}
+
+/* ===== PERSONAL DETAILS ===== */
+
+.staff-profile .spf-card-header {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 23px 25px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.staff-profile .spf-card-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 43px;
+    width: 43px;
+    height: 43px;
+    border-radius: 11px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 17px;
+}
+
+.staff-profile .spf-card-header h3 {
+    margin: 0 0 4px;
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.staff-profile .spf-card-header p {
+    margin: 0;
+    color: #8795ac;
+    font-size: 13px;
+    line-height: 21px;
+}
+
+.staff-profile .spf-form {
+    padding: 26px;
+}
+
+.staff-profile .spf-form > .spf-section-label {
+    margin-bottom: 20px;
+}
+
+.staff-profile .spf-fields {
+    display: grid;
+    gap: 24px;
+}
+
+.staff-profile .spf-fields .MuiOutlinedInput-root,
+.staff-profile .spf-fields .MuiInputLabel-root {
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.staff-profile .spf-field-lock {
+    margin-right: 5px;
+    color: #9aa8bc;
+    font-size: 12px;
+}
+
+.staff-profile .spf-readonly-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 24px;
+    padding: 13px 15px;
+    border: 1px solid #dce6fa;
+    border-radius: 10px;
+    background: #f6f9ff;
+}
+
+.staff-profile .spf-readonly-note i {
+    margin-top: 3px;
+    color: #265df5;
+    font-size: 14px;
+}
+
+.staff-profile .spf-readonly-note p {
+    margin: 0;
+    color: #677a99;
+    font-size: 12px;
+    line-height: 21px;
+}
+
+.staff-profile .spf-error {
+    margin-top: 18px;
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.staff-profile .spf-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 11px;
+    margin-top: 27px;
+    padding-top: 23px;
+    border-top: 1px solid #edf1f6;
+}
+
+.staff-profile .spf-form-actions .MuiButton-root {
+    min-height: 40px;
+    padding: 8px 17px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+    box-shadow: none;
+}
+
+.staff-profile .spf-form-actions .MuiButton-contained {
+    background: #265df5;
+}
+
+/* ===== SECURITY AND LOGOUT ===== */
+
+.staff-profile .spf-security,
+.staff-profile .spf-logout {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    padding: 23px 25px;
+    border: 1px solid #e0e7f2;
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.staff-profile .spf-security-icon,
+.staff-profile .spf-logout-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    color: #265df5;
+    background: #eaf0ff;
+    font-size: 18px;
+}
+
+.staff-profile .spf-logout-icon {
+    color: #df4258;
+    background: #fff0f2;
+}
+
+.staff-profile .spf-security > div,
+.staff-profile .spf-logout > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.staff-profile .spf-security h3,
+.staff-profile .spf-logout h3 {
+    margin: 0 0 4px;
+    color: #122d5a;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.staff-profile .spf-security p,
+.staff-profile .spf-logout p {
+    margin: 0;
+    color: #7c8da7;
+    font-size: 13px;
+    line-height: 21px;
+}
+
+.staff-profile .spf-security .MuiButton-root,
+.staff-profile .spf-logout .MuiButton-root {
+    flex-shrink: 0;
+    min-height: 39px;
+    padding: 8px 15px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: none;
+}
+
+/* ===== LOGOUT CONFIRMATION ===== */
+
+.spf-dialog.MuiDialog-paper {
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 20px 65px rgb(16 33 70 / 15%);
+}
+
+.spf-dialog .MuiDialogTitle-root {
+    padding: 20px 23px;
+    color: #0d2146;
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.spf-dialog .MuiDialogContent-root {
+    padding: 25px;
+}
+
+.spf-dialog .spf-dialog-content {
+    display: grid;
+    justify-items: center;
+    gap: 13px;
+    text-align: center;
+}
+
+.spf-dialog .spf-dialog-content > span {
+    display: grid;
+    place-items: center;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    color: #dc4257;
+    background: #fff0f2;
+    font-size: 24px;
+}
+
+.spf-dialog .spf-dialog-content h3 {
+    margin: 0;
+    color: #102a57;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.spf-dialog .spf-dialog-content p {
+    max-width: 310px;
+    margin: 0;
+    color: #7889a4;
+    font-size: 13px;
+    line-height: 22px;
+}
+
+.spf-dialog .spf-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding: 15px 20px;
+    border-top: 1px solid #edf1f6;
+}
+
+.spf-dialog .spf-dialog-actions .MuiButton-root {
+    min-height: 38px;
+    padding: 8px 17px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1099.98px) {
+    .staff-profile .spf-grid {
+        grid-template-columns: minmax(245px, 0.9fr) minmax(0, 1.4fr);
+        gap: 15px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .staff-profile .spf-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .staff-profile .spf-hero {
+        padding: 22px 20px;
+    }
+
+    .staff-profile .spf-identity-top {
+        padding: 24px 20px;
+    }
+
+    .staff-profile .spf-card-header,
+    .staff-profile .spf-form {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .staff-profile {
+        gap: 17px;
+    }
+
+    .staff-profile .spf-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .staff-profile .spf-hero-icon {
+        display: none;
+    }
+
+    .staff-profile .spf-card-header {
+        align-items: flex-start;
+    }
+
+    .staff-profile .spf-security,
+    .staff-profile .spf-logout {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 13px;
+        padding: 19px;
+    }
+
+    .staff-profile .spf-security > div,
+    .staff-profile .spf-logout > div {
+        flex: 1 1 calc(100% - 65px);
+    }
+
+    .staff-profile .spf-security .MuiButton-root,
+    .staff-profile .spf-logout .MuiButton-root {
+        margin-left: 59px;
+    }
+
+    .staff-profile .spf-form-actions {
+        justify-content: stretch;
+    }
+
+    .staff-profile .spf-form-actions .MuiButton-root {
+        flex: 1;
+    }
+}

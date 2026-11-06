@@ -15640,3 +15640,457 @@
         transition: none;
     }
 }
+
+
+
+
+/* Seller: Store Profile */
+.seller-store-profile {
+    --ssp-blue: #265df5;
+    --ssp-navy: #172747;
+    --ssp-border: #e1e7f1;
+    min-width: 0;
+    color: var(--ssp-navy);
+}
+
+.seller-store-profile *,
+.seller-store-profile *::before,
+.seller-store-profile *::after {
+    box-sizing: border-box;
+}
+
+.ssp-hero,
+.ssp-overview,
+.ssp-brand,
+.ssp-card-head,
+.ssp-footer {
+    display: flex;
+    align-items: center;
+}
+
+/* Page Header */
+.ssp-hero {
+    justify-content: space-between;
+    gap: 18px;
+    padding: 25px 27px;
+    margin-bottom: 18px;
+    border: 1px solid #dce7fb;
+    border-radius: 16px;
+    background: linear-gradient(115deg, #fff 48%, #edf4ff);
+}
+
+.ssp-hero h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 9px;
+    color: var(--ssp-blue);
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -.1px;
+}
+
+.ssp-hero h1 i { font-size: 19px; }
+
+.ssp-hero p {
+    margin: 0;
+    color: #63718b;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.ssp-hero .MuiButton-root,
+.ssp-footer .MuiButton-root {
+    min-height: 38px;
+    padding: 7px 14px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    white-space: nowrap;
+    box-shadow: none;
+}
+
+.ssp-hero .MuiButton-outlined {
+    border-color: #d4e1ff;
+    color: var(--ssp-blue);
+}
+
+.ssp-footer .MuiButton-contained {
+    background: var(--ssp-blue);
+}
+
+.ssp-footer .MuiButton-contained:hover {
+    background: #1749d7;
+    box-shadow: none;
+}
+
+/* Store Identity */
+.ssp-overview {
+    justify-content: space-between;
+    gap: 24px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+    border: 1px solid var(--ssp-border);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.ssp-brand {
+    flex: 1;
+    gap: 18px;
+    min-width: 0;
+}
+
+.ssp-logo-frame {
+    display: grid;
+    place-items: center;
+    flex: 0 0 100px;
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    border: 1px solid #dbe5f7;
+    border-radius: 15px;
+    background: #f1f5ff;
+    color: var(--ssp-blue);
+}
+
+.ssp-logo-frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.ssp-logo-frame span {
+    font-size: 25px;
+    font-weight: 600;
+}
+
+.ssp-brand-details { min-width: 0; }
+
+.ssp-brand-details > small {
+    color: var(--ssp-blue);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .3px;
+}
+
+.ssp-brand-details h2 {
+    margin: 6px 0 5px;
+    font-size: 20px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.ssp-brand-details p {
+    margin: 0;
+    color: #8290a6;
+    font-size: 12px;
+}
+
+.ssp-logo-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.ssp-logo-actions .MuiButton-root {
+    min-height: 31px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.ssp-logo-actions .MuiButton-outlined {
+    border-color: #d7e2fc;
+    color: var(--ssp-blue);
+}
+
+/* Store Status & Progress */
+.ssp-overview-side {
+    display: grid;
+    justify-items: end;
+    gap: 14px;
+    min-width: 215px;
+}
+
+.ssp-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border: 1px solid #d8e4ff;
+    border-radius: 24px;
+    background: #f1f5ff;
+    color: var(--ssp-blue);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.ssp-status i { font-size: 6px; }
+
+.ssp-status.is-approved {
+    color: #15804b;
+    border-color: #bce8d0;
+    background: #eaf8f0;
+}
+
+.ssp-status.is-pending {
+    color: #a36d09;
+    border-color: #ffe2a2;
+    background: #fff7e8;
+}
+
+.ssp-status.is-rejected {
+    color: #c23c49;
+    border-color: #f2c1c8;
+    background: #fff0f1;
+}
+
+.ssp-status.is-suspended {
+    color: #647087;
+    border-color: #dce1ea;
+    background: #f1f3f7;
+}
+
+.ssp-completion {
+    display: grid;
+    gap: 7px;
+    width: 215px;
+    max-width: 100%;
+}
+
+.ssp-completion > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: #78869c;
+}
+
+.ssp-completion strong {
+    color: var(--ssp-navy);
+    font-weight: 600;
+}
+
+.ssp-completion small {
+    color: #8b97a9;
+    font-size: 11px;
+}
+
+.ssp-completion progress {
+    width: 100%;
+    height: 7px;
+    border: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    appearance: none;
+    accent-color: var(--ssp-blue);
+    background: #edf1f8;
+}
+
+.ssp-completion progress::-webkit-progress-bar {
+    background: #edf1f8;
+}
+
+.ssp-completion progress::-webkit-progress-value {
+    background: var(--ssp-blue);
+    border-radius: 8px;
+}
+
+.ssp-completion progress::-moz-progress-bar {
+    background: var(--ssp-blue);
+    border-radius: 8px;
+}
+
+/* Store Information & Pickup Address */
+.ssp-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.ssp-card {
+    min-width: 0;
+    padding: 22px;
+    border: 1px solid var(--ssp-border);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.ssp-card-head {
+    gap: 13px;
+    min-height: 51px;
+    margin-bottom: 22px;
+}
+
+.ssp-card-head > span {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: #edf2ff;
+    color: var(--ssp-blue);
+    font-size: 16px;
+}
+
+.ssp-card-head > div { min-width: 0; }
+
+.ssp-card-head h2 {
+    margin: 0 0 5px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.ssp-card-head p {
+    margin: 0;
+    color: #77849c;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Form Fields */
+.ssp-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 8px 14px;
+}
+
+.ssp-fields .MuiTextField-root { min-width: 0; }
+.ssp-fields .ssp-wide { grid-column: 1 / -1; }
+
+.ssp-fields .MuiOutlinedInput-root {
+    border-radius: 9px;
+    color: #344562;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.ssp-fields .MuiOutlinedInput-root:has([readonly]) {
+    background: #fbfcff;
+}
+
+.ssp-fields .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+    border-color: var(--ssp-blue);
+}
+
+.ssp-fields .MuiInputLabel-root {
+    color: #8390a5;
+    font-size: 13px;
+}
+
+.ssp-fields .MuiInputLabel-root.Mui-focused {
+    color: var(--ssp-blue);
+}
+
+.ssp-fields .MuiFormHelperText-root {
+    min-height: 16px;
+    margin: 3px 2px 0;
+    font-size: 11px;
+}
+
+.ssp-fields .MuiInputBase-input[readonly],
+.ssp-fields textarea[readonly] {
+    cursor: default;
+}
+
+/* Bottom Actions */
+.ssp-footer {
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 72px;
+    padding: 15px 20px;
+    border: 1px solid var(--ssp-border);
+    border-radius: 13px;
+    background: #fff;
+}
+
+.ssp-footer p {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: #718099;
+    font-size: 12px;
+}
+
+.ssp-footer p i { color: var(--ssp-blue); }
+
+.ssp-footer-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.ssp-footer-actions > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--ssp-blue);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.ssp-footer-actions > a:hover { color: #1749d7; }
+
+/* Responsive */
+@media (max-width: 1120px) {
+    .ssp-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+    .ssp-hero,
+    .ssp-overview,
+    .ssp-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .ssp-hero { padding: 20px; }
+    .ssp-overview { padding: 18px; }
+
+    .ssp-overview-side {
+        justify-items: start;
+        width: 100%;
+    }
+
+    .ssp-completion { width: 100%; }
+    .ssp-card { padding: 18px; }
+    .ssp-footer { padding: 16px; }
+}
+
+@media (max-width: 480px) {
+    .ssp-brand {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .ssp-logo-frame {
+        flex-basis: 72px;
+        width: 72px;
+        height: 72px;
+    }
+
+    .ssp-logo-frame span { font-size: 18px; }
+    .ssp-brand-details h2 { font-size: 17px; }
+    .ssp-fields { grid-template-columns: 1fr; }
+    .ssp-fields .ssp-wide { grid-column: auto; }
+    .ssp-card-head h2 { font-size: 16px; }
+    .ssp-footer-actions { width: 100%; }
+}

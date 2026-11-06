@@ -22,6 +22,7 @@ import AdminProfile from "../admin/Profile";
 
 // Seller panel
 import SellerApprovalStatus from "../seller/ApprovalStatus";
+import StoreProfile from "../seller/StoreProfile";
 
 
 /* ===== REGISTERED ROLES ===== */
@@ -261,7 +262,17 @@ export const panelPages = [
             end: false,
         },
     },
-    previewPage("store", "Store Profile", "fa-solid fa-store", ["seller"]),
+    {
+        path: "store",
+        component: StoreProfile,
+        allowedRoles: ["seller"],
+        navigation: {
+            label: "Store Profile",
+            icon: "fa-solid fa-store",
+            end: false,
+        },
+    },
+
     previewPage("inventory", "Inventory", "fa-solid fa-boxes-stacked", ["seller"]),
     previewPage("earnings", "Earnings", "fa-solid fa-wallet", ["seller"]),
 

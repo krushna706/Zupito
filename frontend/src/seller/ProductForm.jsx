@@ -9,8 +9,11 @@ import {
     getCategories,
     getProducts,
     getStoreName,
-    saveProducts,
+    saveSellerProduct,
 } from "../services/sellerService";
+
+// ================== FORM CONFIGURATION ==================
+const MAX_STOCK = 999999;
 
 const emptyVariant = () => ({
     id: crypto.randomUUID(),
@@ -22,136 +25,235 @@ const emptyVariant = () => ({
     imageIndex: 0,
 });
 
-const emptySpec = () => ({ label: "", value: "" });
+const emptySpec = () => ({
+    label: "",
+    value: "",
+});
 
-function initialForm(item) {
-    const images = item?.images?.length
-        ? item.images
-        : item?.image ? [item.image] : [];
+// ================== FORM HELPERS ==================
+function initialForm(product) {
+    const images = product?.images?.length
+        ? product.images
+        : product?.image
+            ? [product.image]
+            : [];
 
     return {
-        name: item?.name || "",
-        brand: item?.brand || "",
-        group: item?.group || "",
-        category: item?.category || "",
+        name: product?.name || "",
+        brand: product?.brand || "",
+        group: product?.group || "",
+        category: product?.category || "",
         images,
-        description: item?.description?.map((entry) =>
-            entry.text
-        ).join("\n\n") || "",
-        highlights: item?.highlights?.join("\n") || "",
-        specifications: item?.specifications?.map(({ label, value }) => ({
-            label, value,
+        description: product?.description?.map((item) => item.text)
+            .join("\n\n") || "",
+        highlights: product?.highlights?.join("\n") || "",
+        specifications: product?.specifications?.map((item) => ({
+            label: item.label,
+            value: item.value,
         })) || [emptySpec()],
-        variants: item?.variants?.length
-            ? item.variants.map((variant) => ({
+        variants: product?.variants?.length
+            ? product.variants.map((variant) => ({
                 id: variant.id,
                 sku: variant.sku || "",
-                label: variant.options?.variant ||
-                    variant.variantLabel || "Standard",
+                label: variant.variantLabel ||
+                    variant.options?.variant ||
+                    "Standard",
                 price: String(variant.price ?? ""),
                 mrp: String(variant.mrp ?? ""),
                 stock: String(variant.stock ?? 0),
                 imageIndex: Math.max(
-                    0, images.indexOf(variant.image)
+                    0,
+                    images.indexOf(variant.image)
                 ),
             }))
             : [emptyVariant()],
     };
 }
 
-const contentSignature = (item) => JSON.stringify({
-    name: item.name,
-    brand: item.brand,
-    group: item.group,
-    category: item.category,
-    images: item.images,
-    description: item.description,
-    highlights: item.highlights,
-    specifications: item.specifications,
-    variants: item.variants.map(({ id, sku, options, image }) => ({
-        id, sku, options, image,
-    })),
-});
+function contentSignature(product) {
+    return JSON.stringify({
+        name: product.name,
+        brand: product.brand,
+        group: product.group,
+        category: product.category,
+        images: product.images?.length
+            ? product.images
+            : product.image
+                ? [product.image]
+                : [],
+        description: (product.description || []).map((item) => item.text),
+        highlights: product.highlights || [],
+        specifications: product.specifications || [],
+        variants: (product.variants || []).map((variant) => ({
+            id: variant.id,
+            sku: variant.sku,
+            label: variant.variantLabel ||
+                variant.options?.variant ||
+                "Standard",
+            image: variant.image,
+        })),
+    });
+}
+
+function SectionHeading({ icon, title, description, action }) {
+    return (
+        <div className="sp-card-head">
+            <span className="sp-section-icon">
+                <i className={`fa-solid ${icon}`} aria-hidden="true" />
+            </span>
+
+            <div>
+                <h2>{title}</h2>
+                <p>{description}</p>
+            </div>
+
+            {action}
+        </div>
+    );
+}
 
 // ================== PRODUCT FORM ==================
 function ProductForm({ user }) {
     const { productId } = useParams();
     const navigate = useNavigate();
 
-    const categories = useMemo(getCategories, []);
+    const categories = useMemo(() => getCategories(), []);
 
-    const original = useMemo(() => productId
-        ? getProducts().find((item) =>
-            item.id === productId &&
+    const original = useMemo(() => {
+        if (!productId) return null;
+
+        return getProducts().find((product) =>
+            product.id === productId &&
             (
-                item.sellerId === user?.id ||
-                item.sellerEmail?.toLowerCase() ===
-                    user?.email?.toLowerCase()
+                (user?.id && product.sellerId === user.id) ||
+                (
+                    user?.email &&
+                    product.sellerEmail?.toLowerCase() ===
+                    user.email.toLowerCase()
+                )
             )
-        )
-        : null, [productId, user?.id, user?.email]);
+        ) || null;
+    }, [productId, user?.id, user?.email]);
 
     const [form, setForm] = useState(() => initialForm(original));
     const [errors, setErrors] = useState({});
     const [uploading, setUploading] = useState(false);
+    const [stockReason, setStockReason] = useState("");
+    const [stockNote, setStockNote] = useState("");
 
     useEffect(() => {
         setForm(initialForm(original));
         setErrors({});
+        setStockReason("");
+        setStockNote("");
     }, [original]);
 
-    const parents = categories.filter((item) =>
-        !item.parentId && item.status === "Active"
+    const parents = categories.filter((category) =>
+        !category.parentId && category.status === "Active"
     );
 
-    const children = categories.filter((item) =>
-        item.parentId === form.group && item.status === "Active"
+    const children = categories.filter((category) =>
+        category.parentId === form.group &&
+        category.status === "Active"
     );
 
-    const update = (name, value) => {
-        setForm((old) => ({ ...old, [name]: value }));
-        setErrors((old) => ({ ...old, [name]: "" }));
+    // ================== FIELD HANDLERS ==================
+    const updateField = (name, value) => {
+        setForm((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
+
+        setErrors((previous) => ({
+            ...previous,
+            [name]: "",
+        }));
     };
 
     const changeCategory = (value) => {
-        const chosen = categories.find((item) => item.slug === value);
+        const selected = categories.find((item) =>
+            item.slug === value
+        );
 
-        setErrors((old) => ({ ...old, category: "" }));
-
-        setForm((old) => ({
-            ...old,
+        setForm((previous) => ({
+            ...previous,
             category: value,
-            specifications: old.specifications.some(
-                (spec) => spec.label || spec.value
+            specifications: previous.specifications.some(
+                (item) => item.label || item.value
             )
-                ? old.specifications
-                : chosen?.attributes?.length
-                    ? chosen.attributes.map((label) => ({
-                        label, value: "",
+                ? previous.specifications
+                : selected?.attributes?.length
+                    ? selected.attributes.map((label) => ({
+                        label,
+                        value: "",
                     }))
                     : [emptySpec()],
         }));
+
+        setErrors((previous) => ({
+            ...previous,
+            category: "",
+        }));
     };
 
-    const changeVariant = (index, key, value) => {
-        setForm((old) => ({
-            ...old,
-            variants: old.variants.map((item, i) =>
-                i === index ? { ...item, [key]: value } : item
+    const changeVariant = (index, name, value) => {
+        setForm((previous) => ({
+            ...previous,
+            variants: previous.variants.map((variant, position) =>
+                position === index
+                    ? { ...variant, [name]: value }
+                    : variant
             ),
         }));
     };
 
-    const changeSpec = (index, key, value) => {
-        setForm((old) => ({
-            ...old,
-            specifications: old.specifications.map((item, i) =>
-                i === index ? { ...item, [key]: value } : item
+    const changeSpecification = (index, name, value) => {
+        setForm((previous) => ({
+            ...previous,
+            specifications: previous.specifications.map((item, position) =>
+                position === index
+                    ? { ...item, [name]: value }
+                    : item
             ),
         }));
     };
 
-    // ================== IMAGES ==================
+    const addVariant = () => {
+        setForm((previous) => ({
+            ...previous,
+            variants: [...previous.variants, emptyVariant()],
+        }));
+    };
+
+    const removeVariant = (id) => {
+        setForm((previous) => ({
+            ...previous,
+            variants: previous.variants.filter((item) =>
+                item.id !== id
+            ),
+        }));
+    };
+
+    const addSpecification = () => {
+        setForm((previous) => ({
+            ...previous,
+            specifications: [
+                ...previous.specifications,
+                emptySpec(),
+            ],
+        }));
+    };
+
+    const removeSpecification = (index) => {
+        setForm((previous) => ({
+            ...previous,
+            specifications: previous.specifications.filter(
+                (_, position) => position !== index
+            ),
+        }));
+    };
+
+    // ================== PRODUCT IMAGES ==================
     const uploadImages = async (event) => {
         const files = Array.from(event.target.files || []);
         event.target.value = "";
@@ -166,11 +268,18 @@ function ProductForm({ user }) {
         setUploading(true);
 
         try {
-            const images = await Promise.all(files.map(compressImage));
+            const images = await Promise.all(
+                files.map(compressImage)
+            );
 
-            setForm((old) => ({
-                ...old,
-                images: [...old.images, ...images],
+            setForm((previous) => ({
+                ...previous,
+                images: [...previous.images, ...images],
+            }));
+
+            setErrors((previous) => ({
+                ...previous,
+                images: "",
             }));
         } catch (error) {
             toast.error(error.message);
@@ -180,10 +289,12 @@ function ProductForm({ user }) {
     };
 
     const removeImage = (index) => {
-        setForm((old) => ({
-            ...old,
-            images: old.images.filter((_, i) => i !== index),
-            variants: old.variants.map((variant) => ({
+        setForm((previous) => ({
+            ...previous,
+            images: previous.images.filter((_, position) =>
+                position !== index
+            ),
+            variants: previous.variants.map((variant) => ({
                 ...variant,
                 imageIndex: variant.imageIndex > index
                     ? variant.imageIndex - 1
@@ -194,29 +305,47 @@ function ProductForm({ user }) {
         }));
     };
 
-    const coverImage = (index) => {
-        setForm((old) => {
+    const setCoverImage = (index) => {
+        setForm((previous) => {
             const images = [
-                old.images[index],
-                ...old.images.filter((_, i) => i !== index),
+                previous.images[index],
+                ...previous.images.filter(
+                    (_, position) => position !== index
+                ),
             ];
 
             return {
-                ...old,
+                ...previous,
                 images,
-                variants: old.variants.map((variant) => ({
+                variants: previous.variants.map((variant) => ({
                     ...variant,
                     imageIndex: Math.max(
-                        0, images.indexOf(old.images[variant.imageIndex])
+                        0,
+                        images.indexOf(
+                            previous.images[variant.imageIndex]
+                        )
                     ),
                 })),
             };
         });
     };
 
+    // ================== STOCK VALIDATION ==================
+    const stockChanged = Boolean(
+        original && form.variants.some((variant) => {
+            const previous = original.variants?.find((item) =>
+                String(item.id) === String(variant.id)
+            );
+
+            return previous &&
+                Number(previous.stock || 0) !== Number(variant.stock);
+        })
+    );
+
     // ================== SAVE PRODUCT ==================
     const handleSave = (event) => {
         event.preventDefault();
+
         if (uploading) return;
 
         const name = form.name.trim();
@@ -248,7 +377,7 @@ function ProductForm({ user }) {
         if (
             !form.group ||
             !form.category ||
-            !children.some((c) => c.slug === form.category)
+            !children.some((item) => item.slug === form.category)
         ) {
             problems.category = "Select an active category.";
         }
@@ -261,45 +390,76 @@ function ProductForm({ user }) {
             problems.images = "Upload at least one product image.";
         }
 
-        if (specifications.some((item) => !item.label || !item.value)) {
+        if (specifications.some((item) =>
+            !item.label || !item.value
+        )) {
             problems.specifications = "Complete both specification fields.";
         }
 
-        const skus = form.variants.map((item) =>
-            item.sku.trim().toUpperCase()
+        const skus = form.variants.map((variant) =>
+            variant.sku.trim().toUpperCase()
         );
 
-        const allProducts = getProducts();
-
-        const takenSkus = allProducts
-            .filter((item) =>
-                item.id !== productId && item.sellerId === user?.id
+        const usedSkus = getProducts()
+            .filter((product) =>
+                product.id !== productId &&
+                (
+                    (user?.id && product.sellerId === user.id) ||
+                    (
+                        user?.email &&
+                        product.sellerEmail?.toLowerCase() ===
+                        user.email.toLowerCase()
+                    )
+                )
             )
-            .flatMap((item) =>
-                (item.variants || []).map((v) =>
-                    String(v.sku || "").toUpperCase()
+            .flatMap((product) =>
+                (product.variants || []).map((variant) =>
+                    String(variant.sku || "").toUpperCase()
                 )
             );
 
         if (
             new Set(skus).size !== skus.length ||
-            skus.some((sku) => takenSkus.includes(sku))
+            skus.some((sku) => usedSkus.includes(sku))
         ) {
-            problems.variants =
-                "Each SKU must be unique across your products.";
+            problems.variants = "Each SKU must be unique across your products.";
         }
 
-        if (form.variants.some((item) =>
-            !/^[A-Z0-9_-]{3,30}$/.test(item.sku.trim().toUpperCase()) ||
-            !item.label.trim() ||
-            !Number.isFinite(Number(item.price)) ||
-            Number(item.price) <= 0 ||
-            !Number.isFinite(Number(item.mrp)) ||
-            Number(item.mrp) < Number(item.price) ||
-            !/^(0|[1-9]\d*)$/.test(String(item.stock))
-        )) {
+        const invalidVariant = form.variants.some((variant) => {
+            const price = Number(variant.price);
+            const mrp = Number(variant.mrp);
+            const stock = Number(variant.stock);
+
+            return (
+                !/^[A-Z0-9_-]{3,30}$/.test(
+                    variant.sku.trim().toUpperCase()
+                ) ||
+                !variant.label.trim() ||
+                !Number.isFinite(price) ||
+                price <= 0 ||
+                !Number.isFinite(mrp) ||
+                mrp < price ||
+                !/^(0|[1-9]\d*)$/.test(variant.stock) ||
+                !Number.isSafeInteger(stock) ||
+                stock > MAX_STOCK
+            );
+        });
+
+        if (invalidVariant) {
             problems.variants = problems.variants ||
                 "Check SKU, variant, price, MRP and stock values.";
+        }
+
+        if (stockChanged && !stockReason) {
+            problems.stockReason = "Select a stock movement reason.";
+        }
+
+        if (
+            stockChanged &&
+            stockReason !== "Restock" &&
+            !stockNote.trim()
+        ) {
+            problems.stockNote = "Explain the stock correction.";
         }
 
         if (Object.keys(problems).length) {
@@ -308,15 +468,18 @@ function ProductForm({ user }) {
             return;
         }
 
-        const variants = form.variants.map((item) => ({
-            id: item.id,
-            sku: item.sku.trim().toUpperCase(),
-            options: { variant: item.label.trim() },
-            variantLabel: item.label.trim(),
-            price: Number(item.price),
-            mrp: Number(item.mrp),
-            stock: Number(item.stock),
-            image: form.images[item.imageIndex] || form.images[0],
+        // ================== PRODUCT RECORD ==================
+        const variants = form.variants.map((variant) => ({
+            id: variant.id,
+            sku: variant.sku.trim().toUpperCase(),
+            options: {
+                variant: variant.label.trim(),
+            },
+            variantLabel: variant.label.trim(),
+            price: Number(variant.price),
+            mrp: Number(variant.mrp),
+            stock: Number(variant.stock),
+            image: form.images[variant.imageIndex] || form.images[0],
         }));
 
         const details = {
@@ -329,36 +492,42 @@ function ProductForm({ user }) {
             price: variants[0].price,
             mrp: variants[0].mrp,
             stock: variants.reduce(
-                (sum, variant) => sum + variant.stock, 0
+                (total, variant) => total + variant.stock,
+                0
             ),
             variants,
             defaultVariantId: variants[0].id,
             optionGroups: [{
                 key: "variant",
                 label: "Variant",
-                values: variants.map((v) => ({
-                    value: v.variantLabel,
-                    label: v.variantLabel,
+                values: variants.map((variant) => ({
+                    value: variant.variantLabel,
+                    label: variant.variantLabel,
                 })),
             }],
             highlights,
-            description: [{ title: "Product Details", text: description }],
+            description: [{
+                title: "Product Details",
+                text: description,
+            }],
             specifications,
         };
 
         const now = new Date().toISOString();
 
-        const changed = original &&
+        const contentChanged = original &&
             contentSignature(original) !== contentSignature(details);
 
-        const resubmitted = changed &&
+        const requiresReview = contentChanged &&
             original?.status !== "Suspended";
 
         const status = original
-            ? resubmitted ? "Pending" : original.status
+            ? requiresReview
+                ? "Pending"
+                : original.status
             : "Pending";
 
-        const updatedProduct = {
+        const product = {
             ...(original || {}),
             ...details,
             id: original?.id || `seller-${crypto.randomUUID()}`,
@@ -370,20 +539,20 @@ function ProductForm({ user }) {
             status,
             reviewType: !original
                 ? "New Listing"
-                : changed
+                : contentChanged
                     ? "Content Update"
                     : original.reviewType,
-            submittedAt: !original || resubmitted
+            submittedAt: !original || requiresReview
                 ? now
                 : original.submittedAt,
-            reviewedAt: resubmitted
+            reviewedAt: requiresReview
                 ? null
                 : original?.reviewedAt || null,
             updatedAt: now,
-            moderationReason: resubmitted
+            moderationReason: requiresReview
                 ? ""
                 : original?.moderationReason || "",
-            history: resubmitted
+            history: requiresReview
                 ? [
                     ...(original.history || []),
                     {
@@ -396,24 +565,17 @@ function ProductForm({ user }) {
         };
 
         try {
-            const latest = getProducts();
+            saveSellerProduct(user, product, stockReason, stockNote);
 
-            const next = original
-                ? latest.map((item) =>
-                    item.id === original.id ? updatedProduct : item
-                )
-                : [...latest, updatedProduct];
-
-            saveProducts(next);
-
-            toast.success(original
-                ? "Product updated successfully."
-                : "Product submitted for review."
+            toast.success(
+                original
+                    ? "Product updated successfully."
+                    : "Product submitted for review."
             );
 
             navigate("/manage/products");
-        } catch {
-            toast.error("Unable to save. Browser storage may be full.");
+        } catch (error) {
+            toast.error(error.message || "Unable to save product.");
         }
     };
 
@@ -438,11 +600,14 @@ function ProductForm({ user }) {
 
     return (
         <main className="seller-product-page">
-            {/* Page Header */}
+            {/* ================== PAGE HEADER ================== */}
             <section className="sp-hero">
                 <div>
                     <h1>
-                        <i className="fa-solid fa-box-open" aria-hidden="true" />
+                        <i
+                            className="fa-solid fa-box-open"
+                            aria-hidden="true"
+                        />
                         {original ? "EDIT PRODUCT" : "ADD PRODUCT"}
                     </h1>
 
@@ -457,20 +622,27 @@ function ProductForm({ user }) {
                     component={Link}
                     to="/manage/products"
                     variant="outlined"
-                    startIcon={<i className="fa-solid fa-arrow-left" />}
+                    startIcon={
+                        <i className="fa-solid fa-arrow-left" />
+                    }
                 >
                     Back to Products
                 </Button>
             </section>
 
+            {/* ================== REVIEW STATUS ================== */}
             {original && (
                 <div className="sp-notice">
-                    <i className="fa-solid fa-circle-info" aria-hidden="true" />
+                    <i
+                        className="fa-solid fa-circle-info"
+                        aria-hidden="true"
+                    />
 
                     <span>
                         <strong>Status: {original.status}.</strong>{" "}
-                        Price and stock changes retain the existing approval
-                        status. Material content changes require review.
+                        Price and stock updates retain the existing
+                        approval status. Material content changes
+                        require review.
 
                         {original.moderationReason && (
                             <small>
@@ -483,36 +655,37 @@ function ProductForm({ user }) {
 
             <form onSubmit={handleSave} noValidate>
                 <div className="sp-form-grid">
-                    {/* Product Information */}
+                    {/* ================== PRODUCT DETAILS ================== */}
                     <section className="sp-card">
-                        <div className="sp-card-head">
-                            <span className="sp-section-icon">
-                                <i className="fa-solid fa-tag" />
-                            </span>
-
-                            <div>
-                                <h2>Product Information</h2>
-                                <p>Basic listing details and category classification.</p>
-                            </div>
-                        </div>
+                        <SectionHeading
+                            icon="fa-tag"
+                            title="Product Information"
+                            description="Basic listing details and category classification."
+                        />
 
                         <div className="sp-fields">
                             <TextField
                                 label="Product Name"
                                 value={form.name}
-                                onChange={(e) => update("name", e.target.value)}
-                                error={!!errors.name}
+                                onChange={(event) =>
+                                    updateField("name", event.target.value)
+                                }
+                                error={Boolean(errors.name)}
                                 helperText={errors.name}
-                                required
                                 className="sp-wide"
-                                slotProps={{ htmlInput: { maxLength: 120 } }}
+                                slotProps={{
+                                    htmlInput: { maxLength: 120 },
+                                }}
+                                required
                             />
 
                             <TextField
                                 label="Brand"
                                 value={form.brand}
-                                onChange={(e) => update("brand", e.target.value)}
-                                error={!!errors.brand}
+                                onChange={(event) =>
+                                    updateField("brand", event.target.value)
+                                }
+                                error={Boolean(errors.brand)}
                                 helperText={errors.brand}
                                 required
                             />
@@ -521,15 +694,21 @@ function ProductForm({ user }) {
                                 select
                                 label="Main Category"
                                 value={form.group}
-                                onChange={(e) => {
-                                    update("group", e.target.value);
-                                    update("category", "");
+                                onChange={(event) => {
+                                    setForm((previous) => ({
+                                        ...previous,
+                                        group: event.target.value,
+                                        category: "",
+                                    }));
                                 }}
                                 required
                             >
-                                {parents.map((item) => (
-                                    <MenuItem key={item.slug} value={item.slug}>
-                                        {item.name}
+                                {parents.map((category) => (
+                                    <MenuItem
+                                        key={category.slug}
+                                        value={category.slug}
+                                    >
+                                        {category.name}
                                     </MenuItem>
                                 ))}
                             </TextField>
@@ -538,16 +717,21 @@ function ProductForm({ user }) {
                                 select
                                 label="Subcategory"
                                 value={form.category}
-                                onChange={(e) => changeCategory(e.target.value)}
-                                error={!!errors.category}
+                                onChange={(event) =>
+                                    changeCategory(event.target.value)
+                                }
+                                error={Boolean(errors.category)}
                                 helperText={errors.category}
-                                required
                                 disabled={!form.group}
                                 className="sp-wide"
+                                required
                             >
-                                {children.map((item) => (
-                                    <MenuItem key={item.slug} value={item.slug}>
-                                        {item.name}
+                                {children.map((category) => (
+                                    <MenuItem
+                                        key={category.slug}
+                                        value={category.slug}
+                                    >
+                                        {category.name}
                                     </MenuItem>
                                 ))}
                             </TextField>
@@ -555,44 +739,47 @@ function ProductForm({ user }) {
                             <TextField
                                 label="Product Description"
                                 value={form.description}
-                                onChange={(e) => update("description", e.target.value)}
-                                error={!!errors.description}
+                                onChange={(event) =>
+                                    updateField("description", event.target.value)
+                                }
+                                error={Boolean(errors.description)}
                                 helperText={
                                     errors.description ||
                                     `${form.description.length}/2000 characters`
                                 }
+                                slotProps={{
+                                    htmlInput: { maxLength: 2000 },
+                                }}
                                 multiline
                                 minRows={4}
                                 className="sp-wide"
-                                slotProps={{ htmlInput: { maxLength: 2000 } }}
                                 required
                             />
 
                             <TextField
                                 label="Highlights (one per line)"
                                 value={form.highlights}
-                                onChange={(e) => update("highlights", e.target.value)}
+                                onChange={(event) =>
+                                    updateField("highlights", event.target.value)
+                                }
+                                helperText="Optional selling points"
+                                slotProps={{
+                                    htmlInput: { maxLength: 900 },
+                                }}
                                 multiline
                                 minRows={3}
-                                helperText="Optional selling points"
                                 className="sp-wide"
-                                slotProps={{ htmlInput: { maxLength: 900 } }}
                             />
                         </div>
                     </section>
 
-                    {/* Product Images */}
+                    {/* ================== PRODUCT IMAGES ================== */}
                     <section className="sp-card">
-                        <div className="sp-card-head">
-                            <span className="sp-section-icon">
-                                <i className="fa-solid fa-images" />
-                            </span>
-
-                            <div>
-                                <h2>Product Images</h2>
-                                <p>Upload up to 4 images. The first image is the cover.</p>
-                            </div>
-                        </div>
+                        <SectionHeading
+                            icon="fa-images"
+                            title="Product Images"
+                            description="Upload up to 4 images. The first image is the cover."
+                        />
 
                         <label className="sp-upload">
                             <input
@@ -604,12 +791,17 @@ function ProductForm({ user }) {
                                 onChange={uploadImages}
                             />
 
-                            <i className="fa-solid fa-cloud-arrow-up" />
+                            <i
+                                className="fa-solid fa-cloud-arrow-up"
+                                aria-hidden="true"
+                            />
+
                             <strong>
                                 {uploading
                                     ? "Processing images..."
                                     : "Choose Product Images"}
                             </strong>
+
                             <span>JPG, PNG or WebP · Max 3 MB each</span>
                         </label>
 
@@ -619,7 +811,10 @@ function ProductForm({ user }) {
 
                         <div className="sp-image-grid">
                             {form.images.map((image, index) => (
-                                <div className="sp-image-tile" key={index}>
+                                <div
+                                    className="sp-image-tile"
+                                    key={index}
+                                >
                                     <img
                                         src={image}
                                         alt={`Product image ${index + 1}`}
@@ -636,7 +831,9 @@ function ProductForm({ user }) {
                                             <button
                                                 type="button"
                                                 title="Set as cover"
-                                                onClick={() => coverImage(index)}
+                                                onClick={() =>
+                                                    setCoverImage(index)
+                                                }
                                             >
                                                 <i className="fa-solid fa-star" />
                                             </button>
@@ -645,7 +842,9 @@ function ProductForm({ user }) {
                                         <button
                                             type="button"
                                             title="Remove image"
-                                            onClick={() => removeImage(index)}
+                                            onClick={() =>
+                                                removeImage(index)
+                                            }
                                         >
                                             <i className="fa-solid fa-xmark" />
                                         </button>
@@ -656,216 +855,321 @@ function ProductForm({ user }) {
                     </section>
                 </div>
 
-                {/* Product Variants */}
+                {/* ================== PRODUCT VARIANTS ================== */}
                 <section className="sp-card sp-form-section">
-                    <div className="sp-card-head">
-                        <span className="sp-section-icon">
-                            <i className="fa-solid fa-layer-group" />
-                        </span>
-
-                        <div>
-                            <h2>Product Variants</h2>
-                            <p>
-                                Each variant needs a unique SKU, price,
-                                MRP and available stock.
-                            </p>
-                        </div>
-
-                        <Button
-                            type="button"
-                            variant="outlined"
-                            onClick={() => setForm((old) => ({
-                                ...old,
-                                variants: [...old.variants, emptyVariant()],
-                            }))}
-                            startIcon={<i className="fa-solid fa-plus" />}
-                        >
-                            Add Variant
-                        </Button>
-                    </div>
+                    <SectionHeading
+                        icon="fa-layer-group"
+                        title="Product Variants"
+                        description="Manage each SKU, price, MRP and available stock."
+                        action={
+                            <Button
+                                type="button"
+                                variant="outlined"
+                                onClick={addVariant}
+                                startIcon={
+                                    <i className="fa-solid fa-plus" />
+                                }
+                            >
+                                Add Variant
+                            </Button>
+                        }
+                    />
 
                     {errors.variants && (
                         <p className="sp-error">{errors.variants}</p>
                     )}
 
-                    <div className="sp-variant-list">
-                        {form.variants.map((variant, index) => (
-                            <div className="sp-variant" key={variant.id}>
-                                <div className="sp-variant-head">
-                                    <strong>Variant {index + 1}</strong>
-
-                                    <Button
-                                        type="button"
-                                        color="error"
-                                        size="small"
-                                        disabled={form.variants.length === 1}
-                                        onClick={() => setForm((old) => ({
-                                            ...old,
-                                            variants: old.variants.filter(
-                                                (v) => v.id !== variant.id
-                                            ),
-                                        }))}
-                                    >
-                                        Remove
-                                    </Button>
-                                </div>
-
-                                <div className="sp-variant-fields">
-                                    <TextField
-                                        label="SKU"
-                                        value={variant.sku}
-                                        onChange={(e) =>
-                                            changeVariant(
-                                                index, "sku",
-                                                e.target.value.toUpperCase()
-                                            )
-                                        }
-                                        required
-                                        slotProps={{
-                                            htmlInput: { maxLength: 30 },
-                                        }}
-                                    />
-
-                                    <TextField
-                                        label="Variant (Size / Colour / Pack)"
-                                        value={variant.label}
-                                        onChange={(e) =>
-                                            changeVariant(
-                                                index, "label", e.target.value
-                                            )
-                                        }
-                                        required
-                                    />
-
-                                    <TextField
-                                        label="Selling Price (₹)"
-                                        type="number"
-                                        value={variant.price}
-                                        onChange={(e) =>
-                                            changeVariant(
-                                                index, "price", e.target.value
-                                            )
-                                        }
-                                        required
-                                        slotProps={{
-                                            htmlInput: { min: 1, step: "0.01" },
-                                        }}
-                                    />
-
-                                    <TextField
-                                        label="MRP (₹)"
-                                        type="number"
-                                        value={variant.mrp}
-                                        onChange={(e) =>
-                                            changeVariant(
-                                                index, "mrp", e.target.value
-                                            )
-                                        }
-                                        required
-                                        slotProps={{
-                                            htmlInput: { min: 1, step: "0.01" },
-                                        }}
-                                    />
-
-                                    <TextField
-                                        label="Available Stock"
-                                        type="number"
-                                        value={variant.stock}
-                                        onChange={(e) =>
-                                            changeVariant(
-                                                index, "stock", e.target.value
-                                            )
-                                        }
-                                        required
-                                        slotProps={{
-                                            htmlInput: { min: 0, step: 1 },
-                                        }}
-                                    />
-
-                                    <TextField
-                                        select
-                                        label="Variant Image"
-                                        value={
-                                            form.images.length
-                                                ? String(Math.min(
-                                                    variant.imageIndex,
-                                                    form.images.length - 1
-                                                ))
-                                                : ""
-                                        }
-                                        onChange={(e) =>
-                                            changeVariant(
-                                                index, "imageIndex",
-                                                Number(e.target.value)
-                                            )
-                                        }
-                                        disabled={!form.images.length}
-                                    >
-                                        {form.images.map((_, i) => (
-                                            <MenuItem key={i} value={String(i)}>
-                                                {i === 0
-                                                    ? "Cover Image"
-                                                    : `Image ${i + 1}`}
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
-                                </div>
+                    {/* ================== STOCK CHANGE DETAILS ================== */}
+                    {stockChanged && (
+                        <div className="sp-stock-audit">
+                            <div>
+                                <strong>Stock Change Details</strong>
+                                <p>
+                                    Stock edits are recorded in Inventory
+                                    History, not counted as sales.
+                                </p>
                             </div>
-                        ))}
+
+                            <div className="sp-stock-audit-fields">
+                                <TextField
+                                    select
+                                    size="small"
+                                    label="Movement Type"
+                                    value={stockReason}
+                                    onChange={(event) => {
+                                        setStockReason(event.target.value);
+                                        setErrors((previous) => ({
+                                            ...previous,
+                                            stockReason: "",
+                                        }));
+                                    }}
+                                    error={Boolean(errors.stockReason)}
+                                    helperText={errors.stockReason || " "}
+                                    required
+                                >
+                                    <MenuItem value="Restock">
+                                        Restock / Received
+                                    </MenuItem>
+                                    <MenuItem value="Adjustment">
+                                        Stock Count Correction
+                                    </MenuItem>
+                                    <MenuItem value="Damage/Loss">
+                                        Damage / Loss
+                                    </MenuItem>
+                                </TextField>
+
+                                <TextField
+                                    size="small"
+                                    label="Reason / Reference"
+                                    value={stockNote}
+                                    onChange={(event) => {
+                                        setStockNote(event.target.value);
+                                        setErrors((previous) => ({
+                                            ...previous,
+                                            stockNote: "",
+                                        }));
+                                    }}
+                                    error={Boolean(errors.stockNote)}
+                                    helperText={errors.stockNote || " "}
+                                    required={stockReason !== "Restock"}
+                                    slotProps={{
+                                        htmlInput: { maxLength: 150 },
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="sp-variant-list">
+                        {form.variants.map((variant, index) => {
+                            const existing = original?.variants?.find((item) =>
+                                String(item.id) === String(variant.id)
+                            );
+
+                            const reserved = Number(
+                                existing?.reservedStock ??
+                                existing?.reservedQuantity ??
+                                0
+                            );
+
+                            const cannotRemove = Boolean(
+                                existing &&
+                                (
+                                    Number(existing.stock || 0) > 0 ||
+                                    reserved > 0
+                                )
+                            );
+
+                            return (
+                                <div
+                                    className="sp-variant"
+                                    key={variant.id}
+                                >
+                                    <div className="sp-variant-head">
+                                        <strong>Variant {index + 1}</strong>
+
+                                        <Button
+                                            type="button"
+                                            color="error"
+                                            size="small"
+                                            disabled={
+                                                form.variants.length === 1 ||
+                                                cannotRemove
+                                            }
+                                            title={
+                                                cannotRemove
+                                                    ? "Set stock to zero before removal"
+                                                    : "Remove variant"
+                                            }
+                                            onClick={() =>
+                                                removeVariant(variant.id)
+                                            }
+                                        >
+                                            Remove
+                                        </Button>
+                                    </div>
+
+                                    <div className="sp-variant-fields">
+                                        <TextField
+                                            label="SKU"
+                                            value={variant.sku}
+                                            onChange={(event) =>
+                                                changeVariant(
+                                                    index,
+                                                    "sku",
+                                                    event.target.value.toUpperCase()
+                                                )
+                                            }
+                                            slotProps={{
+                                                htmlInput: { maxLength: 30 },
+                                            }}
+                                            required
+                                        />
+
+                                        <TextField
+                                            label="Variant (Size / Colour / Pack)"
+                                            value={variant.label}
+                                            onChange={(event) =>
+                                                changeVariant(
+                                                    index,
+                                                    "label",
+                                                    event.target.value
+                                                )
+                                            }
+                                            required
+                                        />
+
+                                        <TextField
+                                            label="Selling Price (₹)"
+                                            type="number"
+                                            value={variant.price}
+                                            onChange={(event) =>
+                                                changeVariant(
+                                                    index,
+                                                    "price",
+                                                    event.target.value
+                                                )
+                                            }
+                                            slotProps={{
+                                                htmlInput: {
+                                                    min: 1,
+                                                    step: "0.01",
+                                                },
+                                            }}
+                                            required
+                                        />
+
+                                        <TextField
+                                            label="MRP (₹)"
+                                            type="number"
+                                            value={variant.mrp}
+                                            onChange={(event) =>
+                                                changeVariant(
+                                                    index,
+                                                    "mrp",
+                                                    event.target.value
+                                                )
+                                            }
+                                            slotProps={{
+                                                htmlInput: {
+                                                    min: 1,
+                                                    step: "0.01",
+                                                },
+                                            }}
+                                            required
+                                        />
+
+                                        <TextField
+                                            label="On-Hand Stock"
+                                            type="number"
+                                            value={variant.stock}
+                                            onChange={(event) =>
+                                                changeVariant(
+                                                    index,
+                                                    "stock",
+                                                    event.target.value
+                                                )
+                                            }
+                                            slotProps={{
+                                                htmlInput: {
+                                                    min: 0,
+                                                    max: MAX_STOCK,
+                                                    step: 1,
+                                                },
+                                            }}
+                                            required
+                                        />
+
+                                        <TextField
+                                            select
+                                            label="Variant Image"
+                                            value={
+                                                form.images.length
+                                                    ? String(Math.min(
+                                                        variant.imageIndex,
+                                                        form.images.length - 1
+                                                    ))
+                                                    : ""
+                                            }
+                                            onChange={(event) =>
+                                                changeVariant(
+                                                    index,
+                                                    "imageIndex",
+                                                    Number(event.target.value)
+                                                )
+                                            }
+                                            disabled={!form.images.length}
+                                        >
+                                            {form.images.map((_, position) => (
+                                                <MenuItem
+                                                    key={position}
+                                                    value={String(position)}
+                                                >
+                                                    {position === 0
+                                                        ? "Cover Image"
+                                                        : `Image ${position + 1}`}
+                                                </MenuItem>
+                                            ))}
+                                        </TextField>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </section>
 
-                {/* Specifications */}
+                {/* ================== SPECIFICATIONS ================== */}
                 <section className="sp-card sp-form-section">
-                    <div className="sp-card-head">
-                        <span className="sp-section-icon">
-                            <i className="fa-solid fa-list" />
-                        </span>
-
-                        <div>
-                            <h2>Specifications</h2>
-                            <p>Provide relevant technical or product attributes.</p>
-                        </div>
-
-                        <Button
-                            type="button"
-                            variant="outlined"
-                            onClick={() => setForm((old) => ({
-                                ...old,
-                                specifications: [
-                                    ...old.specifications,
-                                    emptySpec(),
-                                ],
-                            }))}
-                            startIcon={<i className="fa-solid fa-plus" />}
-                        >
-                            Add Specification
-                        </Button>
-                    </div>
+                    <SectionHeading
+                        icon="fa-list"
+                        title="Specifications"
+                        description="Provide relevant technical or product attributes."
+                        action={
+                            <Button
+                                type="button"
+                                variant="outlined"
+                                onClick={addSpecification}
+                                startIcon={
+                                    <i className="fa-solid fa-plus" />
+                                }
+                            >
+                                Add Specification
+                            </Button>
+                        }
+                    />
 
                     {errors.specifications && (
-                        <p className="sp-error">{errors.specifications}</p>
+                        <p className="sp-error">
+                            {errors.specifications}
+                        </p>
                     )}
 
                     <div className="sp-spec-list">
-                        {form.specifications.map((spec, index) => (
-                            <div className="sp-spec-row" key={index}>
+                        {form.specifications.map((specification, index) => (
+                            <div
+                                className="sp-spec-row"
+                                key={index}
+                            >
                                 <TextField
                                     label="Attribute"
-                                    value={spec.label}
-                                    onChange={(e) =>
-                                        changeSpec(
-                                            index, "label", e.target.value
+                                    value={specification.label}
+                                    onChange={(event) =>
+                                        changeSpecification(
+                                            index,
+                                            "label",
+                                            event.target.value
                                         )
                                     }
                                 />
 
                                 <TextField
                                     label="Value"
-                                    value={spec.value}
-                                    onChange={(e) =>
-                                        changeSpec(
-                                            index, "value", e.target.value
+                                    value={specification.value}
+                                    onChange={(event) =>
+                                        changeSpecification(
+                                            index,
+                                            "value",
+                                            event.target.value
                                         )
                                     }
                                 />
@@ -873,14 +1177,12 @@ function ProductForm({ user }) {
                                 <Button
                                     type="button"
                                     color="error"
-                                    disabled={form.specifications.length === 1}
-                                    onClick={() => setForm((old) => ({
-                                        ...old,
-                                        specifications:
-                                            old.specifications.filter(
-                                                (_, i) => i !== index
-                                            ),
-                                    }))}
+                                    disabled={
+                                        form.specifications.length === 1
+                                    }
+                                    onClick={() =>
+                                        removeSpecification(index)
+                                    }
                                 >
                                     <i className="fa-solid fa-trash" />
                                 </Button>
@@ -889,12 +1191,11 @@ function ProductForm({ user }) {
                     </div>
                 </section>
 
-                {/* Form Actions */}
+                {/* ================== FORM ACTIONS ================== */}
                 <div className="sp-form-footer">
                     <span>
                         <i className="fa-solid fa-circle-info" />
-                        Frontend preview · New listings are submitted
-                        for admin review.
+                        Frontend preview · New listings require admin review.
                     </span>
 
                     <div>

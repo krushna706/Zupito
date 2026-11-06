@@ -16846,3 +16846,912 @@
         transition: none;
     }
 }
+
+
+
+/* Seller: Inventory */
+.seller-inventory {
+    --si-blue: #265df5;
+    --si-navy: #071b45;
+    --si-border: #e1e7f1;
+    min-width: 0;
+    color: var(--si-navy);
+}
+
+.seller-inventory *,
+.seller-inventory *::before,
+.seller-inventory *::after {
+    box-sizing: border-box;
+}
+
+/* Page Header */
+.seller-inventory .si-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-height: 110px;
+    padding: 24px 27px;
+    margin-bottom: 18px;
+    border: 1px solid #dae5fb;
+    border-radius: 17px;
+    background: linear-gradient(110deg, #fff 48%, #edf4ff);
+}
+
+.seller-inventory .si-hero h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 9px;
+    color: var(--si-blue);
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -.1px;
+}
+
+.seller-inventory .si-hero h1 i { font-size: 19px; }
+
+.seller-inventory .si-hero p {
+    margin: 0;
+    color: #63718b;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.seller-inventory .si-header-actions,
+.seller-inventory .si-import-buttons,
+.seller-inventory .si-preview-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.seller-inventory .MuiButton-root {
+    min-height: 37px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    white-space: nowrap;
+    box-shadow: none;
+}
+
+.seller-inventory .MuiButton-contained {
+    background: var(--si-blue);
+}
+
+.seller-inventory .MuiButton-contained:hover {
+    background: #1749d7;
+    box-shadow: none;
+}
+
+.seller-inventory .MuiButton-outlined {
+    border-color: #d4e1ff;
+    color: var(--si-blue);
+}
+
+.seller-inventory .MuiButton-outlined:hover {
+    border-color: var(--si-blue);
+    background: #f2f6ff;
+}
+
+/* KPI Cards */
+.seller-inventory .si-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.seller-inventory .si-stat {
+    --si-tone: #265df5;
+    --si-soft: #eaf0ff;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    min-height: 143px;
+    padding: 19px 20px;
+    overflow: hidden;
+    border: 1px solid var(--si-border);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgb(24 36 59 / 3%);
+}
+
+.seller-inventory .si-stat::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--si-tone);
+}
+
+.seller-inventory .si-stat-green {
+    --si-tone: #0b9d61;
+    --si-soft: #e8f8f0;
+}
+
+.seller-inventory .si-stat-orange {
+    --si-tone: #f49a11;
+    --si-soft: #fff3df;
+}
+
+.seller-inventory .si-stat-red {
+    --si-tone: #ed4c60;
+    --si-soft: #fff0f2;
+}
+
+.seller-inventory .si-stat-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.seller-inventory .si-stat-top > span:first-child {
+    color: #425477;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.seller-inventory .si-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--si-soft);
+    color: var(--si-tone);
+    font-size: 16px;
+}
+
+.seller-inventory .si-stat > strong {
+    font-size: 29px;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
+.seller-inventory .si-stat > small {
+    color: #8492a8;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Low Stock Alert */
+.seller-inventory .si-alert {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 19px;
+    margin-bottom: 18px;
+    border: 1px solid #f2e1bc;
+    border-radius: 13px;
+    background: #fffaf0;
+}
+
+.seller-inventory .si-alert-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: #fff0cd;
+    color: #b77b13;
+    font-size: 17px;
+}
+
+.seller-inventory .si-alert > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.seller-inventory .si-alert strong {
+    color: #795716;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.seller-inventory .si-alert p {
+    margin: 4px 0 0;
+    color: #9b814f;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.seller-inventory .si-alert .MuiButton-root {
+    flex-shrink: 0;
+    border-color: #efd7a3;
+    color: #a47016;
+}
+
+/* Content Cards */
+.seller-inventory .si-card {
+    min-width: 0;
+    padding: 23px;
+    margin-bottom: 18px;
+    border: 1px solid var(--si-border);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(24 36 59 / 3%);
+}
+
+.seller-inventory .si-card-heading {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+    margin-bottom: 21px;
+}
+
+.seller-inventory .si-card-heading > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.seller-inventory .si-heading-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: #edf2ff;
+    color: var(--si-blue);
+    font-size: 16px;
+}
+
+.seller-inventory .si-card-heading h2 {
+    margin: 0 0 4px;
+    color: var(--si-navy);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.seller-inventory .si-card-heading p {
+    margin: 0;
+    color: #77849c;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* CSV Import */
+.seller-inventory .si-import-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 20px;
+    border: 1px dashed #d2dffa;
+    border-radius: 12px;
+    background: #f8faff;
+}
+
+.seller-inventory .si-import-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.seller-inventory .si-import-text strong {
+    color: #405477;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.seller-inventory .si-import-text p {
+    margin: 6px 0 0;
+    color: #8190a6;
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.seller-inventory .si-csv-results {
+    min-width: 0;
+    margin-top: 18px;
+    border: 1px solid #e5ebf5;
+    border-radius: 11px;
+    overflow: hidden;
+}
+
+.seller-inventory .si-preview-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 15px 17px;
+    background: #f8faff;
+}
+
+.seller-inventory .si-preview-summary > div:first-child {
+    flex: 1;
+    min-width: 0;
+}
+
+.seller-inventory .si-preview-summary strong {
+    color: #354969;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.seller-inventory .si-preview-summary p {
+    margin: 5px 0 0;
+    color: #8190a6;
+    font-size: 12px;
+}
+
+/* Inventory Listing */
+.seller-inventory .si-list-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.seller-inventory .si-list-heading {
+    padding: 20px 23px;
+    margin: 0;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.seller-inventory .si-record-count {
+    padding: 6px 11px;
+    border: 1px solid #d8e4ff;
+    border-radius: 24px;
+    background: #f3f6ff;
+    color: var(--si-blue);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.seller-inventory .si-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(160px, 1fr) 140px;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 23px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.seller-inventory .si-toolbar .MuiTextField-root {
+    min-width: 0;
+}
+
+.seller-inventory .MuiOutlinedInput-root {
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.seller-inventory .MuiInputLabel-root {
+    font-size: 13px;
+}
+
+/* Inventory Tables */
+.seller-inventory .si-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.seller-inventory .si-table {
+    min-width: 860px;
+}
+
+.seller-inventory .si-table .MuiTableHead-root {
+    background: #f4f7fc;
+}
+
+.seller-inventory .si-table .MuiTableHead-root .MuiTableCell-root {
+    padding: 14px;
+    border-color: #e2eaf4;
+    color: #40547c;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.seller-inventory .si-table .MuiTableBody-root .MuiTableCell-root {
+    padding: 13px 14px;
+    border-color: #edf1f6;
+    color: #3d5072;
+    font-size: 14px;
+    font-weight: 400;
+    vertical-align: middle;
+}
+
+.seller-inventory .si-table .MuiTableRow-root:hover {
+    background: #f9fbff;
+}
+
+.seller-inventory .si-product {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 220px;
+}
+
+.seller-inventory .si-product img,
+.seller-inventory .si-placeholder {
+    display: grid;
+    place-items: center;
+    flex: 0 0 54px;
+    width: 54px;
+    height: 54px;
+    padding: 4px;
+    border: 1px solid #e8edf5;
+    border-radius: 9px;
+    background: #f7f9fc;
+    object-fit: contain;
+}
+
+.seller-inventory .si-placeholder {
+    color: #90a0b8;
+    font-size: 17px;
+}
+
+.seller-inventory .si-product > div,
+.seller-inventory .si-cell-stack {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.seller-inventory .si-product strong {
+    max-width: 245px;
+    color: #344562;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.seller-inventory .si-cell-stack strong {
+    color: #405477;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.seller-inventory .si-product small,
+.seller-inventory .si-cell-stack small {
+    color: #8997aa;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+/* Stock Controls */
+.seller-inventory .si-stock-edit {
+    display: grid;
+    gap: 4px;
+    width: 108px;
+}
+
+.seller-inventory .si-stock-edit .MuiOutlinedInput-root {
+    height: 39px;
+}
+
+.seller-inventory .si-stock-edit input {
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.seller-inventory .si-stock-edit small {
+    color: #8693a9;
+    font-size: 11px;
+}
+
+.seller-inventory .si-table .MuiButton-outlined {
+    min-width: 66px;
+    min-height: 34px;
+    padding: 5px 12px;
+}
+
+.seller-inventory .si-table .MuiButton-root.Mui-disabled {
+    border-color: #e3e8f0;
+    color: #a5afbd;
+}
+
+/* Status Badges */
+.seller-inventory .si-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 11px;
+    border: 1px solid #dce3ec;
+    border-radius: 24px;
+    background: #f3f5f9;
+    color: #68778f;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.seller-inventory .si-badge i {
+    font-size: 6px;
+}
+
+.seller-inventory .si-badge-success {
+    border-color: #bfead0;
+    background: #e9f9ef;
+    color: #07894e;
+}
+
+.seller-inventory .si-badge-warning {
+    border-color: #ffe0af;
+    background: #fff7e9;
+    color: #b87808;
+}
+
+.seller-inventory .si-badge-danger {
+    border-color: #ffd3da;
+    background: #fff0f3;
+    color: #d83b50;
+}
+
+.seller-inventory .si-badge-neutral {
+    border-color: #dce3ec;
+    background: #f3f5f9;
+    color: #68778f;
+}
+
+/* Empty State */
+.seller-inventory .si-empty {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 38px 15px;
+    text-align: center;
+}
+
+.seller-inventory .si-empty > i {
+    color: var(--si-blue);
+    font-size: 28px;
+}
+
+.seller-inventory .si-empty h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.seller-inventory .si-empty p {
+    margin: 0;
+    color: #8390a6;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.seller-inventory .MuiTablePagination-root {
+    border-top: 1px solid #edf1f6;
+    font-size: 12px;
+}
+
+/* Responsive */
+@media (max-width: 1150px) {
+    .seller-inventory .si-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 850px) {
+    .seller-inventory .si-hero,
+    .seller-inventory .si-import-controls {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .seller-inventory .si-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .seller-inventory .si-toolbar .MuiTextField-root:first-child {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 600px) {
+    .seller-inventory .si-hero,
+    .seller-inventory .si-card {
+        padding: 18px;
+    }
+
+    .seller-inventory .si-header-actions,
+    .seller-inventory .si-import-buttons {
+        width: 100%;
+    }
+
+    .seller-inventory .si-list-card {
+        padding: 0;
+    }
+
+    .seller-inventory .si-list-heading {
+        padding: 18px;
+        flex-wrap: wrap;
+    }
+
+    .seller-inventory .si-toolbar {
+        padding: 15px;
+    }
+
+    .seller-inventory .si-preview-summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .seller-inventory .si-preview-actions {
+        width: 100%;
+    }
+
+    .seller-inventory .si-alert {
+        flex-wrap: wrap;
+    }
+
+    .seller-inventory .si-alert .MuiButton-root {
+        margin-left: 56px;
+    }
+}
+
+@media (max-width: 420px) {
+    .seller-inventory .si-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-inventory .si-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-inventory .si-toolbar .MuiTextField-root:first-child {
+        grid-column: auto;
+    }
+
+    .seller-inventory .si-stat {
+        min-height: 125px;
+    }
+
+    .seller-inventory .si-alert .MuiButton-root {
+        margin-left: 0;
+    }
+}
+
+
+/* Seller Inventory: Stock Movement enhancements */
+.seller-inventory .si-table-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.seller-inventory .si-import-buttons .MuiTextField-root {
+    min-width: 155px;
+}
+
+.seller-inventory .si-import-buttons .MuiOutlinedInput-root,
+.seller-inventory .si-history-filters .MuiOutlinedInput-root {
+    min-height: 39px;
+}
+
+.seller-inventory .si-preview-scroll {
+    max-height: 350px;
+}
+
+.seller-inventory .si-history {
+    scroll-margin-top: 20px;
+}
+
+.seller-inventory .si-history-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(150px, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 17px 23px;
+    border-bottom: 1px solid #e9eef5;
+}
+
+.seller-inventory .si-history-filters .MuiTextField-root {
+    min-width: 0;
+}
+
+.seller-inventory .si-history-table {
+    min-width: 1050px;
+}
+
+.seller-inventory .si-history-table .si-cell-stack {
+    max-width: 260px;
+    overflow-wrap: anywhere;
+}
+
+.seller-inventory .si-delta-plus {
+    color: #07894e;
+}
+
+.seller-inventory .si-delta-minus {
+    color: #d83b50;
+}
+
+.seller-inventory .si-list-heading > .MuiButton-root {
+    margin-left: auto;
+}
+
+/* Movement Entry Dialog */
+.si-dialog .MuiDialog-paper {
+    border-radius: 16px;
+}
+
+.si-dialog .MuiDialogTitle-root {
+    color: #071b45;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.si-dialog .MuiDialogActions-root {
+    padding: 14px 22px;
+}
+
+.si-dialog .MuiButton-root {
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.si-dialog .MuiButton-contained {
+    background: #265df5;
+}
+
+.si-dialog .MuiOutlinedInput-root {
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.si-dialog .MuiInputLabel-root {
+    font-size: 13px;
+}
+
+.si-dialog-content {
+    display: grid;
+    gap: 18px;
+    padding-top: 5px;
+}
+
+.si-dialog-summary {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.si-dialog-summary strong {
+    color: #172747;
+    font-size: 14px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.si-dialog-summary small {
+    color: #7d8ba1;
+    font-size: 12px;
+}
+
+.si-dialog-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px 12px;
+}
+
+.si-dialog-fields .MuiTextField-root {
+    min-width: 0;
+}
+
+.si-dialog-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 15px;
+    border: 1px solid #dce7fb;
+    border-radius: 10px;
+    background: #f5f8ff;
+    color: #657590;
+    font-size: 13px;
+}
+
+.si-dialog-result strong {
+    color: #172747;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.si-dialog-result i {
+    color: #265df5;
+}
+
+/* Product Form: Stock Change Details */
+.seller-product-page .sp-stock-audit {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(330px, 1.4fr);
+    align-items: center;
+    gap: 17px;
+    padding: 17px 19px;
+    margin: 0 0 16px;
+    border: 1px solid #dce7fb;
+    border-radius: 12px;
+    background: #f6f9ff;
+}
+
+.seller-product-page .sp-stock-audit strong {
+    display: block;
+    color: #172747;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.seller-product-page .sp-stock-audit p {
+    margin: 6px 0 0;
+    color: #7b899e;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.seller-product-page .sp-stock-audit-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 12px;
+}
+
+.seller-product-page .sp-stock-audit-fields .MuiTextField-root {
+    min-width: 0;
+}
+
+/* Responsive */
+@media (max-width: 950px) {
+    .seller-product-page .sp-stock-audit {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .seller-inventory .si-history-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .seller-inventory .si-history-filters .MuiTextField-root:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .seller-inventory .si-history-filters > .MuiButton-root {
+        justify-self: start;
+    }
+}
+
+@media (max-width: 560px) {
+    .seller-inventory .si-table-actions {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+
+    .seller-inventory .si-history-filters {
+        grid-template-columns: 1fr;
+        padding: 15px;
+    }
+
+    .seller-inventory .si-history-filters .MuiTextField-root:first-child {
+        grid-column: auto;
+    }
+
+    .seller-inventory .si-import-buttons .MuiTextField-root {
+        width: 100%;
+    }
+
+    .si-dialog-fields,
+    .seller-product-page .sp-stock-audit-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-product-page .sp-stock-audit {
+        padding: 14px;
+    }
+}

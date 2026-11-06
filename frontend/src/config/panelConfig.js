@@ -25,6 +25,7 @@ import SellerApprovalStatus from "../seller/ApprovalStatus";
 import StoreProfile from "../seller/StoreProfile";
 import SellerProducts from "../seller/Products";
 import SellerProductForm from "../seller/ProductForm";
+import SellerInventory from "../seller/Inventory";
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -125,7 +126,7 @@ export const panelPages = [
             end: false,
         },
     },
-    
+
     {
         path: "products",
         components: {
@@ -286,8 +287,16 @@ export const panelPages = [
             end: false,
         },
     },
-
-    previewPage("inventory", "Inventory", "fa-solid fa-boxes-stacked", ["seller"]),
+    {
+        path: "inventory",
+        component: SellerInventory,
+        allowedRoles: ["seller"],
+        navigation: {
+            label: "Inventory",
+            icon: "fa-solid fa-boxes-stacked",
+            end: false,
+        },
+    },
     previewPage("earnings", "Earnings", "fa-solid fa-wallet", ["seller"]),
 
     // ================== DELIVERY AGENT PANEL ==================

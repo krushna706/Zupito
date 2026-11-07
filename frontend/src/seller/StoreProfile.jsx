@@ -1,92 +1,69 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button, TextField } from "@mui/material";
+import { Alert, Button, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
-// ================== STORE CONFIGURATION ==================
-const PROFILE_KEY = "zupito_seller_store_profiles";
-const ADMIN_KEY = "zupito_admin_sellers";
+import { useAuth } from "../context/AuthContext";
+import * as storeService from "../services/sellerService";
 
 const storeFields = [
     { name: "storeName", label: "Store Name", max: 100, wide: true },
     { name: "storeEmail", label: "Store Email", max: 254 },
     { name: "storePhone", label: "Contact Number", max: 10, numeric: true },
-    { name: "description", label: "Store Description", max: 500, wide: true, multiline: true, required: false },
+    {
+        name: "description",
+        label: "Store Description",
+        max: 500,
+        wide: true,
+        multiline: true,
+        required: false,
+    },
 ];
 
 const pickupFields = [
-    { name: "address", label: "Pickup Address", max: 200, wide: true },
+    { name: "street", label: "Pickup Address", max: 200, wide: true },
     { name: "locality", label: "Locality / Area", max: 100 },
-    { name: "city", label: "City", max: 80 },
-    { name: "state", label: "State", max: 80 },
+    { name: "city", label: "City", max: 100 },
+    { name: "state", label: "State", max: 100 },
     { name: "pincode", label: "Pincode", max: 6, numeric: true },
-    { name: "pickupNotes", label: "Pickup Instructions (Optional)", max: 200, wide: true, multiline: true, required: false },
+    {
+        name: "pickupNotes",
+        label: "Pickup Instructions (Optional)",
+        max: 200,
+        wide: true,
+        multiline: true,
+        required: false,
+    },
 ];
 
 const allFields = [...storeFields, ...pickupFields];
-const completionFields = [
-    "storeLogo",
-    ...allFields.filter((item) => item.name !== "pickupNotes").map((item) => item.name),
-];
 
-// ================== STORAGE HELPERS ==================
-function readStorage(key, fallback) {
-    try {
-        return JSON.parse(localStorage.getItem(key)) ?? fallback;
-    } catch {
-        return fallback;
-    }
-}
-
-const accountKey = (user) => String(user?.id || user?.email || "seller-demo").toLowerCase();
-
-function findSeller(user) {
-    const sellers = readStorage(ADMIN_KEY, []);
-
-    if (!Array.isArray(sellers)) return null;
-
-    return sellers.find((seller) =>
-        (user?.email && seller.email?.toLowerCase() === user.email.toLowerCase()) ||
-        (user?.phone && String(seller.mobile) === String(user.phone))
-    ) || null;
-}
-
-function loadProfile(user) {
-    const seller = findSeller(user);
-    const profiles = readStorage(PROFILE_KEY, {});
-    const stored = profiles && !Array.isArray(profiles) ? profiles[accountKey(user)] : null;
-
-    const profile = {
-        storeLogo: "",
-        storeName: "Zupito Seller Store",
-        storeEmail: user?.email || "",
-        storePhone: user?.phone || "",
-    };
-
-    allFields.forEach(({ name }) => {
-        profile[name] ??= "";
-        if (typeof seller?.[name] === "string") {
-            profile[name] = seller[name];
-        }
-    });
-
-    if (typeof seller?.storeLogo === "string") {
-        profile.storeLogo = seller.storeLogo;
-    }
-
+function toForm(store) {
     return {
-        ...profile,
-        ...(stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {}),
+        storeName: store.storeName || "",
+        storeEmail: store.storeEmail || "",
+        storePhone: store.storePhone || "",
+        description: store.description || "",
+        street: store.pickupAddress?.street || "",
+        locality: store.pickupAddress?.locality || "",
+        city: store.pickupAddress?.city || "",
+        state: store.pickupAddress?.state || "",
+        pincode: store.pickupAddress?.pincode || "",
+        pickupNotes: store.pickupAddress?.pickupNotes || "",
     };
 }
 
-// ================== VALIDATION ==================
 function validate(form) {
     const errors = {};
 
-    if (form.storeName.length < 3) {
-        errors.storeName = "Enter at least 3 characters.";
+    for (const field of allFields) {
+        if (field.required !== false && !form[field.name]) {
+            errors[field.name] = "This field is required.";
+        }
+    }
+
+    if (form.storeName.length < 2) {
+        errors.storeName = "Enter at least 2 characters.";
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.storeEmail)) {
@@ -97,13 +74,13 @@ function validate(form) {
         errors.storePhone = "Enter a valid 10-digit mobile number.";
     }
 
-    if (form.address.length < 5) {
-        errors.address = "Enter a complete pickup address.";
+    if (form.street.length < 3) {
+        errors.street = "Enter a complete pickup address.";
     }
 
-    for (const name of ["locality", "city", "state"]) {
-        if (form[name].length < 2) {
-            errors[name] = "At least 2 characters required.";
+    for (const key of ["locality", "city", "state"]) {
+        if (form[key].length < 2) {
+            errors[key] = "Enter at least 2 characters.";
         }
     }
 
@@ -114,52 +91,6 @@ function validate(form) {
     return errors;
 }
 
-// ================== STORE LOGO ==================
-function optimizeLogo(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onerror = () => reject(new Error("Unable to read the selected image."));
-
-        reader.onload = () => {
-            const image = new Image();
-
-            image.onerror = () => reject(new Error("Invalid image file."));
-
-            image.onload = () => {
-                try {
-                    const ratio = Math.min(1, 480 / Math.max(image.width, image.height));
-                    const canvas = document.createElement("canvas");
-
-                    canvas.width = Math.max(1, Math.round(image.width * ratio));
-                    canvas.height = Math.max(1, Math.round(image.height * ratio));
-
-                    const context = canvas.getContext("2d");
-
-                    if (!context) throw new Error("Image processing is unavailable.");
-
-                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-                    const result = canvas.toDataURL("image/webp", 0.8);
-
-                    if (result.length > 600000) {
-                        throw new Error("Logo is too large for browser storage.");
-                    }
-
-                    resolve(result);
-                } catch (error) {
-                    reject(error);
-                }
-            };
-
-            image.src = reader.result;
-        };
-
-        reader.readAsDataURL(file);
-    });
-}
-
-// ================== FORM FIELD ==================
 function StoreField({ item, form, errors, editing, onChange }) {
     const value = form[item.name] || "";
 
@@ -193,49 +124,79 @@ function StoreField({ item, form, errors, editing, onChange }) {
     );
 }
 
-// ================== STORE PROFILE ==================
-function StoreProfile({ user }) {
-    const [form, setForm] = useState(() => loadProfile(user));
-    const [saved, setSaved] = useState(() => loadProfile(user));
-    const [seller, setSeller] = useState(() => findSeller(user));
-    const [editing, setEditing] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [errors, setErrors] = useState({});
-
+function StoreProfile() {
+    const { user, refreshUser } = useAuth();
     const fileRef = useRef(null);
 
+    const [store, setStore] = useState(null);
+    const [form, setForm] = useState({});
+    const [editing, setEditing] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [errors, setErrors] = useState({});
+    const [revision, setRevision] = useState(0);
+
+    const [logoFile, setLogoFile] = useState(null);
+    const [preview, setPreview] = useState("");
+    const [removeLogo, setRemoveLogo] = useState(false);
+    const [failedLogo, setFailedLogo] = useState("");
+
     useEffect(() => {
-        if (editing) return;
+        const controller = new AbortController();
+        let active = true;
 
-        const sync = () => {
-            const profile = loadProfile(user);
-            setSaved(profile);
-            setForm(profile);
-            setSeller(findSeller(user));
-        };
+        setLoading(true);
+        setError("");
 
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
+        storeService.getStoreProfile(controller.signal)
+            .then((result) => {
+                if (!active) return;
+
+                setStore(result);
+                setForm(toForm(result));
+                setEditing(false);
+                setLogoFile(null);
+                setRemoveLogo(false);
+                setErrors({});
+            })
+            .catch((failure) => {
+                if (active) setError(failure.message);
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
 
         return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
+            active = false;
+            controller.abort();
         };
-    }, [user, editing]);
+    }, [user?._id, revision]);
 
-    // ================== FORM HANDLING ==================
+    useEffect(() => {
+        if (!logoFile) {
+            setPreview("");
+            return;
+        }
+
+        const url = URL.createObjectURL(logoFile);
+        setPreview(url);
+
+        return () => URL.revokeObjectURL(url);
+    }, [logoFile]);
+
     const handleChange = (event) => {
         const { name } = event.target;
-
         const value = ["storePhone", "pincode"].includes(name)
             ? event.target.value.replace(/\D/g, "")
             : event.target.value;
 
         setForm((previous) => ({ ...previous, [name]: value }));
         setErrors((previous) => ({ ...previous, [name]: "" }));
+        setError("");
     };
 
-    const handleLogo = async (event) => {
+    const handleLogo = (event) => {
         const file = event.target.files?.[0];
         event.target.value = "";
 
@@ -243,161 +204,185 @@ function StoreProfile({ user }) {
 
         if (
             !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+            !file.size ||
             file.size > 3 * 1024 * 1024
         ) {
-            toast.error("Select a JPG, PNG or WebP image up to 3 MB.");
+            toast.error("Select a valid JPG, PNG or WebP image up to 3 MB.");
             return;
         }
 
-        setUploading(true);
-
-        try {
-            const storeLogo = await optimizeLogo(file);
-            setForm((previous) => ({ ...previous, storeLogo }));
-        } catch (error) {
-            toast.error(error.message);
-        } finally {
-            setUploading(false);
-        }
+        setLogoFile(file);
+        setRemoveLogo(false);
+        setFailedLogo("");
+        setError("");
     };
 
     const handleCancel = () => {
-        setForm(saved);
+        setForm(toForm(store));
+        setLogoFile(null);
+        setRemoveLogo(false);
         setErrors({});
+        setError("");
         setEditing(false);
     };
 
-    const handleSave = (event) => {
+    const handleSave = async (event) => {
         event.preventDefault();
+        if (!editing || saving) return;
 
-        if (!editing || uploading) return;
-
-        const next = Object.fromEntries(
-            Object.entries(form).map(([key, value]) => [
-                key,
-                typeof value === "string" && key !== "storeLogo"
-                    ? value.trim()
-                    : value,
-            ])
+        const values = Object.fromEntries(
+            Object.entries(form).map(([key, value]) => [key, value.trim()])
         );
 
-        const validationErrors = validate(next);
+        const validationErrors = validate(values);
 
         if (Object.keys(validationErrors).length) {
             setErrors(validationErrors);
-            toast.error("Please correct the highlighted fields.");
             return;
         }
 
-        if (JSON.stringify(next) === JSON.stringify(saved)) {
+        const changed =
+            JSON.stringify(values) !== JSON.stringify(toForm(store)) ||
+            Boolean(logoFile) ||
+            (removeLogo && Boolean(store.storeLogo?.url));
+
+        if (!changed) {
             setEditing(false);
             toast.info("No changes to save.");
             return;
         }
 
-        try {
-            const profiles = readStorage(PROFILE_KEY, {});
+        setSaving(true);
+        setError("");
 
-            localStorage.setItem(
-                PROFILE_KEY,
-                JSON.stringify({
-                    ...(profiles && typeof profiles === "object" && !Array.isArray(profiles)
-                        ? profiles
-                        : {}),
-                    [accountKey(user)]: next,
-                })
+        try {
+            const result = await storeService.updateStoreProfile(
+                {
+                    ...values,
+                    version: store.version,
+                    removeLogo,
+                },
+                logoFile
             );
 
-            // Keep matching Admin demo store details updated.
-            const sellers = readStorage(ADMIN_KEY, []);
-
-            if (seller && Array.isArray(sellers)) {
-                const updates = Object.fromEntries(
-                    [...allFields.map((item) => item.name), "storeLogo"]
-                        .map((name) => [name, next[name]])
-                );
-
-                try {
-                    localStorage.setItem(
-                        ADMIN_KEY,
-                        JSON.stringify(
-                            sellers.map((item) =>
-                                item.id === seller.id
-                                    ? { ...item, ...updates }
-                                    : item
-                            )
-                        )
-                    );
-                } catch {
-                    toast.warning("Profile saved, but Admin demo synchronization was unavailable.");
-                }
-            }
-
-            setSaved(next);
-            setForm(next);
-            setSeller(findSeller(user));
+            setStore(result.store);
+            setForm(toForm(result.store));
+            setLogoFile(null);
+            setRemoveLogo(false);
             setEditing(false);
             setErrors({});
+            toast.success(result.message);
 
-            toast.success("Store profile saved successfully.");
-        } catch {
-            toast.error("Unable to save. Browser storage may be full.");
+            try {
+                await refreshUser();
+            } catch {
+                toast.warning("Store saved. Refresh the page to reload account details.");
+            }
+        } catch (failure) {
+            setError(failure.message);
+        } finally {
+            setSaving(false);
         }
     };
 
-    const completed = completionFields.filter((name) =>
-        String(form[name] || "").trim()
-    ).length;
+    if (loading) {
+        return (
+            <main className="seller-store-profile">
+                <p role="status">Loading store profile...</p>
+            </main>
+        );
+    }
 
-    const completion = Math.round(completed / completionFields.length * 100);
+    if (!store) {
+        return (
+            <main className="seller-store-profile">
+                <Alert
+                    severity="error"
+                    action={
+                        <Button
+                            color="inherit"
+                            onClick={() => setRevision((value) => value + 1)}
+                        >
+                            Retry
+                        </Button>
+                    }
+                >
+                    {error || "Store profile is unavailable."}
+                </Alert>
+            </main>
+        );
+    }
+
+    const logo = preview || (!removeLogo && store.storeLogo?.url) || "";
 
     const initials = (form.storeName || "Store")
         .trim()
         .split(/\s+/)
         .slice(0, 2)
-        .map((word) => word.charAt(0))
-        .join("")
-        .toUpperCase();
+        .map((word) => word.charAt(0).toUpperCase())
+        .join("");
 
-    const currentStatus = seller?.status || "Demo Preview";
+    const requiredFields = allFields.filter((field) => field.required !== false);
+    const completed = requiredFields.filter((field) =>
+        form[field.name]?.trim()
+    ).length;
+
+    const completion = Math.round(
+        (completed + Number(Boolean(logo))) / (requiredFields.length + 1) * 100
+    );
 
     return (
         <main className="seller-store-profile">
-            {/* ================== PAGE HEADER ================== */}
             <header className="ssp-hero">
                 <div>
                     <h1>
                         <i className="fa-solid fa-store" aria-hidden="true" />
                         STORE PROFILE
                     </h1>
-                    <p>
-                        Manage your store information, business contact details
-                        and parcel pickup address.
-                    </p>
+                    <p>Manage your store information, business contact details and parcel pickup address.</p>
                 </div>
 
                 {!editing && (
                     <Button
-                        type="button"
                         variant="outlined"
                         onClick={() => setEditing(true)}
-                        startIcon={
-                            <i className="fa-solid fa-pen" aria-hidden="true" />
-                        }
+                        disabled={saving}
+                        startIcon={<i className="fa-solid fa-pen" />}
                     >
                         Edit Store
                     </Button>
                 )}
             </header>
 
-            {/* ================== STORE IDENTITY ================== */}
+            {error && (
+                <Alert
+                    severity="error"
+                    action={
+                        <Button
+                            color="inherit"
+                            disabled={saving}
+                            onClick={() => {
+                                if (window.confirm("Reload saved details? Unsaved changes will be discarded.")) {
+                                    setRevision((value) => value + 1);
+                                }
+                            }}
+                        >
+                            Reload
+                        </Button>
+                    }
+                >
+                    {error}
+                </Alert>
+            )}
+
             <section className="ssp-overview">
                 <div className="ssp-brand">
                     <div className="ssp-logo-frame">
-                        {form.storeLogo ? (
+                        {logo && failedLogo !== logo ? (
                             <img
-                                src={form.storeLogo}
+                                src={logo}
                                 alt={`${form.storeName} logo`}
+                                onError={() => setFailedLogo(logo)}
                             />
                         ) : (
                             <span>{initials}</span>
@@ -407,44 +392,29 @@ function StoreProfile({ user }) {
                     <div className="ssp-brand-details">
                         <small>STORE IDENTITY</small>
                         <h2>{form.storeName || "Store Name"}</h2>
-
-                        <p>
-                            {seller?.id
-                                ? `Seller ID: ${seller.id}`
-                                : "Seller profile · Frontend preview"}
-                        </p>
+                        <p>Seller Profile ID: {store._id}</p>
 
                         {editing && (
                             <div className="ssp-logo-actions">
                                 <Button
-                                    type="button"
                                     variant="outlined"
                                     size="small"
-                                    disabled={uploading}
+                                    disabled={saving}
                                     onClick={() => fileRef.current?.click()}
-                                    startIcon={
-                                        <i className="fa-solid fa-image" aria-hidden="true" />
-                                    }
+                                    startIcon={<i className="fa-solid fa-image" />}
                                 >
-                                    {uploading
-                                        ? "Processing..."
-                                        : form.storeLogo
-                                            ? "Change Logo"
-                                            : "Upload Logo"}
+                                    {logo ? "Change Logo" : "Upload Logo"}
                                 </Button>
 
-                                {form.storeLogo && (
+                                {logo && (
                                     <Button
-                                        type="button"
                                         size="small"
                                         color="error"
-                                        disabled={uploading}
-                                        onClick={() =>
-                                            setForm((previous) => ({
-                                                ...previous,
-                                                storeLogo: "",
-                                            }))
-                                        }
+                                        disabled={saving}
+                                        onClick={() => {
+                                            setLogoFile(null);
+                                            setRemoveLogo(true);
+                                        }}
                                     >
                                         Remove
                                     </Button>
@@ -455,18 +425,19 @@ function StoreProfile({ user }) {
                         <input
                             ref={fileRef}
                             type="file"
-                            accept="image/jpeg,image/png,image/webp"
+                            accept=".jpg,.jpeg,.png,.webp"
                             onChange={handleLogo}
                             aria-label="Upload store logo"
+                            disabled={!editing || saving}
                             hidden
                         />
                     </div>
                 </div>
 
                 <div className="ssp-overview-side">
-                    <span className={`ssp-status is-${String(currentStatus).toLowerCase().replace(/\s+/g, "-")}`}>
+                    <span className={`ssp-status is-${store.status.toLowerCase()}`}>
                         <i className="fa-solid fa-circle" aria-hidden="true" />
-                        {currentStatus}
+                        {store.status}
                     </span>
 
                     <div className="ssp-completion">
@@ -474,27 +445,17 @@ function StoreProfile({ user }) {
                             <span>Profile Completeness</span>
                             <strong>{completion}%</strong>
                         </div>
-
-                        <progress
-                            value={completion}
-                            max="100"
-                            aria-label="Store profile completeness"
-                        />
-
+                        <progress value={completion} max="100" aria-label="Store profile completeness" />
                         <small>Logo: JPG, PNG or WebP · Max 3 MB</small>
                     </div>
                 </div>
             </section>
 
-            {/* ================== STORE DETAILS ================== */}
             <form onSubmit={handleSave} noValidate>
                 <div className="ssp-grid">
                     <section className="ssp-card">
                         <div className="ssp-card-head">
-                            <span>
-                                <i className="fa-solid fa-shop" aria-hidden="true" />
-                            </span>
-
+                            <span><i className="fa-solid fa-shop" aria-hidden="true" /></span>
                             <div>
                                 <h2>Store Information</h2>
                                 <p>Storefront and customer contact details.</p>
@@ -508,7 +469,7 @@ function StoreProfile({ user }) {
                                     item={item}
                                     form={form}
                                     errors={errors}
-                                    editing={editing}
+                                    editing={editing && !saving}
                                     onChange={handleChange}
                                 />
                             ))}
@@ -517,10 +478,7 @@ function StoreProfile({ user }) {
 
                     <section className="ssp-card">
                         <div className="ssp-card-head">
-                            <span>
-                                <i className="fa-solid fa-location-dot" aria-hidden="true" />
-                            </span>
-
+                            <span><i className="fa-solid fa-location-dot" aria-hidden="true" /></span>
                             <div>
                                 <h2>Pickup Address</h2>
                                 <p>Location used for delivery agent pickups.</p>
@@ -534,7 +492,7 @@ function StoreProfile({ user }) {
                                     item={item}
                                     form={form}
                                     errors={errors}
-                                    editing={editing}
+                                    editing={editing && !saving}
                                     onChange={handleChange}
                                 />
                             ))}
@@ -542,35 +500,30 @@ function StoreProfile({ user }) {
                     </section>
                 </div>
 
-                {/* ================== FORM ACTIONS ================== */}
                 <div className="ssp-footer">
                     <p>
                         <i className="fa-solid fa-circle-info" aria-hidden="true" />
-                        Frontend preview · Changes are saved in this browser.
+                        Store contact details are separate from your account login details.
                     </p>
 
                     <div className="ssp-footer-actions">
                         {editing ? (
                             <>
                                 <Button
-                                    type="button"
                                     variant="outlined"
                                     color="inherit"
-                                    disabled={uploading}
+                                    disabled={saving}
                                     onClick={handleCancel}
                                 >
                                     Cancel
                                 </Button>
-
                                 <Button
                                     type="submit"
                                     variant="contained"
-                                    disabled={uploading}
-                                    startIcon={
-                                        <i className="fa-solid fa-floppy-disk" aria-hidden="true" />
-                                    }
+                                    disabled={saving}
+                                    startIcon={<i className="fa-solid fa-floppy-disk" />}
                                 >
-                                    Save Changes
+                                    {saving ? "Saving..." : "Save Changes"}
                                 </Button>
                             </>
                         ) : (

@@ -60,12 +60,27 @@ const sellerSchema = new mongoose.Schema(
             default: "",
             maxlength: 500,
         },
+        storeLogo: {
+            url: {
+                type: String,
+                default: "",
+            },
+            publicId: {
+                type: String,
+                select: false,
+            },
+        },
         pickupAddress: {
             street: String,
             locality: String,
             city: String,
             state: String,
             pincode: String,
+            pickupNotes: {
+                type: String,
+                default: "",
+                maxlength: 200,
+            },
         },
         status: {
             type: String,

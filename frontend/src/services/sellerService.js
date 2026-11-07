@@ -1,4 +1,5 @@
 
+import api from "./api";
 import { productCatalog } from "../data/productCatalog";
 
 // ================== CONFIGURATION ==================
@@ -745,4 +746,27 @@ export function compressImage(file) {
 
         reader.readAsDataURL(file);
     });
+}
+
+
+// Store profile
+export const getStoreProfile = async (signal) =>
+    (await api.get("/seller/store", { signal })).data.store;
+
+export async function updateStoreProfile(values, logoFile) {
+    const form = new FormData();
+
+    Object.entries(values).forEach(([key, value]) => {
+        form.append(key, String(value));
+    });
+
+    if (logoFile) {
+        form.append("logo", logoFile);
+    }
+
+    return (
+        await api.patch("/seller/store", form, {
+            timeout: 90000,
+        })
+    ).data;
 }

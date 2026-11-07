@@ -12,88 +12,94 @@ const imageTypes = {
     ".webp": "image/webp",
 };
 
-const upload = multer({
-    storage: multer.memoryStorage(),
+function createImageUpload(fieldName, fields) {
+    const upload = multer({
+        storage: multer.memoryStorage(),
 
-    limits: {
-        fileSize: MAX_IMAGE_SIZE,
-        files: 1,
-        fields: 1,
-        parts: 2,
-        fieldSize: 1024,
-        fieldNameSize: 100,
-        fieldNestingDepth: 1,
-        fieldArrayIndexLimit: 0,
-    },
+        limits: {
+            fileSize: MAX_IMAGE_SIZE,
+            files: 1,
+            fields,
+            parts: fields + 1,
+            fieldSize: 2048,
+            fieldNameSize: 100,
+            fieldNestingDepth: 1,
+            fieldArrayIndexLimit: 0,
+        },
 
-    fileFilter: (req, file, callback) => {
-        const extension = path.extname(file.originalname).toLowerCase();
+        fileFilter: (req, file, callback) => {
+            const extension = path.extname(file.originalname).toLowerCase();
 
-        if (imageTypes[extension] !== file.mimetype) {
-            return callback(
-                new ExpressError(400, "Upload a JPG, JPEG, PNG or WebP image.")
-            );
-        }
-
-        callback(null, true);
-    },
-}).single("avatar");
-
-// Validate uploaded bytes before sending them to Cloudinary.
-function uploadProfileImage(req, res, next) {
-    upload(req, res, async (error) => {
-        if (error) {
-            if (error instanceof multer.MulterError) {
-                const tooLarge = error.code === "LIMIT_FILE_SIZE";
-
-                return next(
+            if (imageTypes[extension] !== file.mimetype) {
+                return callback(
                     new ExpressError(
-                        tooLarge ? 413 : 400,
-                        tooLarge
-                            ? "Profile picture must be 3 MB or smaller."
-                            : "Submit your name and only one profile picture."
+                        400,
+                        "Upload a JPG, JPEG, PNG or WebP image."
                     )
                 );
             }
 
-            return next(error);
-        }
+            callback(null, true);
+        },
+    }).single(fieldName);
 
-        if (!req.file) {
-            return next();
-        }
+    return (req, res, next) => {
+        upload(req, res, async (error) => {
+            if (error) {
+                if (error instanceof multer.MulterError) {
+                    const tooLarge = error.code === "LIMIT_FILE_SIZE";
 
-        try {
-            if (!req.file.size || req.file.size > MAX_IMAGE_SIZE) {
-                throw new ExpressError(
-                    400,
-                    "Image must be valid and 3 MB or smaller."
-                );
+                    return next(
+                        new ExpressError(
+                            tooLarge ? 413 : 400,
+                            tooLarge
+                                ? "Image must be 3 MB or smaller."
+                                : "Check the submitted fields and upload only one image."
+                        )
+                    );
+                }
+
+                return next(error);
             }
 
-            const { fileTypeFromBuffer } = await import("file-type");
-            const detected = await fileTypeFromBuffer(req.file.buffer);
+            if (!req.file) return next();
 
-            if (
-                !detected ||
-                detected.mime !== req.file.mimetype ||
-                !Object.values(imageTypes).includes(detected.mime)
-            ) {
-                throw new ExpressError(
-                    400,
-                    "The selected file is not a supported image."
+            try {
+                if (!req.file.size || req.file.size > MAX_IMAGE_SIZE) {
+                    throw new ExpressError(
+                        400,
+                        "Image must be valid and 3 MB or smaller."
+                    );
+                }
+
+                const { fileTypeFromBuffer } = await import("file-type");
+                const detected = await fileTypeFromBuffer(req.file.buffer);
+
+                if (
+                    !detected ||
+                    detected.mime !== req.file.mimetype ||
+                    !Object.values(imageTypes).includes(detected.mime)
+                ) {
+                    throw new ExpressError(
+                        400,
+                        "The selected file is not a supported image."
+                    );
+                }
+
+                next();
+            } catch (error) {
+                next(
+                    error.statusCode
+                        ? error
+                        : new ExpressError(
+                            400,
+                            "Unable to read the selected image."
+                        )
                 );
             }
-
-            next();
-        } catch (error) {
-            next(
-                error.statusCode
-                    ? error
-                    : new ExpressError(400, "Unable to read the selected image.")
-            );
-        }
-    });
+        });
+    };
 }
 
-module.exports = { uploadProfileImage };
+exports.uploadProfileImage = createImageUpload("avatar", 1);
+exports.uploadStoreLogo = createImageUpload("logo", 12);

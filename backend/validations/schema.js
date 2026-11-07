@@ -89,7 +89,7 @@ exports.profileUpdateSchema = Joi.object({
         .required(),
 });
 
-// Category validation
+// Categories
 const categoryFields = {
     name: Joi.string()
         .replace(/\s+/g, " ")
@@ -182,5 +182,21 @@ exports.adminSellerStatusSchema = Joi.object({
         then: Joi.string().trim().min(5).max(300).required(),
         otherwise: Joi.string().valid("").default(""),
     }),
+    version: Joi.number().integer().min(0).required(),
+});
+
+// Seller store profile
+exports.storeProfileSchema = Joi.object({
+    storeName: name,
+    storeEmail: email,
+    storePhone: phone,
+    description: Joi.string().trim().max(500).allow("").default(""),
+    street: Joi.string().trim().min(3).max(200).required(),
+    locality: Joi.string().trim().min(2).max(100).required(),
+    city: name,
+    state: name,
+    pincode: Joi.string().pattern(/^[1-9]\d{5}$/).required(),
+    pickupNotes: Joi.string().trim().max(200).allow("").default(""),
+    removeLogo: Joi.boolean().default(false),
     version: Joi.number().integer().min(0).required(),
 });

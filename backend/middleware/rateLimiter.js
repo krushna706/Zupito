@@ -78,3 +78,11 @@ exports.adminReadLimiter = createLimiter(120, 60 * 1000, {
 exports.adminWriteLimiter = createLimiter(30, 15 * 60 * 1000, {
     keyGenerator: accountKey,
 });
+
+exports.sellerReadLimiter = createLimiter(120, 60 * 1000, {
+    keyGenerator: accountKey,
+});
+
+exports.sellerWriteLimiter = createLimiter(20, 15 * 60 * 1000, {
+    keyGenerator: accountKey,
+});

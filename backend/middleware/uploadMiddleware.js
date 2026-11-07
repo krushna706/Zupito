@@ -108,3 +108,47 @@ function createImageUpload(fieldName, fields, maxFiles = 1) {
 exports.uploadProfileImage = createImageUpload("avatar", 1);
 exports.uploadStoreLogo = createImageUpload("logo", 12);
 exports.uploadProductImages = createImageUpload("images", 1, 4);
+
+const stockCsvParser = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 256 * 1024,
+        files: 1,
+        fields: 3,
+        parts: 4,
+        fieldSize: 2048,
+        fieldNameSize: 100,
+        fieldNestingDepth: 1,
+        fieldArrayIndexLimit: 0,
+    },
+    fileFilter: (req, file, callback) => {
+        if (path.extname(file.originalname).toLowerCase() !== ".csv") {
+            return callback(new ExpressError(400, "Upload a CSV file."));
+        }
+
+        callback(null, true);
+    },
+}).single("file");
+
+exports.uploadStockCsv = (req, res, next) => {
+    stockCsvParser(req, res, (error) => {
+        if (error) {
+            if (error instanceof multer.MulterError) {
+                return next(
+                    new ExpressError(
+                        400,
+                        "Upload one CSV file up to 256 KB with the required fields."
+                    )
+                );
+            }
+
+            return next(error);
+        }
+
+        if (!req.file?.size) {
+            return next(new ExpressError(400, "Select a non-empty CSV file."));
+        }
+
+        next();
+    });
+};

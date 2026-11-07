@@ -1,122 +1,35 @@
-
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    MenuItem,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TablePagination,
-    TableRow,
-    TextField,
+    Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle,
+    MenuItem, Table, TableBody, TableCell, TableContainer,
+    TableHead, TablePagination, TableRow, TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
 
 import {
-    applyInventoryMovements,
-    ensureStockHistory,
-    formatMoney,
-    getStockMovements,
-    inventoryRows,
-    sellerKey,
+    fetchInventory,
+    fetchInventoryHistory,
+    changeInventoryStock,
+    importInventoryStock,
 } from "../services/sellerService";
 
-// ================== CONFIGURATION ==================
-const MAX_STOCK = 999999;
-const MAX_CSV_ROWS = 300;
-const MAX_CSV_BYTES = 256 * 1024;
-
 const stockFilters = [
-    "All",
-    "In Stock",
-    "Low Stock",
-    "Out of Stock",
-    "Needs Attention",
+    "All", "In Stock", "Low Stock", "Out of Stock", "Needs Attention",
 ];
 
 const movementTypes = [
-    "All",
-    "Opening",
-    "Restock",
-    "Adjustment",
-    "Damage/Loss",
-    "Sale",
-    "Return",
-    "Replacement Dispatch",
+    "All", "Opening", "Restock", "Adjustment", "Damage/Loss",
 ];
 
-function isValidQuantity(value) {
-    return /^(0|[1-9]\d*)$/.test(String(value)) &&
-        Number.isSafeInteger(Number(value)) &&
-        Number(value) <= MAX_STOCK;
-}
-
-function thresholdKey(user) {
-    return `zupito_seller_stock_alert_${sellerKey(user)}`;
-}
-
-function readThreshold(user) {
-    try {
-        const value = Number(localStorage.getItem(thresholdKey(user)));
-
-        return Number.isInteger(value) &&
-            value >= 1 &&
-            value <= 100
-            ? String(value)
-            : "5";
-    } catch {
-        return "5";
-    }
-}
-
-function stockState(row, limit) {
-    if (row.available <= 0) return "Out of Stock";
-    if (row.available <= limit) return "Low Stock";
-
-    return "In Stock";
-}
-
-// ================== STATUS BADGE ==================
 function InventoryBadge({ value }) {
-    const success = [
-        "In Stock",
-        "Approved",
-        "Restock",
-        "Opening",
-        "Return",
-        "Ready",
-    ];
-
-    const warning = [
-        "Low Stock",
-        "Pending",
-        "Adjustment",
-    ];
-
-    const danger = [
-        "Out of Stock",
-        "Rejected",
-        "Damage/Loss",
-        "Sale",
-        "Invalid",
-    ];
-
-    let color = "neutral";
-
-    if (success.includes(value)) {
-        color = "success";
-    } else if (warning.includes(value)) {
-        color = "warning";
-    } else if (danger.includes(value)) {
-        color = "danger";
-    }
+    const color = ["In Stock", "Approved", "Restock", "Opening", "Updated"].includes(value)
+        ? "success"
+        : ["Low Stock", "Pending", "Adjustment", "Skipped"].includes(value)
+            ? "warning"
+            : ["Out of Stock", "Rejected", "Damage/Loss", "Failed"].includes(value)
+                ? "danger"
+                : "neutral";
 
     return (
         <span className={`si-badge si-badge-${color}`}>
@@ -126,854 +39,399 @@ function InventoryBadge({ value }) {
     );
 }
 
-// ================== CSV HELPERS ==================
-function parseCSV(text) {
-    const records = [];
-    const source = text.replace(/^\uFEFF/, "");
+function downloadCsv(filename, rows) {
+    const escape = (value) => {
+        let text = String(value ?? "");
 
-    let cells = [];
-    let cell = "";
-    let quoted = false;
-
-    for (let index = 0; index < source.length; index++) {
-        const char = source[index];
-
-        if (char === '"') {
-            if (quoted && source[index + 1] === '"') {
-                cell += '"';
-                index++;
-            } else if (quoted || !cell.trim()) {
-                quoted = !quoted;
-            } else {
-                throw new Error("CSV contains invalid quotation marks.");
-            }
-        } else if (char === "," && !quoted) {
-            cells.push(cell.trim());
-            cell = "";
-        } else if (
-            (char === "\r" || char === "\n") &&
-            !quoted
-        ) {
-            cells.push(cell.trim());
-
-            if (cells.some(Boolean)) {
-                records.push(cells);
-            }
-
-            cells = [];
-            cell = "";
-
-            if (char === "\r" && source[index + 1] === "\n") {
-                index++;
-            }
-        } else {
-            cell += char;
-        }
-    }
-
-    if (quoted) {
-        throw new Error("CSV contains an unclosed quote.");
-    }
-
-    cells.push(cell.trim());
-
-    if (cells.some(Boolean)) {
-        records.push(cells);
-    }
-
-    return records;
-}
-
-function fileFingerprint(text, mode, owner) {
-    const input = `${owner}|${mode}|${text}`;
-    let hash = 2166136261;
-
-    for (let index = 0; index < input.length; index++) {
-        hash ^= input.charCodeAt(index);
-        hash = Math.imul(hash, 16777619);
-    }
-
-    return `CSV-${(hash >>> 0).toString(36).toUpperCase()}`;
-}
-
-function inspectCSV(text, mode, inventory, history, user) {
-    const rows = parseCSV(text);
-
-    if (rows.length < 2) {
-        throw new Error("CSV needs a header and at least one data row.");
-    }
-
-    if (rows.length > MAX_CSV_ROWS + 1) {
-        throw new Error(`Maximum ${MAX_CSV_ROWS} data rows allowed.`);
-    }
-
-    const headers = rows[0].map((value) => value.toLowerCase());
-
-    if (
-        headers.length !== 2 ||
-        headers[0] !== "sku" ||
-        headers[1] !== "stock"
-    ) {
-        throw new Error("Use exactly two columns: sku,stock.");
-    }
-
-    const reference = fileFingerprint(
-        text,
-        mode,
-        sellerKey(user)
-    );
-
-    const productsBySku = new Map();
-
-    inventory.forEach((item) => {
-        const existing = productsBySku.get(item.sku) || [];
-
-        productsBySku.set(
-            item.sku,
-            [...existing, item]
-        );
-    });
-
-    const seen = new Set();
-
-    const results = rows.slice(1).map((cells, index) => {
-        const sku = String(cells[0] || "").trim().toUpperCase();
-        const stock = String(cells[1] ?? "").trim();
-
-        const matched = productsBySku.get(sku) || [];
-        const item = matched[0];
-        const eventKey = `${reference}:${sku}`;
-
-        const after = item
-            ? mode === "add"
-                ? item.onHand + Number(stock)
-                : Number(stock)
-            : NaN;
-
-        let error = "";
-
-        if (cells.length !== 2) {
-            error = "Expected exactly two values.";
-        } else if (!sku) {
-            error = "SKU is required.";
-        } else if (seen.has(sku)) {
-            error = "Duplicate SKU in this file.";
-        } else if (matched.length !== 1) {
-            error = matched.length
-                ? "SKU is ambiguous."
-                : "SKU does not belong to your inventory.";
-        } else if (
-            !isValidQuantity(stock) ||
-            (mode === "add" && Number(stock) === 0)
-        ) {
-            error = "Invalid quantity.";
-        } else if (
-            after > MAX_STOCK ||
-            after < item.reserved
-        ) {
-            error = "Quantity conflicts with stock limits or reservations.";
-        } else if (history.some((entry) =>
-            entry.eventKey === eventKey
-        )) {
-            error = "This CSV update was already applied.";
+        if (/^[=+\-@\t\r\n]/.test(text)) {
+            text = `'${text}`;
         }
 
-        seen.add(sku);
-
-        const status = error
-            ? "Invalid"
-            : after === item.onHand
-                ? "Unchanged"
-                : "Ready";
-
-        return {
-            row: index + 2,
-            sku,
-            stock,
-            after,
-            item,
-            status,
-            error,
-            eventKey,
-        };
-    });
-
-    return {
-        reference,
-        results,
+        return `"${text.replace(/"/g, '""')}"`;
     };
-}
 
-function downloadCSV(filename, rows) {
-    const escapeValue = (value) =>
-        `"${String(value ?? "").replace(/"/g, '""')}"`;
-
-    const csv = rows
-        .map((row) => row.map(escapeValue).join(","))
-        .join("\r\n");
-
-    const blob = new Blob([csv], {
-        type: "text/csv;charset=utf-8",
-    });
-
+    const content = rows.map((row) => row.map(escape).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF", content], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
 
     link.href = url;
     link.download = filename;
-
-    document.body.appendChild(link);
     link.click();
-    link.remove();
 
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// ================== INVENTORY PAGE ==================
-function Inventory({ user }) {
-    const [inventory, setInventory] = useState(() => inventoryRows(user));
-    const [history, setHistory] = useState(() => getStockMovements(user));
+function Inventory() {
+    const [inventory, setInventory] = useState({
+        rows: [],
+        total: 0,
+        statistics: { skus: 0, onHand: 0, reserved: 0, available: 0, low: 0, out: 0 },
+    });
+    const [history, setHistory] = useState({ rows: [], total: 0 });
 
     const [search, setSearch] = useState("");
-    const [filter, setFilter] = useState("All");
-    const [threshold, setThreshold] = useState(() => readThreshold(user));
+    const [status, setStatus] = useState("All");
+    const [threshold, setThreshold] = useState(5);
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [limit, setLimit] = useState(10);
 
-    const [editRow, setEditRow] = useState(null);
+    const [historySearch, setHistorySearch] = useState("");
+    const [historyType, setHistoryType] = useState("All");
+    const [historySku, setHistorySku] = useState("");
+    const [historyPage, setHistoryPage] = useState(0);
+    const [historyLimit, setHistoryLimit] = useState(10);
+
+    const [revision, setRevision] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [historyLoading, setHistoryLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
+    const [historyError, setHistoryError] = useState("");
+
+    const [action, setAction] = useState(null);
     const [mode, setMode] = useState("add");
     const [quantity, setQuantity] = useState("");
     const [reason, setReason] = useState("");
     const [reference, setReference] = useState("");
+    const [actionError, setActionError] = useState("");
+    const [busy, setBusy] = useState(false);
 
     const [showImport, setShowImport] = useState(false);
-    const [csvMode, setCsvMode] = useState("set");
-    const [csvPreview, setCsvPreview] = useState(null);
-    const [csvFile, setCsvFile] = useState("");
+    const [csvFile, setCsvFile] = useState(null);
+    const [csvMode, setCsvMode] = useState("add");
+    const [csvReference, setCsvReference] = useState("");
+    const [csvReason, setCsvReason] = useState("");
+    const [importResult, setImportResult] = useState(null);
+    const [importError, setImportError] = useState("");
+    const [importing, setImporting] = useState(false);
 
-    const [historyQuery, setHistoryQuery] = useState("");
-    const [historyType, setHistoryType] = useState("All");
-    const [historyPage, setHistoryPage] = useState(0);
-    const [historyRows, setHistoryRows] = useState(10);
-
-    // ================== DATA HANDLING ==================
-    const refresh = () => {
-        try {
-            ensureStockHistory(user);
-        } catch {
-            toast.error("Unable to initialize inventory history.");
-        }
-
-        setInventory(inventoryRows(user));
-        setHistory(getStockMovements(user));
-    };
+    const refresh = () => setRevision((value) => value + 1);
 
     useEffect(() => {
-        const sync = () => {
+        const controller = new AbortController();
+        let active = true;
+
+        setLoading(true);
+        setLoadError("");
+
+        const timer = setTimeout(async () => {
             try {
-                ensureStockHistory(user);
-            } catch {
-                // Continue showing existing inventory data.
-            }
-
-            setInventory(inventoryRows(user));
-            setHistory(getStockMovements(user));
-        };
-
-        sync();
-
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
-
-        return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
-        };
-    }, [user?.id, user?.email]);
-
-    // ================== INVENTORY SUMMARY ==================
-    const limit = Number(threshold) || 5;
-
-    const onHand = inventory.reduce(
-        (total, item) => total + item.onHand,
-        0
-    );
-
-    const reserved = inventory.reduce(
-        (total, item) => total + item.reserved,
-        0
-    );
-
-    const received = history
-        .filter((item) => ["Opening", "Restock"].includes(item.type))
-        .reduce(
-            (total, item) => total + Math.max(0, item.change),
-            0
-        );
-
-    const sold = history
-        .filter((item) => item.type === "Sale")
-        .reduce(
-            (total, item) => total + Math.abs(item.change),
-            0
-        );
-
-    const low = inventory.filter((item) =>
-        stockState(item, limit) === "Low Stock"
-    ).length;
-
-    const out = inventory.filter((item) =>
-        stockState(item, limit) === "Out of Stock"
-    ).length;
-
-    const stats = [
-        {
-            label: "On-Hand Stock",
-            value: onHand,
-            note: `${inventory.length} SKUs · ${reserved} reserved`,
-            icon: "fa-boxes-stacked",
-            color: "blue",
-        },
-        {
-            label: "Total Received",
-            value: received,
-            note: "Opening + restock units",
-            icon: "fa-arrow-down",
-            color: "green",
-        },
-        {
-            label: "Total Sold",
-            value: sold,
-            note: "Order-linked sales only",
-            icon: "fa-bag-shopping",
-            color: "orange",
-        },
-        {
-            label: "Needs Attention",
-            value: low + out,
-            note: `${low} low · ${out} out of stock`,
-            icon: "fa-triangle-exclamation",
-            color: "red",
-        },
-    ];
-
-    // ================== FILTERS ==================
-    const filtered = useMemo(() => {
-        const query = search.trim().toLowerCase();
-
-        return inventory.filter((item) => {
-            const matchesSearch = [
-                item.name,
-                item.sku,
-                item.variant,
-                item.productCode,
-            ].some((value) =>
-                String(value || "").toLowerCase().includes(query)
-            );
-
-            const matchesFilter = filter === "All" ||
-                stockState(item, limit) === filter ||
-                (
-                    filter === "Needs Attention" &&
-                    item.available <= limit
+                const result = await fetchInventory(
+                    { search, status, threshold, page: page + 1, limit },
+                    controller.signal
                 );
 
-            return matchesSearch && matchesFilter;
-        });
-    }, [inventory, search, filter, limit]);
+                if (!active) return;
+                setInventory(result);
 
-    const visible = filtered.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
-    );
+                const last = Math.max(0, Math.ceil(result.total / limit) - 1);
+                if (page > last) setPage(last);
+            } catch (error) {
+                if (active) setLoadError(error.message);
+            } finally {
+                if (active) setLoading(false);
+            }
+        }, 300);
 
-    const filteredHistory = useMemo(() => {
-        const query = historyQuery.trim().toLowerCase();
+        return () => {
+            active = false;
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [search, status, threshold, page, limit, revision]);
 
-        return history.filter((item) => {
-            const matchesType = historyType === "All" ||
-                item.type === historyType;
+    useEffect(() => {
+        const controller = new AbortController();
+        let active = true;
 
-            const matchesSearch = [
-                item.sku,
-                item.productName,
-                item.reference,
-                item.reason,
-            ].some((value) =>
-                String(value || "").toLowerCase().includes(query)
-            );
+        setHistoryLoading(true);
+        setHistoryError("");
 
-            return matchesType && matchesSearch;
-        });
-    }, [history, historyQuery, historyType]);
+        const timer = setTimeout(async () => {
+            try {
+                const result = await fetchInventoryHistory(
+                    {
+                        search: historySearch,
+                        type: historyType,
+                        sku: historySku,
+                        page: historyPage + 1,
+                        limit: historyLimit,
+                    },
+                    controller.signal
+                );
 
-    const visibleHistory = filteredHistory.slice(
-        historyPage * historyRows,
-        (historyPage + 1) * historyRows
-    );
+                if (!active) return;
+                setHistory(result);
 
-    // ================== STOCK ADJUSTMENT ==================
-    const openAdjustment = (item) => {
-        setEditRow(item);
+                const last = Math.max(
+                    0,
+                    Math.ceil(result.total / historyLimit) - 1
+                );
+
+                if (historyPage > last) setHistoryPage(last);
+            } catch (error) {
+                if (active) setHistoryError(error.message);
+            } finally {
+                if (active) setHistoryLoading(false);
+            }
+        }, 300);
+
+        return () => {
+            active = false;
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [historySearch, historyType, historySku, historyPage, historyLimit, revision]);
+
+    const openAction = (row) => {
+        setAction({ ...row, operationId: crypto.randomUUID() });
         setMode("add");
         setQuantity("");
         setReason("");
         setReference("");
+        setActionError("");
     };
 
-    const adjustedQuantity = editRow
-        ? mode === "add"
-            ? editRow.onHand + Number(quantity || 0)
-            : mode === "remove"
-                ? editRow.onHand - Number(quantity || 0)
-                : Number(quantity || 0)
-        : 0;
+    const saveStock = async () => {
+        if (busy || !action) return;
 
-    const invalidAdjustment =
-        !isValidQuantity(quantity) ||
-        (mode !== "set" && Number(quantity) === 0) ||
-        adjustedQuantity < (editRow?.reserved || 0) ||
-        adjustedQuantity > MAX_STOCK ||
-        (mode !== "add" && !reason.trim());
+        if (!/^(0|[1-9]\d*)$/.test(quantity) || reason.trim().length < 5) {
+            setActionError("Enter a valid quantity and a reason of at least 5 characters.");
+            return;
+        }
 
-    const saveAdjustment = () => {
-        if (!editRow || invalidAdjustment) return;
-
-        const update = {
-            productId: editRow.productId,
-            variantId: editRow.variantId,
-            sku: editRow.sku,
-            mode,
-            quantity,
-            reason: mode === "add"
-                ? "Supplier restock"
-                : mode === "remove"
-                    ? "Damaged or lost stock"
-                    : reason.trim(),
-            note: reason.trim(),
-            reference: reference.trim(),
-        };
+        setBusy(true);
+        setActionError("");
 
         try {
-            const result = applyInventoryMovements(user, [update]);
+            const result = await changeInventoryStock({
+                sku: action.sku,
+                mode,
+                quantity: Number(quantity),
+                reason: reason.trim(),
+                reference: reference.trim(),
+                version: action.version,
+                operationId: action.operationId,
+            });
 
-            if (result.errors.length) {
-                toast.error(result.errors[0]);
-                return;
-            }
-
-            if (result.updated) {
-                toast.success("Stock updated and movement recorded.");
-            } else {
-                toast.info("Quantity is unchanged.");
-            }
-
-            setEditRow(null);
+            toast.success(result.message);
+            setAction(null);
             refresh();
-        } catch {
-            toast.error("Stock or history could not be saved.");
+        } catch (error) {
+            setActionError(error.message);
+        } finally {
+            setBusy(false);
         }
     };
 
-    // ================== ALERT SETTINGS ==================
-    const saveThreshold = () => {
-        const value = Math.min(
-            100,
-            Math.max(1, Number(threshold) || 5)
-        );
-
-        setThreshold(String(value));
-
-        try {
-            localStorage.setItem(
-                thresholdKey(user),
-                String(value)
-            );
-        } catch {
-            toast.error("Unable to save alert threshold.");
-        }
-    };
-
-    // ================== CSV IMPORT ==================
-    const handleCSV = async (event) => {
+    const selectCsv = (event) => {
         const file = event.target.files?.[0];
         event.target.value = "";
 
         if (!file) return;
 
-        if (
-            !/\.csv$/i.test(file.name) ||
-            file.size > MAX_CSV_BYTES
-        ) {
-            toast.error("Choose a CSV file up to 256 KB.");
+        if (!file.name.toLowerCase().endsWith(".csv") || file.size > 256 * 1024 || !file.size) {
+            toast.error("Select a non-empty CSV file up to 256 KB.");
             return;
         }
 
-        try {
-            ensureStockHistory(user);
-
-            const result = inspectCSV(
-                await file.text(),
-                csvMode,
-                inventoryRows(user),
-                getStockMovements(user),
-                user
-            );
-
-            setCsvPreview(result);
-            setCsvFile(file.name);
-        } catch (error) {
-            setCsvPreview(null);
-            setCsvFile("");
-            toast.error(error.message);
-        }
+        setCsvFile(file);
+        setImportResult(null);
+        setImportError("");
     };
 
-    const applyCSV = () => {
-        const updates = (csvPreview?.results || [])
-            .filter((item) => item.status === "Ready")
-            .map((item) => ({
-                productId: item.item.productId,
-                variantId: item.item.variantId,
-                sku: item.sku,
-                mode: csvMode,
-                quantity: item.stock,
-                reason: csvMode === "add"
-                    ? "CSV stock receipt"
-                    : "CSV stock count correction",
-                note: csvFile,
-                reference: csvPreview.reference,
-                eventKey: item.eventKey,
-            }));
+    const applyCsv = async () => {
+        if (importing) return;
 
-        if (!updates.length) return;
+        if (!csvFile || !/^[A-Z0-9_-]{3,80}$/.test(csvReference.trim().toUpperCase())) {
+            setImportError("Select a CSV and enter a valid batch reference.");
+            return;
+        }
+
+        if (csvReason.trim().length < 5) {
+            setImportError("Enter an import reason of at least 5 characters.");
+            return;
+        }
+
+        setImporting(true);
+        setImportError("");
 
         try {
-            const result = applyInventoryMovements(user, updates);
+            const result = await importInventoryStock(csvFile, {
+                mode: csvMode,
+                reference: csvReference.trim().toUpperCase(),
+                reason: csvReason.trim(),
+            });
 
-            setCsvPreview(null);
-            setCsvFile("");
-
+            setImportResult(result);
             refresh();
 
-            if (result.errors.length || result.duplicates) {
-                toast.warning(
-                    `${result.updated} updated, ${
-                        result.errors.length + result.duplicates
-                    } skipped.`
-                );
+            if (result.summary.failed) {
+                toast.warning("Import finished with some failed rows.");
             } else {
-                toast.success(
-                    `${result.updated} stock movements saved.`
-                );
+                toast.success("Stock import processed.");
             }
-        } catch {
-            toast.error("Unable to apply CSV stock movements.");
+        } catch (error) {
+            setImportError(
+                `${error.message} If the request was interrupted, retry with the same batch reference.`
+            );
+            refresh();
+        } finally {
+            setImporting(false);
         }
     };
 
-    const downloadTemplate = () => {
-        downloadCSV("zupito_stock_template.csv", [
-            ["sku", "stock"],
-            ...inventory.map((item) => [
-                item.sku,
-                item.onHand,
-            ]),
-        ]);
-    };
-
-    const downloadHistory = () => {
-        downloadCSV("zupito_stock_history.csv", [
-            [
-                "date",
-                "product",
-                "sku",
-                "type",
-                "before",
-                "change",
-                "after",
-                "reason",
-                "reference",
-                "actor",
-            ],
-            ...filteredHistory.map((item) => [
-                item.date,
-                item.productName,
-                item.sku,
-                item.type,
-                item.before,
-                item.change,
-                item.after,
-                item.reason,
-                item.reference,
-                item.actor,
-            ]),
-        ]);
-    };
-
-    const focusHistory = (sku) => {
-        setHistoryQuery(sku);
-        setHistoryType("All");
+    const viewHistory = (sku) => {
+        setHistorySku(sku);
         setHistoryPage(0);
-
-        document.getElementById("seller-stock-history")
-            ?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-            });
+        document.getElementById("inventory-history")?.scrollIntoView({
+            behavior: "smooth",
+        });
     };
 
-    const readyCount = csvPreview?.results.filter((item) =>
-        item.status === "Ready"
-    ).length || 0;
+    const exportHistory = () => {
+        downloadCsv("stock-history-page.csv", [
+            ["Date", "Product", "SKU", "Type", "Before", "Change", "After", "Reason", "Reference", "Source"],
+            ...history.rows.map((row) => [
+                row.createdAt,
+                row.productName,
+                row.sku,
+                row.type,
+                row.beforeQuantity,
+                row.quantityChange,
+                row.afterQuantity,
+                row.reason,
+                row.reference,
+                row.source,
+            ]),
+        ]);
+    };
 
-    const invalidCount = csvPreview?.results.filter((item) =>
-        item.status === "Invalid"
-    ).length || 0;
+    const stats = inventory.statistics;
+    const cards = [
+        ["On-Hand Stock", stats.onHand, `${stats.skus} SKUs`, "blue"],
+        ["Available Stock", stats.available, "Ready for reservation", "green"],
+        ["Reserved Stock", stats.reserved, "Allocated quantities", "orange"],
+        ["Needs Attention", stats.low + stats.out, `${stats.low} low · ${stats.out} out of stock`, "red"],
+    ];
+
+    const nextQuantity = action && /^\d+$/.test(quantity)
+        ? mode === "add"
+            ? action.onHand + Number(quantity)
+            : mode === "remove"
+                ? action.onHand - Number(quantity)
+                : Number(quantity)
+        : null;
 
     return (
         <main className="seller-inventory">
-            {/* ================== PAGE HEADER ================== */}
             <header className="si-hero">
                 <div>
-                    <h1>
-                        <i
-                            className="fa-solid fa-boxes-stacked"
-                            aria-hidden="true"
-                        />
-                        INVENTORY
-                    </h1>
-
-                    <p>
-                        Track stock, received and sold units,
-                        adjustments and movement history.
-                    </p>
+                    <h1><i className="fa-solid fa-boxes-stacked" /> INVENTORY</h1>
+                    <p>Manage SKU stock, monitor availability and review stock movements.</p>
                 </div>
-
                 <div className="si-header-actions">
-                    <Button
-                        variant="outlined"
-                        onClick={refresh}
-                        startIcon={
-                            <i className="fa-solid fa-arrows-rotate" />
-                        }
-                    >
+                    <Button variant="outlined" onClick={refresh} disabled={loading || busy || importing}>
                         Refresh
                     </Button>
-
-                    <Button
-                        variant="contained"
-                        onClick={() => {
-                            setShowImport((previous) => !previous);
-                            setCsvPreview(null);
-                        }}
-                        startIcon={
-                            <i className="fa-solid fa-file-csv" />
-                        }
-                    >
-                        Bulk CSV Update
+                    <Button variant="contained" onClick={() => setShowImport((value) => !value)} disabled={busy || importing}>
+                        {showImport ? "Close Import" : "Bulk Stock Update"}
                     </Button>
                 </div>
             </header>
 
-            {/* ================== INVENTORY SUMMARY ================== */}
+            {loadError && <Alert severity="error">{loadError}</Alert>}
+
             <section className="si-stats">
-                {stats.map((item) => (
-                    <div
-                        className={`si-stat si-stat-${item.color}`}
-                        key={item.label}
-                    >
+                {cards.map(([label, value, note, color]) => (
+                    <article className={`si-stat si-stat-${color}`} key={label}>
                         <div className="si-stat-top">
-                            <span>{item.label}</span>
-
-                            <span className="si-stat-icon">
-                                <i
-                                    className={`fa-solid ${item.icon}`}
-                                    aria-hidden="true"
-                                />
-                            </span>
+                            <span>{label}</span>
+                            <span className="si-stat-icon"><i className="fa-solid fa-boxes-stacked" /></span>
                         </div>
-
-                        <strong>
-                            {item.value.toLocaleString("en-IN")}
-                        </strong>
-
-                        <small>{item.note}</small>
-                    </div>
+                        <strong>{loading || loadError ? "—" : value}</strong>
+                        <p>{note}</p>
+                    </article>
                 ))}
             </section>
 
-            {/* ================== STOCK ALERTS ================== */}
-            {(low + out > 0) && (
+            {!loading && !loadError && stats.low + stats.out > 0 && (
                 <section className="si-alert">
-                    <span className="si-alert-icon">
-                        <i className="fa-solid fa-triangle-exclamation" />
-                    </span>
-
-                    <div>
-                        <strong>Stock attention required</strong>
-                        <p>
-                            {low} low-stock and {out} out-of-stock
-                            SKU(s) need review.
-                        </p>
-                    </div>
-
-                    <Button
-                        variant="outlined"
-                        onClick={() => {
-                            setFilter("Needs Attention");
-                            setPage(0);
-                        }}
-                    >
-                        View Alerts
-                    </Button>
+                    <span className="si-alert-icon"><i className="fa-solid fa-triangle-exclamation" /></span>
+                    <p>{stats.low + stats.out} SKUs need stock attention.</p>
                 </section>
             )}
 
-            {/* ================== BULK CSV UPDATE ================== */}
             {showImport && (
                 <section className="si-card si-import">
                     <div className="si-card-heading">
-                        <span className="si-heading-icon">
-                            <i className="fa-solid fa-file-arrow-up" />
-                        </span>
-
+                        <span className="si-heading-icon"><i className="fa-solid fa-file-csv" /></span>
                         <div>
                             <h2>Bulk Stock Update</h2>
-                            <p>
-                                Preview, validate and record
-                                SKU-based stock movements.
-                            </p>
+                            <p>CSV columns: sku,stock. Maximum 300 rows and 256 KB.</p>
                         </div>
                     </div>
 
-                    <div className="si-import-controls">
-                        <div className="si-import-text">
-                            <strong>CSV columns: sku,stock</strong>
+                    <Alert severity="info">
+                        Use the same batch reference when retrying an import.
+                        Use a new reference only for a genuinely new stock event.
+                        “Set Stock” means final on-hand quantity.
+                    </Alert>
 
-                            <p>
-                                Set Quantity replaces stock.
-                                Add Stock receives extra units.
-                                Repeated Add imports are detected.
-                            </p>
+                    <div className="si-import-controls">
+                        <div className="si-import-buttons">
+                            <TextField select label="Import Mode" value={csvMode} onChange={(event) => setCsvMode(event.target.value)} disabled={importing}>
+                                <MenuItem value="add">Add Stock</MenuItem>
+                                <MenuItem value="set">Set Stock</MenuItem>
+                            </TextField>
+                            <TextField label="Batch Reference" value={csvReference} onChange={(event) => setCsvReference(event.target.value.toUpperCase())} helperText="Example: RECEIPT_20261107_01" slotProps={{ htmlInput: { maxLength: 80 } }} disabled={importing} />
+                            <TextField label="Reason" value={csvReason} onChange={(event) => setCsvReason(event.target.value)} slotProps={{ htmlInput: { maxLength: 300 } }} disabled={importing} />
                         </div>
 
                         <div className="si-import-buttons">
-                            <TextField
-                                select
-                                size="small"
-                                label="Import Mode"
-                                value={csvMode}
-                                onChange={(event) => {
-                                    setCsvMode(event.target.value);
-                                    setCsvPreview(null);
-                                }}
-                            >
-                                <MenuItem value="set">
-                                    Set Quantity
-                                </MenuItem>
-
-                                <MenuItem value="add">
-                                    Add Stock
-                                </MenuItem>
-                            </TextField>
-
-                            <Button
-                                variant="outlined"
-                                onClick={downloadTemplate}
-                                startIcon={
-                                    <i className="fa-solid fa-download" />
-                                }
-                            >
+                            <Button onClick={() => downloadCsv("stock-template.csv", [
+                                ["sku", "stock"],
+                                ["NOVA-X1-BLK-128", "5"],
+                                ["NOVA-X1-BLU-128", "3"],
+                            ])}>
                                 Download Template
                             </Button>
-
-                            <Button
-                                variant="contained"
-                                component="label"
-                                startIcon={
-                                    <i className="fa-solid fa-upload" />
-                                }
-                            >
-                                Choose CSV
-
-                                <input
-                                    type="file"
-                                    accept=".csv,text/csv"
-                                    hidden
-                                    onChange={handleCSV}
-                                />
+                            <Button component="label" variant="outlined" disabled={importing}>
+                                Select CSV
+                                <input type="file" accept=".csv" hidden onChange={selectCsv} disabled={importing} />
+                            </Button>
+                            <Button variant="contained" onClick={applyCsv} disabled={importing || busy || !csvFile}>
+                                {importing ? "Processing..." : "Apply CSV"}
                             </Button>
                         </div>
+                        {csvFile && <p>{csvFile.name}</p>}
                     </div>
 
-                    {csvPreview && (
+                    {importError && <Alert severity="error">{importError}</Alert>}
+
+                    {importResult && (
                         <div className="si-csv-results">
-                            <div className="si-preview-summary">
-                                <div>
-                                    <strong>{csvFile}</strong>
-
-                                    <p>
-                                        {readyCount} ready ·{" "}
-                                        {invalidCount} invalid ·{" "}
-                                        {csvPreview.results.length -
-                                            readyCount -
-                                            invalidCount} unchanged
-                                    </p>
-                                </div>
-
-                                <div className="si-preview-actions">
-                                    <Button
-                                        variant="outlined"
-                                        onClick={() =>
-                                            setCsvPreview(null)
-                                        }
-                                    >
-                                        Clear
-                                    </Button>
-
-                                    <Button
-                                        variant="contained"
-                                        disabled={!readyCount}
-                                        onClick={applyCSV}
-                                    >
-                                        Apply {readyCount} Updates
-                                    </Button>
-                                </div>
-                            </div>
+                            <p>
+                                Updated: {importResult.summary.updated} · Unchanged: {importResult.summary.unchanged}
+                                {" "}· Skipped: {importResult.summary.skipped} · Failed: {importResult.summary.failed}
+                            </p>
 
                             <TableContainer className="si-table-scroll si-preview-scroll">
                                 <Table size="small" className="si-table">
                                     <TableHead>
                                         <TableRow>
-                                            <TableCell>Row</TableCell>
-                                            <TableCell>SKU</TableCell>
-                                            <TableCell>Input</TableCell>
-                                            <TableCell>After</TableCell>
-                                            <TableCell>Status</TableCell>
-                                            <TableCell>Message</TableCell>
+                                            {["Row", "SKU", "Result", "Before", "After", "Message"].map((label) => <TableCell key={label}>{label}</TableCell>)}
                                         </TableRow>
                                     </TableHead>
-
                                     <TableBody>
-                                        {csvPreview.results.map((item) => (
-                                            <TableRow key={item.row}>
-                                                <TableCell>{item.row}</TableCell>
-                                                <TableCell>{item.sku}</TableCell>
-                                                <TableCell>{item.stock}</TableCell>
-                                                <TableCell>
-                                                    {Number.isFinite(item.after)
-                                                        ? item.after
-                                                        : "—"}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <InventoryBadge
-                                                        value={item.status}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    {item.error || "Valid"}
-                                                </TableCell>
+                                        {importResult.results.map((row) => (
+                                            <TableRow key={row.row}>
+                                                <TableCell>{row.row}</TableCell>
+                                                <TableCell>{row.sku}</TableCell>
+                                                <TableCell><InventoryBadge value={row.outcome} /></TableCell>
+                                                <TableCell>{row.before ?? "—"}</TableCell>
+                                                <TableCell>{row.after ?? "—"}</TableCell>
+                                                <TableCell>{row.message}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -984,190 +442,70 @@ function Inventory({ user }) {
                 </section>
             )}
 
-            {/* ================== STOCK MANAGEMENT ================== */}
             <section className="si-card si-list-card">
                 <div className="si-card-heading si-list-heading">
-                    <span className="si-heading-icon">
-                        <i className="fa-solid fa-list-check" />
-                    </span>
-
-                    <div>
-                        <h2>Stock Management</h2>
-                        <p>
-                            On-hand, reserved and available quantities
-                            by product variant.
-                        </p>
-                    </div>
-
-                    <span className="si-record-count">
-                        {filtered.length} SKUs
-                    </span>
+                    <span className="si-heading-icon"><i className="fa-solid fa-list-check" /></span>
+                    <div><h2>Stock Management</h2><p>On-hand stock includes reserved units.</p></div>
+                    <span className="si-record-count">{inventory.total} SKUs</span>
                 </div>
 
                 <div className="si-toolbar">
-                    <TextField
-                        size="small"
-                        label="Search Product / SKU"
-                        value={search}
-                        onChange={(event) => {
-                            setSearch(event.target.value);
-                            setPage(0);
-                        }}
-                    />
-
-                    <TextField
-                        select
-                        size="small"
-                        label="Stock Status"
-                        value={filter}
-                        onChange={(event) => {
-                            setFilter(event.target.value);
-                            setPage(0);
-                        }}
-                    >
-                        {stockFilters.map((value) => (
-                            <MenuItem
-                                key={value}
-                                value={value}
-                            >
-                                {value}
-                            </MenuItem>
-                        ))}
+                    <TextField label="Search Product / SKU" value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} slotProps={{ htmlInput: { maxLength: 100 } }} size="small" />
+                    <TextField select label="Stock Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} size="small">
+                        {stockFilters.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}
                     </TextField>
-
                     <TextField
-                        size="small"
-                        type="number"
                         label="Low Stock At"
+                        type="number"
                         value={threshold}
-                        onChange={(event) =>
-                            setThreshold(event.target.value)
-                        }
-                        onBlur={saveThreshold}
-                        slotProps={{
-                            htmlInput: {
-                                min: 1,
-                                max: 100,
-                                step: 1,
-                            },
+                        onChange={(event) => {
+                            const value = Number(event.target.value);
+                            if (Number.isInteger(value) && value >= 1 && value <= 100) {
+                                setThreshold(value);
+                                setPage(0);
+                            }
                         }}
+                        slotProps={{ htmlInput: { min: 1, max: 100 } }}
+                        size="small"
                     />
                 </div>
 
                 <TableContainer className="si-table-scroll">
-                    <Table
-                        className="si-table"
-                        aria-label="Seller stock management"
-                    >
+                    <Table className="si-table">
                         <TableHead>
                             <TableRow>
-                                <TableCell>Product</TableCell>
-                                <TableCell>Variant / SKU</TableCell>
-                                <TableCell>Price</TableCell>
-                                <TableCell>On Hand</TableCell>
-                                <TableCell>Reserved</TableCell>
-                                <TableCell>Available</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell align="right">Actions</TableCell>
+                                {["Product / Variant", "SKU", "On Hand", "Reserved", "Available", "Status", "Actions"].map((label) => <TableCell key={label}>{label}</TableCell>)}
                             </TableRow>
                         </TableHead>
-
                         <TableBody>
-                            {visible.map((item) => (
-                                <TableRow key={item.key} hover>
+                            {!loading && !loadError && inventory.rows.map((row) => (
+                                <TableRow key={`${row.productId}:${row.variantId}`}>
                                     <TableCell>
                                         <div className="si-product">
-                                            {item.image ? (
-                                                <img
-                                                    src={item.image}
-                                                    alt=""
-                                                />
-                                            ) : (
-                                                <span className="si-placeholder">
-                                                    <i className="fa-solid fa-image" />
-                                                </span>
-                                            )}
-
-                                            <div>
-                                                <strong>{item.name}</strong>
-                                                <small>{item.productCode}</small>
-                                            </div>
+                                            <img src={row.image} alt="" />
+                                            <div><strong>{row.productName}</strong><p>{row.label}</p></div>
                                         </div>
                                     </TableCell>
-
+                                    <TableCell>{row.sku}</TableCell>
+                                    <TableCell>{row.onHand}</TableCell>
+                                    <TableCell>{row.reserved}</TableCell>
+                                    <TableCell>{row.available}</TableCell>
                                     <TableCell>
-                                        <div className="si-cell-stack">
-                                            <strong>{item.variant}</strong>
-                                            <small>{item.sku}</small>
-                                        </div>
+                                        <InventoryBadge value={row.available <= 0 ? "Out of Stock" : row.available <= threshold ? "Low Stock" : "In Stock"} />
                                     </TableCell>
-
                                     <TableCell>
-                                        {formatMoney(item.price)}
-                                    </TableCell>
-
-                                    <TableCell>{item.onHand}</TableCell>
-                                    <TableCell>{item.reserved}</TableCell>
-
-                                    <TableCell>
-                                        <strong>{item.available}</strong>
-                                    </TableCell>
-
-                                    <TableCell>
-                                        <InventoryBadge
-                                            value={stockState(item, limit)}
-                                        />
-                                    </TableCell>
-
-                                    <TableCell align="right">
                                         <div className="si-table-actions">
-                                            <Button
-                                                size="small"
-                                                variant="outlined"
-                                                onClick={() =>
-                                                    openAdjustment(item)
-                                                }
-                                            >
-                                                Adjust
-                                            </Button>
-
-                                            <Button
-                                                size="small"
-                                                onClick={() =>
-                                                    focusHistory(item.sku)
-                                                }
-                                            >
-                                                History
-                                            </Button>
+                                            <Button onClick={() => openAction(row)} disabled={busy || importing}>Update</Button>
+                                            <Button onClick={() => viewHistory(row.sku)}>History</Button>
+                                            <Button component={Link} to={`/manage/products/${row.productId}/edit`}>Product</Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
                             ))}
-
-                            {!visible.length && (
+                            {(loading || loadError || !inventory.rows.length) && (
                                 <TableRow>
-                                    <TableCell colSpan={8}>
-                                        <div className="si-empty">
-                                            <i className="fa-solid fa-boxes-stacked" />
-
-                                            <h3>No inventory found</h3>
-
-                                            <p>
-                                                {inventory.length
-                                                    ? "Try a different search or status filter."
-                                                    : "Add a product to start stock tracking."}
-                                            </p>
-
-                                            {!inventory.length && (
-                                                <Button
-                                                    component={Link}
-                                                    to="/manage/products/new"
-                                                    variant="outlined"
-                                                >
-                                                    Add Product
-                                                </Button>
-                                            )}
-                                        </div>
+                                    <TableCell colSpan={7} align="center">
+                                        {loading ? "Loading inventory..." : loadError ? "Unable to load inventory." : "No inventory found."}
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -1177,95 +515,38 @@ function Inventory({ user }) {
 
                 <TablePagination
                     component="div"
-                    count={filtered.length}
-                    page={Math.min(
-                        page,
-                        Math.max(
-                            0,
-                            Math.ceil(filtered.length / rowsPerPage) - 1
-                        )
-                    )}
-                    rowsPerPage={rowsPerPage}
-                    rowsPerPageOptions={[5, 10, 20]}
-                    onPageChange={(_, value) =>
-                        setPage(value)
-                    }
-                    onRowsPerPageChange={(event) => {
-                        setRowsPerPage(Number(event.target.value));
-                        setPage(0);
-                    }}
+                    count={inventory.total}
+                    page={Math.min(page, Math.max(0, Math.ceil(inventory.total / limit) - 1))}
+                    rowsPerPage={limit}
+                    rowsPerPageOptions={[10, 20, 50]}
+                    onPageChange={(_, value) => setPage(value)}
+                    onRowsPerPageChange={(event) => { setLimit(Number(event.target.value)); setPage(0); }}
                 />
             </section>
 
-            {/* ================== STOCK HISTORY ================== */}
-            <section
-                className="si-card si-list-card si-history"
-                id="seller-stock-history"
-            >
+            <section id="inventory-history" className="si-card si-list-card si-history">
                 <div className="si-card-heading si-list-heading">
-                    <span className="si-heading-icon">
-                        <i className="fa-solid fa-clock-rotate-left" />
-                    </span>
-
-                    <div>
-                        <h2>Stock Movement History</h2>
-                        <p>
-                            Opening balances, receipts, corrections
-                            and order-linked movements.
-                        </p>
-                    </div>
-
-                    <Button
-                        variant="outlined"
-                        onClick={downloadHistory}
-                        startIcon={
-                            <i className="fa-solid fa-download" />
-                        }
-                    >
-                        Export CSV
+                    <span className="si-heading-icon"><i className="fa-solid fa-clock-rotate-left" /></span>
+                    <div><h2>Stock Movement History</h2><p>Opening stock and subsequent stock changes.</p></div>
+                    <Button onClick={exportHistory} disabled={historyLoading || Boolean(historyError) || !history.rows.length}>
+                        Export Current Page
                     </Button>
                 </div>
 
+                {historyError && <Alert severity="error">{historyError}</Alert>}
+
                 <div className="si-history-filters">
-                    <TextField
-                        size="small"
-                        label="Search SKU / Product / Reference"
-                        value={historyQuery}
-                        onChange={(event) => {
-                            setHistoryQuery(event.target.value);
-                            setHistoryPage(0);
-                        }}
-                    />
-
-                    <TextField
-                        select
-                        size="small"
-                        label="Movement Type"
-                        value={historyType}
-                        onChange={(event) => {
-                            setHistoryType(event.target.value);
-                            setHistoryPage(0);
-                        }}
-                    >
-                        {movementTypes.map((value) => (
-                            <MenuItem
-                                key={value}
-                                value={value}
-                            >
-                                {value}
-                            </MenuItem>
-                        ))}
+                    <TextField label="Search SKU / Product / Reference" value={historySearch} onChange={(event) => { setHistorySearch(event.target.value); setHistoryPage(0); }} size="small" slotProps={{ htmlInput: { maxLength: 100 } }} />
+                    <TextField select label="Movement Type" value={historyType} onChange={(event) => { setHistoryType(event.target.value); setHistoryPage(0); }} size="small">
+                        {movementTypes.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}
                     </TextField>
-
-                    <Button
-                        variant="outlined"
-                        onClick={() => {
-                            setHistoryQuery("");
-                            setHistoryType("All");
-                            setHistoryPage(0);
-                        }}
-                    >
-                        Reset
+                    <Button onClick={() => {
+                        setHistorySearch("");
+                        setHistoryType("All");
+                        setHistorySku("");
+                        setHistoryPage(0);
+                    }}>
+                        {historySku ? `Clear SKU: ${historySku}` : "Reset"}
                     </Button>
                 </div>
 
@@ -1273,97 +554,29 @@ function Inventory({ user }) {
                     <Table className="si-table si-history-table">
                         <TableHead>
                             <TableRow>
-                                <TableCell>Date / Time</TableCell>
-                                <TableCell>Product / SKU</TableCell>
-                                <TableCell>Type</TableCell>
-                                <TableCell>Before</TableCell>
-                                <TableCell>Change</TableCell>
-                                <TableCell>After</TableCell>
-                                <TableCell>Reason / Reference</TableCell>
-                                <TableCell>Actor</TableCell>
+                                {["Date", "Product / SKU", "Type", "Before", "Change", "After", "Reason / Reference"].map((label) => <TableCell key={label}>{label}</TableCell>)}
                             </TableRow>
                         </TableHead>
-
                         <TableBody>
-                            {visibleHistory.map((item) => (
-                                <TableRow key={item.id} hover>
+                            {!historyLoading && !historyError && history.rows.map((row) => (
+                                <TableRow key={row._id}>
+                                    <TableCell>{new Date(row.createdAt).toLocaleString("en-IN")}</TableCell>
+                                    <TableCell><strong>{row.productName || "Product"}</strong><p>{row.sku}</p></TableCell>
+                                    <TableCell><InventoryBadge value={row.type} /></TableCell>
+                                    <TableCell>{row.beforeQuantity}</TableCell>
+                                    <TableCell>{row.quantityChange > 0 ? "+" : ""}{row.quantityChange}</TableCell>
+                                    <TableCell>{row.afterQuantity}</TableCell>
                                     <TableCell>
-                                        {new Date(item.date).toLocaleString(
-                                            "en-IN",
-                                            {
-                                                day: "2-digit",
-                                                month: "short",
-                                                year: "numeric",
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            }
-                                        )}
+                                        <strong>{row.reason}</strong>
+                                        {row.note && <p>{row.note}</p>}
+                                        <p>{row.reference || "—"}</p>
                                     </TableCell>
-
-                                    <TableCell>
-                                        <div className="si-cell-stack">
-                                            <strong>
-                                                {item.productName}
-                                            </strong>
-                                            <small>{item.sku}</small>
-                                        </div>
-                                    </TableCell>
-
-                                    <TableCell>
-                                        <InventoryBadge value={item.type} />
-                                    </TableCell>
-
-                                    <TableCell>{item.before}</TableCell>
-
-                                    <TableCell>
-                                        <strong
-                                            className={
-                                                item.change > 0
-                                                    ? "si-delta-plus"
-                                                    : item.change < 0
-                                                        ? "si-delta-minus"
-                                                        : ""
-                                            }
-                                        >
-                                            {item.change > 0 ? "+" : ""}
-                                            {item.change}
-                                        </strong>
-                                    </TableCell>
-
-                                    <TableCell>{item.after}</TableCell>
-
-                                    <TableCell>
-                                        <div className="si-cell-stack">
-                                            <strong>{item.reason}</strong>
-
-                                            {item.note && (
-                                                <small>{item.note}</small>
-                                            )}
-
-                                            {item.reference && (
-                                                <small>
-                                                    Ref: {item.reference}
-                                                </small>
-                                            )}
-                                        </div>
-                                    </TableCell>
-
-                                    <TableCell>{item.actor}</TableCell>
                                 </TableRow>
                             ))}
-
-                            {!visibleHistory.length && (
+                            {(historyLoading || historyError || !history.rows.length) && (
                                 <TableRow>
-                                    <TableCell colSpan={8}>
-                                        <div className="si-empty">
-                                            <i className="fa-solid fa-clock-rotate-left" />
-
-                                            <h3>No movements found</h3>
-                                            <p>
-                                                Stock changes will appear here
-                                                as they are recorded.
-                                            </p>
-                                        </div>
+                                    <TableCell colSpan={7} align="center">
+                                        {historyLoading ? "Loading history..." : historyError ? "Unable to load history." : "No movements found."}
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -1373,172 +586,48 @@ function Inventory({ user }) {
 
                 <TablePagination
                     component="div"
-                    count={filteredHistory.length}
-                    page={Math.min(
-                        historyPage,
-                        Math.max(
-                            0,
-                            Math.ceil(filteredHistory.length / historyRows) - 1
-                        )
-                    )}
-                    rowsPerPage={historyRows}
-                    rowsPerPageOptions={[5, 10, 20]}
-                    onPageChange={(_, value) =>
-                        setHistoryPage(value)
-                    }
-                    onRowsPerPageChange={(event) => {
-                        setHistoryRows(Number(event.target.value));
-                        setHistoryPage(0);
-                    }}
+                    count={history.total}
+                    page={Math.min(historyPage, Math.max(0, Math.ceil(history.total / historyLimit) - 1))}
+                    rowsPerPage={historyLimit}
+                    rowsPerPageOptions={[10, 20, 50]}
+                    onPageChange={(_, value) => setHistoryPage(value)}
+                    onRowsPerPageChange={(event) => { setHistoryLimit(Number(event.target.value)); setHistoryPage(0); }}
                 />
             </section>
 
-            {/* ================== STOCK ADJUSTMENT MODAL ================== */}
-            <Dialog
-                open={Boolean(editRow)}
-                onClose={() => setEditRow(null)}
-                fullWidth
-                maxWidth="sm"
-                className="si-dialog"
-            >
-                <DialogTitle>Adjust Stock</DialogTitle>
-
-                <DialogContent dividers>
-                    {editRow && (
+            <Dialog open={Boolean(action)} onClose={() => !busy && setAction(null)} fullWidth maxWidth="sm" className="si-dialog">
+                <DialogTitle>Update Stock</DialogTitle>
+                <DialogContent>
+                    {action && (
                         <div className="si-dialog-content">
                             <div className="si-dialog-summary">
-                                <strong>
-                                    {editRow.name} · {editRow.variant}
-                                </strong>
-
-                                <small>
-                                    SKU: {editRow.sku} · On hand:{" "}
-                                    {editRow.onHand} · Reserved:{" "}
-                                    {editRow.reserved}
-                                </small>
+                                <strong>{action.productName}</strong>
+                                <p>{action.sku} · On hand: {action.onHand} · Reserved: {action.reserved}</p>
                             </div>
 
                             <div className="si-dialog-fields">
-                                <TextField
-                                    select
-                                    fullWidth
-                                    label="Movement Type"
-                                    value={mode}
-                                    onChange={(event) => {
-                                        setMode(event.target.value);
-                                        setQuantity("");
-                                    }}
-                                >
-                                    <MenuItem value="add">
-                                        Add Stock (Restock)
-                                    </MenuItem>
-
-                                    <MenuItem value="set">
-                                        Set Quantity (Stock Count)
-                                    </MenuItem>
-
-                                    <MenuItem value="remove">
-                                        Remove Stock (Damage / Loss)
-                                    </MenuItem>
+                                <TextField select label="Movement Type" value={mode} onChange={(event) => setMode(event.target.value)} disabled={busy}>
+                                    <MenuItem value="add">Restock — Add Quantity</MenuItem>
+                                    <MenuItem value="set">Adjustment — Set Final Stock</MenuItem>
+                                    <MenuItem value="remove">Damage/Loss — Remove Quantity</MenuItem>
                                 </TextField>
-
-                                <TextField
-                                    type="number"
-                                    fullWidth
-                                    label={
-                                        mode === "set"
-                                            ? "New On-Hand Quantity"
-                                            : "Quantity"
-                                    }
-                                    value={quantity}
-                                    onChange={(event) =>
-                                        setQuantity(event.target.value)
-                                    }
-                                    error={Boolean(
-                                        quantity && invalidAdjustment
-                                    )}
-                                    helperText={
-                                        quantity && invalidAdjustment
-                                            ? "Enter a valid quantity without reducing reserved stock."
-                                            : " "
-                                    }
-                                    slotProps={{
-                                        htmlInput: {
-                                            min: mode === "set"
-                                                ? editRow.reserved
-                                                : 1,
-                                            max: MAX_STOCK,
-                                            step: 1,
-                                        },
-                                    }}
-                                />
-
-                                <TextField
-                                    fullWidth
-                                    label={
-                                        mode === "add"
-                                            ? "Supplier / Notes (Optional)"
-                                            : "Reason for Change"
-                                    }
-                                    value={reason}
-                                    onChange={(event) =>
-                                        setReason(event.target.value)
-                                    }
-                                    required={mode !== "add"}
-                                    slotProps={{
-                                        htmlInput: {
-                                            maxLength: 160,
-                                        },
-                                    }}
-                                />
-
-                                <TextField
-                                    fullWidth
-                                    label="Reference (Optional)"
-                                    value={reference}
-                                    onChange={(event) =>
-                                        setReference(event.target.value)
-                                    }
-                                    slotProps={{
-                                        htmlInput: {
-                                            maxLength: 80,
-                                        },
-                                    }}
-                                />
+                                <TextField label={mode === "set" ? "Final On-Hand Stock" : "Quantity"} value={quantity} onChange={(event) => setQuantity(event.target.value)} disabled={busy} slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 6 } }} />
+                                <TextField label="Reason" value={reason} onChange={(event) => setReason(event.target.value)} multiline minRows={2} disabled={busy} slotProps={{ htmlInput: { maxLength: 300 } }} fullWidth />
+                                <TextField label="Reference (Optional)" value={reference} onChange={(event) => setReference(event.target.value)} disabled={busy} slotProps={{ htmlInput: { maxLength: 80 } }} />
                             </div>
 
                             <div className="si-dialog-result">
-                                On Hand:
-                                <strong>{editRow.onHand}</strong>
-
-                                <i className="fa-solid fa-arrow-right" />
-
-                                <strong>
-                                    {isValidQuantity(quantity) &&
-                                    adjustedQuantity >= 0 &&
-                                    adjustedQuantity <= MAX_STOCK
-                                        ? adjustedQuantity
-                                        : "—"}
-                                </strong>
+                                {action.onHand} <i className="fa-solid fa-arrow-right" /> {nextQuantity ?? "—"}
                             </div>
+
+                            {actionError && <Alert severity="error">{actionError}</Alert>}
                         </div>
                     )}
                 </DialogContent>
-
                 <DialogActions>
-                    <Button
-                        color="inherit"
-                        onClick={() => setEditRow(null)}
-                    >
-                        Cancel
-                    </Button>
-
-                    <Button
-                        variant="contained"
-                        disabled={invalidAdjustment}
-                        onClick={saveAdjustment}
-                    >
-                        Save Movement
+                    <Button onClick={() => setAction(null)} disabled={busy}>Cancel</Button>
+                    <Button variant="contained" onClick={saveStock} disabled={busy}>
+                        {busy ? "Saving..." : "Save Stock"}
                     </Button>
                 </DialogActions>
             </Dialog>

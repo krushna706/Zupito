@@ -283,3 +283,61 @@ exports.sellerProductListSchema = Joi.object({
     page: Joi.number().integer().min(1).max(100000).default(1),
     limit: Joi.number().valid(10, 20, 50).default(10),
 });
+
+// Seller inventory
+const inventorySearch = Joi.string().trim().max(100).allow("").default("");
+const inventoryPage = Joi.number().integer().min(1).max(100000).default(1);
+const inventoryLimit = Joi.number().valid(10, 20, 50).default(10);
+
+const inventorySku = Joi.string()
+    .trim()
+    .uppercase()
+    .pattern(/^[A-Z0-9_-]{3,30}$/)
+    .required();
+
+exports.inventoryListSchema = Joi.object({
+    search: inventorySearch,
+    status: Joi.string()
+        .valid("All", "In Stock", "Low Stock", "Out of Stock", "Needs Attention")
+        .default("All"),
+    threshold: Joi.number().integer().min(1).max(100).default(5),
+    page: inventoryPage,
+    limit: inventoryLimit,
+});
+
+exports.inventoryHistorySchema = Joi.object({
+    search: inventorySearch,
+    sku: Joi.string().trim().uppercase().max(30).allow("").default(""),
+    type: Joi.string()
+        .valid("All", "Opening", "Restock", "Adjustment", "Damage/Loss")
+        .default("All"),
+    page: inventoryPage,
+    limit: inventoryLimit,
+});
+
+exports.inventoryChangeSchema = Joi.object({
+    sku: inventorySku,
+    mode: Joi.string().valid("add", "set", "remove").required(),
+    quantity: Joi.number().integer().min(0).max(999999).required(),
+    reason: Joi.string().trim().min(5).max(300).required(),
+    reference: Joi.string().trim().uppercase().max(80).allow("").default(""),
+    version: Joi.number().integer().min(0).required(),
+    operationId: Joi.string().guid({ version: "uuidv4" }).required(),
+});
+
+exports.inventoryImportSchema = Joi.object({
+    mode: Joi.string().valid("add", "set").required(),
+    reference: Joi.string()
+        .trim()
+        .uppercase()
+        .pattern(/^[A-Z0-9_-]{3,80}$/)
+        .required(),
+    reason: Joi.string().trim().min(5).max(300).required(),
+});
+
+exports.inventoryCsvRowSchema = Joi.object({
+    sku: inventorySku,
+    stock: Joi.string()
+        .pattern(/^(0|[1-9]\d{0,5})$/)
+        .required(),
+});

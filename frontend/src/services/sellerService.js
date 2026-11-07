@@ -803,3 +803,29 @@ export async function submitSellerProduct(productId, values, images) {
         ? (await api.patch(`/seller/products/${productId}`, form, config)).data
         : (await api.post("/seller/products", form, config)).data;
 }
+
+// Inventory API
+export const fetchInventory = async (params, signal) =>
+    (await api.get("/seller/inventory", { params, signal })).data;
+
+export const fetchInventoryHistory = async (params, signal) =>
+    (await api.get("/seller/inventory/history", { params, signal })).data;
+
+export const changeInventoryStock = async (values) =>
+    (await api.post("/seller/inventory/movements", values)).data;
+
+export async function importInventoryStock(file, values) {
+    const form = new FormData();
+
+    Object.entries(values).forEach(([key, value]) => {
+        form.append(key, value);
+    });
+
+    form.append("file", file);
+
+    return (
+        await api.post("/seller/inventory/import", form, {
+            timeout: 240000,
+        })
+    ).data;
+}

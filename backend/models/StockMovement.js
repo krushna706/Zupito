@@ -24,6 +24,20 @@ const stockMovementSchema = new mongoose.Schema(
         afterQuantity: { type: Number, required: true },
         reason: { type: String, required: true },
         note: { type: String, default: "", maxlength: 300 },
+        reference: { type: String, default: "", maxlength: 80 },
+        source: {
+            type: String,
+            enum: ["product_form", "manual", "csv"],
+            default: "product_form",
+        },
+        operationKey: {
+            type: String,
+            maxlength: 150,
+        },
+        requestHash: {
+            type: String,
+            select: false,
+        },
         actorUserId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
@@ -39,5 +53,15 @@ stockMovementSchema.index({
     variantId: 1,
     createdAt: -1,
 });
+
+stockMovementSchema.index(
+    { sellerProfileId: 1, operationKey: 1 },
+    {
+        unique: true,
+        partialFilterExpression: {
+            operationKey: { $type: "string" },
+        },
+    }
+);
 
 module.exports = mongoose.model("StockMovement", stockMovementSchema);

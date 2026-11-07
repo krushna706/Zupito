@@ -5,6 +5,11 @@ const SellerProfile = require("../models/SellerProfile");
 const AuthSession = require("../models/AuthSession");
 const cloudinary = require("../config/cloudinary");
 const ExpressError = require("../utils/ExpressError");
+const inventoryService = require("../services/inventoryService");
+const {
+    inventoryListSchema,
+    inventoryHistorySchema,
+} = require("../validations/schema");
 
 function storeResponse(seller) {
     return {
@@ -224,6 +229,60 @@ exports.updateStoreProfile = async (req, res, next) => {
             }
         }
 
+        next(error);
+    }
+};
+
+exports.getInventory = async (req, res, next) => {
+    try {
+        const { value, error } = inventoryListSchema.validate(req.query);
+
+        if (error) {
+            throw new ExpressError(400, error.details[0].message);
+        }
+
+        const result = await inventoryService.getInventory(req.user._id, value);
+
+        res.json({ success: true, ...result });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.getInventoryHistory = async (req, res, next) => {
+    try {
+        const { value, error } = inventoryHistorySchema.validate(req.query);
+
+        if (error) {
+            throw new ExpressError(400, error.details[0].message);
+        }
+
+        const result = await inventoryService.getInventoryHistory(
+            req.user._id,
+            value
+        );
+
+        res.json({ success: true, ...result });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.changeInventoryStock = async (req, res, next) => {
+    try {
+        const result = await inventoryService.changeInventoryStock(
+            req.user._id,
+            req.body
+        );
+
+        res.json({
+            success: true,
+            message: result.outcome === "Skipped"
+                ? "This stock update was already processed."
+                : "Inventory saved successfully.",
+            ...result,
+        });
+    } catch (error) {
         next(error);
     }
 };

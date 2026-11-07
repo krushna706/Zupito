@@ -45,18 +45,12 @@ npm install csv-parse                          # Parse inventory CSV uploads
 npm install pdfkit                            # Generate order invoice PDFs
 
 
-# ===== DEVELOPMENT =====
 
-npm install --save-dev nodemon                 # Restart backend during development
+# ===== RUN SCRIPTS SETUP =====
 
-
-# ===== PACKAGE CONFIGURATION =====
-
-npm pkg set type="commonjs"
-npm pkg set main="server.js"
-npm pkg set scripts.dev="nodemon server.js"
-npm pkg set scripts.start="node server.js"
-npm pkg delete scripts.test
+npm pkg set scripts.dev="nodemon server.js"                     # Development server
+npm pkg set scripts.start="node server.js"                      # Production server
+npm pkg set main="server.js"                                    # Entry file metadata
 
 
 # ===== RUN BACKEND =====

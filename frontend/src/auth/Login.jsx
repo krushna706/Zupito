@@ -4,40 +4,42 @@ import { Button, IconButton, InputAdornment, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
 import { appConfig } from "../config/appConfig";
-
-import "../css/auth.css";
-
 import { useAuth } from "../context/AuthContext";
 import { getLoginDestination } from "../services/authService";
+
+import "../css/auth.css";
 
 const features = [
     {
         icon: "fa-bag-shopping",
         title: "Shop your favorites",
-        description: "Discover quality products across everyday categories."
+        description: "Discover quality products across everyday categories.",
     },
     {
         icon: "fa-box-open",
         title: "Everything in one place",
-        description: "Manage your orders and stay updated with ease."
+        description: "Manage your orders and stay updated with ease.",
     },
     {
         icon: "fa-truck-fast",
         title: "Reliable shopping experience",
-        description: "Enjoy a simple and convenient shopping journey."
-    }
+        description: "Enjoy a simple and convenient shopping journey.",
+    },
 ];
 
 function Login() {
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+
     const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [busy, setBusy] = useState(false);
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
+        if (busy) return;
 
         const value = identifier.trim();
 
@@ -46,19 +48,26 @@ function Login() {
             return;
         }
 
-        const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-        const validPhone = /^[6-9]\d{9}$/.test(value);
-
-        if (!validEmail && !validPhone) {
+        if (
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) &&
+            !/^[6-9]\d{9}$/.test(value)
+        ) {
             toast.error("Enter a valid email address or 10-digit phone number.");
             return;
         }
 
+        setBusy(true);
+
         try {
-            const user = login(value, password);
-            navigate(getLoginDestination(user, location.state?.returnTo), { replace: true });
+            const user = await login(value, password);
+
+            navigate(getLoginDestination(user, location.state?.returnTo), {
+                replace: true,
+            });
         } catch (error) {
             toast.error(error.message);
+        } finally {
+            setBusy(false);
         }
     };
 
@@ -83,24 +92,24 @@ function Login() {
 
                         <div className="auth-introduction-content">
                             <p className="website-section-label">WELCOME TO ZUPITO</p>
-
                             <h2 className="website-section-title">
                                 Your world of shopping,
                                 <span> all in one place.</span>
                             </h2>
-
                             <p className="website-section-description">
-                                Discover everyday essentials, explore amazing products and enjoy a better
-                                shopping experience.
+                                Discover everyday essentials, explore amazing products and
+                                enjoy a better shopping experience.
                             </p>
 
                             <ul className="auth-features">
                                 {features.map((feature) => (
                                     <li key={feature.title}>
                                         <span className="auth-feature-icon">
-                                            <i className={`fa-solid ${feature.icon}`} aria-hidden="true" />
+                                            <i
+                                                className={`fa-solid ${feature.icon}`}
+                                                aria-hidden="true"
+                                            />
                                         </span>
-
                                         <div>
                                             <h3>{feature.title}</h3>
                                             <p>{feature.description}</p>
@@ -110,28 +119,31 @@ function Login() {
                             </ul>
                         </div>
 
-                        <p className="auth-introduction-note">Everyday essentials. Exceptional finds.</p>
+                        <p className="auth-introduction-note">
+                            Everyday essentials. Exceptional finds.
+                        </p>
                     </aside>
 
-                    {/* Login Form */}
                     <section className="auth-form-panel" aria-labelledby="login-title">
                         <div className="auth-form-content">
                             <header className="auth-form-header">
-                                <Link to="/" className="website-brand auth-brand" aria-label="Zupito Home">
+                                <Link
+                                    to="/"
+                                    className="website-brand auth-brand"
+                                    aria-label="Zupito Home"
+                                >
                                     <img src={appConfig.logo} alt={appConfig.name} />
                                 </Link>
 
                                 <h1 id="login-title" className="website-section-title">
                                     Welcome <span>Back!</span>
                                 </h1>
-
                                 <p className="website-section-description">
                                     Sign in to your Zupito account to continue.
                                 </p>
                             </header>
 
                             <form className="auth-form" onSubmit={handleSubmit} noValidate>
-                                {/* Email or Phone */}
                                 <TextField
                                     label="Email or Phone Number"
                                     name="identifier"
@@ -143,14 +155,13 @@ function Login() {
                                         htmlInput: {
                                             maxLength: 254,
                                             autoCapitalize: "none",
-                                            spellCheck: false
-                                        }
+                                            spellCheck: false,
+                                        },
                                     }}
                                     fullWidth
                                     required
                                 />
 
-                                {/* Password */}
                                 <TextField
                                     label="Password"
                                     name="password"
@@ -166,48 +177,41 @@ function Login() {
                                                     <IconButton
                                                         type="button"
                                                         className="auth-password-toggle"
-                                                        onClick={() =>
-                                                            setShowPassword((previous) => !previous)
-                                                        }
-                                                        aria-label={
-                                                            showPassword ? "Hide password" : "Show password"
-                                                        }
+                                                        onClick={() => setShowPassword((value) => !value)}
+                                                        aria-label={showPassword ? "Hide password" : "Show password"}
                                                         edge="end"
                                                     >
                                                         <i
-                                                            className={`fa-solid ${
-                                                                showPassword ? "fa-eye-slash" : "fa-eye"
-                                                            }`}
+                                                            className={`fa-solid ${showPassword ? "fa-eye-slash" : "fa-eye"}`}
                                                             aria-hidden="true"
                                                         />
                                                     </IconButton>
                                                 </InputAdornment>
-                                            )
-                                        }
+                                            ),
+                                        },
                                     }}
                                     fullWidth
                                     required
                                 />
 
-                                {/* Sign In Button */}
                                 <Button
                                     type="submit"
                                     variant="contained"
                                     className="auth-submit"
+                                    disabled={busy}
                                     disableElevation
                                     fullWidth
                                 >
-                                    Sign In
+                                    {busy ? "Signing In…" : "Sign In"}
                                     <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                                 </Button>
                             </form>
 
-                            {/* Account Links */}
                             <div className="auth-account-row">
                                 <p className="auth-switch">
-                                    Don't have an account? <Link to="/manage/signup">Create Account</Link>
+                                    Don't have an account?{" "}
+                                    <Link to="/manage/signup">Create Account</Link>
                                 </p>
-
                                 <Link to="/manage/forgot-password" className="auth-forgot-link">
                                     Forgot Password?
                                 </Link>

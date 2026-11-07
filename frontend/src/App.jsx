@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
@@ -36,7 +35,7 @@ import SellerRegister from "./auth/SellerRegister";
 
 // Panel configuration
 import { panelPages, getPanelRole } from "./config/panelConfig";
-import StaffProfile from "./admin/Profile";
+import SellerApprovalStatus from "./seller/ApprovalStatus";
 
 // Shared components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -45,14 +44,12 @@ import NotFound from "./components/NotFound";
 
 import "./css/website.css";
 
-// ================== PANEL ACCESS ==================
 function PanelAccess() {
     const { user } = useAuth();
     const location = useLocation();
 
     if (!user) {
         const returnTo = location.pathname + location.search + location.hash;
-
         return <Navigate to="/manage" replace state={{ returnTo }} />;
     }
 
@@ -63,7 +60,6 @@ function PanelAccess() {
     return <Outlet />;
 }
 
-// ================== ROLE-BASED DASHBOARD AND PROFILE ==================
 function RolePage({ user, page }) {
     const roleConfig = getPanelRole(user?.role);
     const PageComponent = roleConfig?.[page];
@@ -72,17 +68,32 @@ function RolePage({ user, page }) {
         return <AccessDenied />;
     }
 
+    if (
+        user.role === "seller" &&
+        user.seller?.status !== "Approved" &&
+        page === "dashboard"
+    ) {
+        return <SellerApprovalStatus user={user} />;
+    }
+
     const title = page === "dashboard" ? `${roleConfig.label} Dashboard` : "My Profile";
 
     return <PageComponent user={user} title={title} />;
 }
 
-// ================== INDIVIDUAL PANEL PAGE ACCESS ==================
 function PanelPage({ user, page }) {
     const role = user?.role === "delivery_agent" ? "delivery" : user?.role;
 
     if (!user || !page.allowedRoles.includes(role)) {
         return <AccessDenied />;
+    }
+
+    if (
+        role === "seller" &&
+        user.seller?.status !== "Approved" &&
+        page.path !== "approval-status"
+    ) {
+        return <Navigate to="/manage/approval-status" replace />;
     }
 
     const PageComponent = page.components?.[role] || page.component;
@@ -94,7 +105,6 @@ function PanelPage({ user, page }) {
     return <PageComponent user={user} title={page.navigation?.label || "Panel Page"} />;
 }
 
-// ================== SCROLL TO TOP ==================
 function ScrollToTop() {
     const { pathname } = useLocation();
 
@@ -105,7 +115,6 @@ function ScrollToTop() {
     return null;
 }
 
-// ================== APPLICATION ROUTES ==================
 function App() {
     const { user } = useAuth();
     const roleConfig = getPanelRole(user?.role);
@@ -120,7 +129,6 @@ function App() {
     return (
         <BrowserRouter>
             <ScrollToTop />
-
             <ToastContainer position="top-right" autoClose={3000} />
 
             <Routes>
@@ -130,7 +138,7 @@ function App() {
                 <Route path="/manage/forgot-password" element={<ForgotPassword />} />
                 <Route path="/manage/seller-register" element={<SellerRegister />} />
 
-                {/* Public Website */}
+                {/* Public website */}
                 <Route element={<WebsiteLayout />}>
                     <Route path="/" element={<HomePage />} />
                     <Route path="products" element={<Products />} />
@@ -143,7 +151,6 @@ function App() {
                     <Route path="contact" element={<Contact />} />
                     <Route path="policies" element={<Policies />} />
 
-                    {/* Customer Account */}
                     <Route path="account" element={<ProtectedRoute allowedRoles={["customer"]}><AccountLayout /></ProtectedRoute>}>
                         <Route index element={<Profile />} />
                         <Route path="addresses" element={<Addresses />} />
@@ -155,14 +162,18 @@ function App() {
                     <Route path="*" element={<NotFound />} />
                 </Route>
 
-                {/* Admin, Seller and Delivery Panel */}
+                {/* Staff panels */}
                 <Route element={<PanelAccess />}>
                     <Route path="/manage" element={<PanelLayout />}>
                         <Route path="dashboard" element={<RolePage user={panelUser} page="dashboard" />} />
                         <Route path="profile" element={<RolePage user={panelUser} page="profile" />} />
 
                         {panelPages.map((page) => (
-                            <Route key={page.path} path={page.path} element={<PanelPage user={panelUser} page={page} />} />
+                            <Route
+                                key={page.path}
+                                path={page.path}
+                                element={<PanelPage user={panelUser} page={page} />}
+                            />
                         ))}
 
                         <Route path="*" element={<NotFound />} />

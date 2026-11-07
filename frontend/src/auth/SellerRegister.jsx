@@ -9,10 +9,12 @@ import {
     List,
     ListItem,
     ListItemText,
-    TextField
+    TextField,
 } from "@mui/material";
 
 import { appConfig } from "../config/appConfig";
+import { registerSeller } from "../services/authService";
+
 import "../css/auth.css";
 
 const steps = [
@@ -20,26 +22,26 @@ const steps = [
         title: "Account Details",
         description: "Enter your personal and login information.",
         heading: "Account",
-        accent: "Details"
+        accent: "Details",
     },
     {
         title: "Store Information",
         description: "Tell us about your business and store.",
         heading: "Store",
-        accent: "Information"
+        accent: "Information",
     },
     {
         title: "Pickup Address",
         description: "Provide your product pickup location.",
         heading: "Pickup",
-        accent: "Address"
+        accent: "Address",
     },
     {
         title: "Review & Submit",
         description: "Verify your details before submitting.",
         heading: "Review Your",
-        accent: "Application"
-    }
+        accent: "Application",
+    },
 ];
 
 const initialForm = {
@@ -56,19 +58,19 @@ const initialForm = {
     locality: "",
     city: "",
     state: "",
-    pincode: ""
+    pincode: "",
 };
 
 const accountFields = [
     { name: "fullName", label: "Full Name", maxLength: 100, autoComplete: "name" },
     { name: "email", label: "Email Address", type: "email", maxLength: 254, autoComplete: "email" },
-    { name: "mobile", label: "Mobile Number", type: "tel", maxLength: 10, autoComplete: "tel-national" }
+    { name: "mobile", label: "Mobile Number", type: "tel", maxLength: 10, autoComplete: "tel-national" },
 ];
 
 const storeFields = [
     { name: "storeName", label: "Store Name", maxLength: 100 },
     { name: "storeEmail", label: "Store Email", type: "email", maxLength: 254 },
-    { name: "storePhone", label: "Store Contact Number", type: "tel", maxLength: 10 }
+    { name: "storePhone", label: "Store Contact Number", type: "tel", maxLength: 10 },
 ];
 
 const addressFields = [
@@ -76,7 +78,7 @@ const addressFields = [
     { name: "locality", label: "Locality / Area", maxLength: 100 },
     { name: "city", label: "City", maxLength: 100 },
     { name: "state", label: "State", maxLength: 100 },
-    { name: "pincode", label: "Pincode", maxLength: 6 }
+    { name: "pincode", label: "Pincode", maxLength: 6 },
 ];
 
 function PasswordField({ label, name, value, onChange }) {
@@ -103,14 +105,11 @@ function PasswordField({ label, name, value, onChange }) {
                                 aria-label={`${visible ? "Hide" : "Show"} ${label}`}
                                 edge="end"
                             >
-                                <i
-                                    className={`fa-solid ${visible ? "fa-eye-slash" : "fa-eye"}`}
-                                    aria-hidden="true"
-                                />
+                                <i className={`fa-solid ${visible ? "fa-eye-slash" : "fa-eye"}`} aria-hidden="true" />
                             </IconButton>
                         </InputAdornment>
-                    )
-                }
+                    ),
+                },
             }}
             fullWidth
             required
@@ -123,19 +122,15 @@ function SellerRegister() {
     const [form, setForm] = useState(initialForm);
     const [application, setApplication] = useState(null);
     const [error, setError] = useState("");
+    const [busy, setBusy] = useState(false);
 
     const handleChange = (event) => {
         const { name, value } = event.target;
-
         const nextValue = ["mobile", "storePhone", "pincode"].includes(name)
             ? value.replace(/\D/g, "")
             : value;
 
-        setForm((previous) => ({
-            ...previous,
-            [name]: nextValue
-        }));
-
+        setForm((previous) => ({ ...previous, [name]: nextValue }));
         setError("");
     };
 
@@ -144,63 +139,37 @@ function SellerRegister() {
         const phonePattern = /^[6-9]\d{9}$/;
 
         if (currentStep === 0) {
-            if (form.fullName.trim().length < 2) {
-                return "Enter a valid full name.";
-            }
-
-            if (form.email.trim().length > 254 || !emailPattern.test(form.email.trim())) {
-                return "Enter a valid email address.";
-            }
-
-            if (!phonePattern.test(form.mobile)) {
-                return "Enter a valid 10-digit mobile number.";
-            }
-
+            if (form.fullName.trim().length < 2) return "Enter a valid full name.";
+            if (!emailPattern.test(form.email.trim())) return "Enter a valid email address.";
+            if (!phonePattern.test(form.mobile)) return "Enter a valid 10-digit mobile number.";
             if (form.password.length < 6 || new TextEncoder().encode(form.password).length > 72) {
                 return "Password must contain at least 6 characters and at most 72 UTF-8 bytes.";
             }
-
-            if (form.password !== form.confirmPassword) {
-                return "Password and confirm password do not match.";
-            }
+            if (form.password !== form.confirmPassword) return "Passwords do not match.";
         }
 
         if (currentStep === 1) {
-            if (form.storeName.trim().length < 3) {
-                return "Store name must contain at least 3 characters.";
-            }
-
-            if (form.storeEmail.trim().length > 254 || !emailPattern.test(form.storeEmail.trim())) {
-                return "Enter a valid store email address.";
-            }
-
-            if (!phonePattern.test(form.storePhone)) {
-                return "Enter a valid store contact number.";
-            }
-
-            if (form.description.trim().length > 500) {
-                return "Store description cannot exceed 500 characters.";
-            }
+            if (form.storeName.trim().length < 3) return "Store name must contain at least 3 characters.";
+            if (!emailPattern.test(form.storeEmail.trim())) return "Enter a valid store email address.";
+            if (!phonePattern.test(form.storePhone)) return "Enter a valid store contact number.";
+            if (form.description.trim().length > 500) return "Store description cannot exceed 500 characters.";
         }
 
         if (currentStep === 2) {
             if (!form.street.trim() || !form.locality.trim() || !form.city.trim() || !form.state.trim()) {
                 return "Complete all pickup address fields.";
             }
-
-            if (!/^[1-9]\d{5}$/.test(form.pincode)) {
-                return "Enter a valid 6-digit pincode.";
-            }
+            if (!/^[1-9]\d{5}$/.test(form.pincode)) return "Enter a valid 6-digit pincode.";
         }
 
         return "";
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
+        if (busy) return;
 
         const validationError = validateStep(step);
-
         if (validationError) {
             setError(validationError);
             return;
@@ -208,42 +177,36 @@ function SellerRegister() {
 
         setError("");
 
-        if (step < steps.length - 1) {
+        if (step < 3) {
             setStep((previous) => previous + 1);
             return;
         }
 
-        for (let index = 0; index < steps.length - 1; index++) {
-            const previousStepError = validateStep(index);
-
-            if (previousStepError) {
+        for (let index = 0; index < 3; index++) {
+            const previousError = validateStep(index);
+            if (previousError) {
                 setStep(index);
-                setError(previousStepError);
+                setError(previousError);
                 return;
             }
         }
 
-        // Frontend-only application preview.
-        setApplication({
-            applicant: form.fullName.trim(),
-            email: form.email.trim(),
-            storeName: form.storeName.trim(),
-            location: `${form.city.trim()}, ${form.state.trim()}`,
-            status: "Pending Approval (Demo)"
-        });
+        setBusy(true);
 
-        setForm((previous) => ({
-            ...previous,
-            password: "",
-            confirmPassword: ""
-        }));
-    };
-
-    const handleBack = () => {
-        if (step === 0) return;
-
-        setStep((previous) => previous - 1);
-        setError("");
+        try {
+            await registerSeller(form);
+            setApplication({
+                applicant: form.fullName.trim(),
+                storeName: form.storeName.trim(),
+                location: `${form.city.trim()}, ${form.state.trim()}`,
+                status: "Pending Approval",
+            });
+            setForm((previous) => ({ ...previous, password: "", confirmPassword: "" }));
+        } catch (failure) {
+            setError(failure.message);
+        } finally {
+            setBusy(false);
+        }
     };
 
     const handleRestart = () => {
@@ -269,8 +232,8 @@ function SellerRegister() {
                         maxLength: field.maxLength,
                         inputMode: ["mobile", "storePhone", "pincode"].includes(field.name)
                             ? "numeric"
-                            : undefined
-                    }
+                            : undefined,
+                    },
                 }}
                 fullWidth
                 required
@@ -278,20 +241,12 @@ function SellerRegister() {
         ));
 
     const reviewDetails = [
-        {
-            label: "Account Details",
-            details: `${form.fullName} | ${form.email} | ${form.mobile}`
-        },
-        {
-            label: "Store Information",
-            details: `${form.storeName} | ${form.storeEmail} | ${form.storePhone}`
-        },
+        { label: "Account Details", details: `${form.fullName} | ${form.email} | ${form.mobile}` },
+        { label: "Store Information", details: `${form.storeName} | ${form.storeEmail} | ${form.storePhone}` },
         {
             label: "Pickup Address",
-            details: [form.street, form.locality, form.city, form.state, form.pincode]
-                .filter(Boolean)
-                .join(", ")
-        }
+            details: [form.street, form.locality, form.city, form.state, form.pincode].filter(Boolean).join(", "),
+        },
     ];
 
     return (
@@ -305,23 +260,15 @@ function SellerRegister() {
                 </div>
 
                 <div className="auth-card">
-                    {/* Introduction */}
                     <aside className="auth-introduction">
-                        <img
-                            src="/images/about-story.jpg"
-                            alt=""
-                            className="auth-background"
-                            decoding="async"
-                        />
+                        <img src="/images/about-story.jpg" alt="" className="auth-background" decoding="async" />
 
                         <div className="auth-introduction-content">
                             <p className="website-section-label">SELL WITH ZUPITO</p>
-
                             <h2 className="website-section-title">
                                 Grow your business,
                                 <span> reach more customers.</span>
                             </h2>
-
                             <p className="website-section-description">
                                 Complete four simple steps to become a seller on Zupito.
                             </p>
@@ -334,13 +281,10 @@ function SellerRegister() {
                                         aria-current={index === step && !application ? "step" : undefined}
                                     >
                                         <span className="auth-feature-icon">
-                                            {index < step || application ? (
-                                                <i className="fa-solid fa-check" aria-hidden="true" />
-                                            ) : (
-                                                <span>{index + 1}</span>
-                                            )}
+                                            {index < step || application
+                                                ? <i className="fa-solid fa-check" aria-hidden="true" />
+                                                : <span>{index + 1}</span>}
                                         </span>
-
                                         <div>
                                             <h3>{item.title}</h3>
                                             <p>{item.description}</p>
@@ -350,10 +294,11 @@ function SellerRegister() {
                             </ol>
                         </div>
 
-                        <p className="auth-introduction-note">Everyday essentials. Exceptional finds.</p>
+                        <p className="auth-introduction-note">
+                            Everyday essentials. Exceptional finds.
+                        </p>
                     </aside>
 
-                    {/* Registration Form */}
                     <section className="auth-form-panel" aria-labelledby="seller-register-title">
                         <div className="auth-form-content">
                             <header className="auth-form-header">
@@ -362,77 +307,49 @@ function SellerRegister() {
                                 </Link>
 
                                 <p className="website-section-label">
-                                    {application
-                                        ? "APPLICATION PREVIEW"
-                                        : `STEP ${step + 1} OF ${steps.length}`}
+                                    {application ? "APPLICATION SUBMITTED" : `STEP ${step + 1} OF ${steps.length}`}
                                 </p>
 
                                 <h1 id="seller-register-title" className="website-section-title">
-                                    {application ? (
-                                        <>
-                                            Application <span>Submitted!</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {steps[step].heading} <span>{steps[step].accent}</span>
-                                        </>
-                                    )}
+                                    {application
+                                        ? <>Application <span>Submitted!</span></>
+                                        : <>{steps[step].heading} <span>{steps[step].accent}</span></>}
                                 </h1>
 
                                 <p className="website-section-description">
                                     {application
-                                        ? "Your seller application preview is ready."
+                                        ? "Your application has been received for review."
                                         : steps[step].description}
                                 </p>
                             </header>
 
                             {application ? (
-                                /* Application Status */
                                 <div className="auth-form">
                                     <Alert severity="success">
-                                        Application preview submitted successfully. No data was sent to a
-                                        server.
+                                        Application submitted successfully. Sign in to track your approval.
                                     </Alert>
-
                                     <Alert severity="warning">
                                         <strong>{application.status}</strong>
-                                        <div>Awaiting admin review in this preview.</div>
+                                        <div>Awaiting admin review.</div>
                                     </Alert>
 
                                     <List disablePadding>
                                         <ListItem>
-                                            <ListItemText
-                                                primary="Applicant"
-                                                secondary={application.applicant}
-                                            />
+                                            <ListItemText primary="Applicant" secondary={application.applicant} />
                                         </ListItem>
-
                                         <Divider component="li" />
-
                                         <ListItem>
                                             <ListItemText primary="Store" secondary={application.storeName} />
                                         </ListItem>
-
                                         <Divider component="li" />
-
                                         <ListItem>
-                                            <ListItemText
-                                                primary="Pickup Location"
-                                                secondary={application.location}
-                                            />
+                                            <ListItemText primary="Pickup Location" secondary={application.location} />
                                         </ListItem>
                                     </List>
 
-                                    <Button
-                                        component={Link}
-                                        to="/manage"
-                                        variant="contained"
-                                        className="auth-submit"
-                                        fullWidth
-                                    >
+                                    <Button component={Link} to="/manage" variant="contained" className="auth-submit" fullWidth>
                                         Back to Sign In
                                     </Button>
-
                                     <Button type="button" variant="text" onClick={handleRestart}>
                                         Start New Application
                                     </Button>
@@ -440,32 +357,17 @@ function SellerRegister() {
                             ) : (
                                 <>
                                     <form className="auth-form" onSubmit={handleSubmit} noValidate>
-                                        {/* Step 1: Account Details */}
                                         {step === 0 && (
                                             <>
                                                 {renderFields(accountFields)}
-
-                                                <PasswordField
-                                                    label="Password"
-                                                    name="password"
-                                                    value={form.password}
-                                                    onChange={handleChange}
-                                                />
-
-                                                <PasswordField
-                                                    label="Confirm Password"
-                                                    name="confirmPassword"
-                                                    value={form.confirmPassword}
-                                                    onChange={handleChange}
-                                                />
+                                                <PasswordField label="Password" name="password" value={form.password} onChange={handleChange} />
+                                                <PasswordField label="Confirm Password" name="confirmPassword" value={form.confirmPassword} onChange={handleChange} />
                                             </>
                                         )}
 
-                                        {/* Step 2: Store Information */}
                                         {step === 1 && (
                                             <>
                                                 {renderFields(storeFields)}
-
                                                 <TextField
                                                     label="Store Description (Optional)"
                                                     name="description"
@@ -474,40 +376,28 @@ function SellerRegister() {
                                                     className="auth-text-field"
                                                     multiline
                                                     minRows={2}
-                                                    slotProps={{
-                                                        htmlInput: {
-                                                            maxLength: 500
-                                                        }
-                                                    }}
+                                                    slotProps={{ htmlInput: { maxLength: 500 } }}
                                                     fullWidth
                                                 />
                                             </>
                                         )}
 
-                                        {/* Step 3: Pickup Address */}
                                         {step === 2 && renderFields(addressFields)}
 
-                                        {/* Step 4: Review */}
                                         {step === 3 && (
                                             <>
                                                 <Alert severity="info">
                                                     Check your information before submitting.
                                                 </Alert>
-
                                                 <List disablePadding>
                                                     {reviewDetails.map((item, index) => (
                                                         <div key={item.label}>
                                                             {index > 0 && <Divider />}
-
                                                             <ListItem>
                                                                 <ListItemText
                                                                     primary={item.label}
                                                                     secondary={item.details}
-                                                                    slotProps={{
-                                                                        primary: {
-                                                                            fontWeight: 600
-                                                                        }
-                                                                    }}
+                                                                    slotProps={{ primary: { fontWeight: 600 } }}
                                                                 />
                                                             </ListItem>
                                                         </div>
@@ -518,20 +408,18 @@ function SellerRegister() {
 
                                         {error && <Alert severity="error">{error}</Alert>}
 
-                                        <Button
-                                            type="submit"
-                                            variant="contained"
-                                            className="auth-submit"
-                                            disableElevation
-                                            fullWidth
-                                        >
-                                            {step === 3 ? "Submit Application" : "Continue"}
-
+                                        <Button type="submit" variant="contained" className="auth-submit" disabled={busy} disableElevation fullWidth>
+                                            {busy ? "Submitting…" : step === 3 ? "Submit Application" : "Continue"}
                                             <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                                         </Button>
 
                                         {step > 0 && (
-                                            <Button type="button" variant="text" onClick={handleBack}>
+                                            <Button
+                                                type="button"
+                                                variant="text"
+                                                disabled={busy}
+                                                onClick={() => { setStep((previous) => previous - 1); setError(""); }}
+                                            >
                                                 <i className="fa-solid fa-arrow-left" aria-hidden="true" />
                                                 Back
                                             </Button>

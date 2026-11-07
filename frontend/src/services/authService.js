@@ -1,91 +1,56 @@
-import { getPanelRole } from "../config/panelConfig";
+import api from "./api";
 
-const SESSION_KEY = "zupito_session";
+export const login = async (identifier, password) =>
+    (await api.post("/auth/login", { identifier, password })).data.user;
 
-// Local accounts for frontend testing; replace this service with API calls later.
-const accounts = [
-    {
-        id: "customer",
-        name: "Zupito Customer",
-        email: "customer@zupito.test",
-        phone: "9000000001",
-        role: "customer",
-        password: "Zupito@123"
-    },
-    {
-        id: "admin",
-        name: "Zupito Admin",
-        email: "admin@zupito.test",
-        phone: "9000000002",
-        role: "admin",
-        password: "Zupito@123"
-    },
-    {
-        id: "seller",
-        name: "Zupito Seller",
-        email: "seller@zupito.test",
-        phone: "9000000003",
-        role: "seller",
-        password: "Zupito@123"
-    },
-    {
-        id: "delivery",
-        name: "Zupito Delivery",
-        email: "delivery@zupito.test",
-        phone: "9000000004",
-        role: "delivery",
-        password: "Zupito@123"
-    }
-];
+export const register = async (form) =>
+    (await api.post("/auth/signup", form)).data;
 
-export function readSession() {
-    try {
-        const user = JSON.parse(sessionStorage.getItem(SESSION_KEY));
-        return user?.id && (user.role === "customer" || getPanelRole(user.role)) ? user : null;
-    } catch {
-        return null;
-    }
-}
+export const registerSeller = async (form) =>
+    (await api.post("/auth/seller-register", form)).data;
 
-export function login(identifier, password) {
-    const value = identifier.trim().toLowerCase();
-    const account = accounts.find((item) => item.email === value || item.phone === value);
-    if (!account || account.password !== password)
-        throw new Error("Incorrect email, phone number or password.");
-    const { id, name, email, phone, role } = account;
-    const user = { id, name, email, phone, role };
-    try {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    } catch {
-        /* Session remains in memory. */
-    }
-    return user;
-}
+export const getCurrentUser = async () =>
+    (await api.get("/auth/me")).data.user;
 
-export function register({ name, email, phone, password }) {
-    if (accounts.some((item) => item.email === email || item.phone === phone)) {
-        throw new Error("Email or mobile number is already registered.");
-    }
-    accounts.push({ id: crypto.randomUUID(), name, email, phone, password, role: "customer" });
-}
+export const logout = async () =>
+    (await api.post("/auth/logout")).data;
 
-export function logout() {
-    try {
-        sessionStorage.removeItem(SESSION_KEY);
-    } catch {
-        /* Clear the in-memory session too. */
-    }
-}
+export const requestPasswordReset = async (identifier) =>
+    (await api.post("/auth/forgot-password/request", { identifier })).data;
+
+export const verifyPasswordReset = async (requestId, otp) =>
+    (await api.post("/auth/forgot-password/verify", { requestId, otp })).data;
+
+export const resetPassword = async (
+    resetToken,
+    password,
+    confirmPassword
+) =>
+    (
+        await api.post("/auth/forgot-password/reset", {
+            resetToken,
+            password,
+            confirmPassword,
+        })
+    ).data;
 
 export function getLoginDestination(user, returnTo) {
-    if (user.role !== "customer") return "/manage/dashboard";
+    if (user.role === "seller" && user.seller?.status !== "Approved") {
+        return "/manage/approval-status";
+    }
+
+    if (user.role !== "customer") {
+        return "/manage/dashboard";
+    }
+
     if (
         typeof returnTo === "string" &&
-        /^\/(?:account(?:\/|$)|checkout(?:[/?#]|$)|order-confirmation\/|products(?:[/?#]|$)|cart(?:[/?#]|$))/.test(
+        /^\/(?:account(?:[/?#]|$)|checkout(?:[/?#]|$)|order-confirmation\/|products(?:[/?#]|$)|cart(?:[/?#]|$))/.test(
             returnTo
         )
     ) {
         return returnTo;
     }
+
     return "/";
 }

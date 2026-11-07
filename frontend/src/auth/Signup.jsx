@@ -12,44 +12,49 @@ const features = [
     {
         icon: "fa-bag-shopping",
         title: "Explore more",
-        description: "Discover products across your favorite categories."
+        description: "Discover products across your favorite categories.",
     },
     {
         icon: "fa-box-open",
         title: "Manage your orders",
-        description: "Keep track of your purchases in one place."
+        description: "Keep track of your purchases in one place.",
     },
     {
         icon: "fa-truck-fast",
         title: "Stay updated",
-        description: "Follow your orders from checkout to delivery."
-    }
+        description: "Follow your orders from checkout to delivery.",
+    },
+];
+
+const fields = [
+    { name: "name", label: "Full Name", autoComplete: "name", maxLength: 100 },
+    { name: "email", label: "Email Address", type: "email", autoComplete: "email", maxLength: 254 },
+    { name: "phone", label: "Mobile Number", type: "tel", autoComplete: "tel-national", maxLength: 10 },
+    { name: "password", label: "Password", password: true },
+    { name: "confirmPassword", label: "Confirm Password", password: true },
 ];
 
 function Signup() {
     const navigate = useNavigate();
+
     const [form, setForm] = useState({
         name: "",
         email: "",
         phone: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
     });
-
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [visible, setVisible] = useState({});
+    const [busy, setBusy] = useState(false);
 
     const handleChange = (event) => {
         const { name, value } = event.target;
-
-        setForm((previous) => ({
-            ...previous,
-            [name]: value
-        }));
+        setForm((previous) => ({ ...previous, [name]: value }));
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
+        if (busy) return;
 
         const name = form.name.trim();
         const email = form.email.trim().toLowerCase();
@@ -60,38 +65,33 @@ function Signup() {
             toast.error("Full name must contain between 2 and 100 characters.");
             return;
         }
-
         if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             toast.error("Enter a valid email address.");
             return;
         }
-
         if (!/^[6-9]\d{9}$/.test(phone)) {
             toast.error("Enter a valid 10-digit mobile number.");
             return;
         }
-
-        if (password.length < 6) {
-            toast.error("Password must contain at least 6 characters.");
+        if (password.length < 6 || new TextEncoder().encode(password).length > 72) {
+            toast.error("Password must contain at least 6 characters and cannot exceed 72 UTF-8 bytes.");
             return;
         }
-
-        if (new TextEncoder().encode(password).length > 72) {
-            toast.error("Password cannot exceed 72 UTF-8 bytes.");
-            return;
-        }
-
         if (password !== confirmPassword) {
             toast.error("Password and confirm password do not match.");
             return;
         }
 
+        setBusy(true);
+
         try {
-            register({ name, email, phone, password });
+            await register({ name, email, phone, password, confirmPassword });
             toast.success("Account created. Please sign in.");
             navigate("/manage");
         } catch (error) {
             toast.error(error.message);
+        } finally {
+            setBusy(false);
         }
     };
 
@@ -107,24 +107,17 @@ function Signup() {
 
                 <div className="auth-card">
                     <aside className="auth-introduction">
-                        <img
-                            src="/images/about-story.jpg"
-                            alt=""
-                            className="auth-background"
-                            decoding="async"
-                        />
+                        <img src="/images/about-story.jpg" alt="" className="auth-background" decoding="async" />
 
                         <div className="auth-introduction-content">
                             <p className="website-section-label">WELCOME TO ZUPITO</p>
-
                             <h2 className="website-section-title">
                                 Your world of shopping,
                                 <span> all in one place.</span>
                             </h2>
-
                             <p className="website-section-description">
-                                Create your account to explore products, manage purchases and enjoy a
-                                convenient shopping experience.
+                                Create your account to explore products, manage purchases
+                                and enjoy a convenient shopping experience.
                             </p>
 
                             <ul className="auth-features">
@@ -133,7 +126,6 @@ function Signup() {
                                         <span className="auth-feature-icon">
                                             <i className={`fa-solid ${feature.icon}`} aria-hidden="true" />
                                         </span>
-
                                         <div>
                                             <h3>{feature.title}</h3>
                                             <p>{feature.description}</p>
@@ -143,167 +135,83 @@ function Signup() {
                             </ul>
                         </div>
 
-                        <p className="auth-introduction-note">Everyday essentials. Exceptional finds.</p>
+                        <p className="auth-introduction-note">
+                            Everyday essentials. Exceptional finds.
+                        </p>
                     </aside>
 
-                    {/* Signup Form */}
                     <section className="auth-form-panel" aria-labelledby="signup-title">
                         <div className="auth-form-content">
                             <header className="auth-form-header">
                                 <Link to="/" className="website-brand auth-brand" aria-label="Zupito Home">
                                     <img src={appConfig.logo} alt={appConfig.name} />
                                 </Link>
-
                                 <h1 id="signup-title" className="website-section-title">
                                     Create <span>Account</span>
                                 </h1>
-
                                 <p className="website-section-description">
                                     Join Zupito and start your shopping journey.
                                 </p>
                             </header>
 
                             <form className="auth-form" onSubmit={handleSubmit} noValidate>
-                                <TextField
-                                    label="Full Name"
-                                    name="name"
-                                    value={form.name}
-                                    onChange={handleChange}
-                                    className="auth-text-field"
-                                    autoComplete="name"
-                                    slotProps={{
-                                        htmlInput: { maxLength: 100 }
-                                    }}
-                                    fullWidth
-                                    required
-                                />
-
-                                <TextField
-                                    label="Email Address"
-                                    name="email"
-                                    type="email"
-                                    value={form.email}
-                                    onChange={handleChange}
-                                    className="auth-text-field"
-                                    autoComplete="email"
-                                    slotProps={{
-                                        htmlInput: { maxLength: 254 }
-                                    }}
-                                    fullWidth
-                                    required
-                                />
-
-                                <TextField
-                                    label="Mobile Number"
-                                    name="phone"
-                                    type="tel"
-                                    value={form.phone}
-                                    onChange={handleChange}
-                                    className="auth-text-field"
-                                    autoComplete="tel-national"
-                                    slotProps={{
-                                        htmlInput: {
-                                            maxLength: 10,
-                                            inputMode: "numeric"
-                                        }
-                                    }}
-                                    fullWidth
-                                    required
-                                />
-
-                                <TextField
-                                    label="Password"
-                                    name="password"
-                                    type={showPassword ? "text" : "password"}
-                                    value={form.password}
-                                    onChange={handleChange}
-                                    className="auth-text-field"
-                                    autoComplete="new-password"
-                                    slotProps={{
-                                        input: {
-                                            endAdornment: (
-                                                <InputAdornment position="end">
-                                                    <IconButton
-                                                        type="button"
-                                                        className="auth-password-toggle"
-                                                        onClick={() =>
-                                                            setShowPassword((previous) => !previous)
-                                                        }
-                                                        aria-label={
-                                                            showPassword ? "Hide password" : "Show password"
-                                                        }
-                                                        edge="end"
-                                                    >
-                                                        <i
-                                                            className={`fa-solid ${
-                                                                showPassword ? "fa-eye-slash" : "fa-eye"
-                                                            }`}
-                                                            aria-hidden="true"
-                                                        />
-                                                    </IconButton>
-                                                </InputAdornment>
-                                            )
-                                        }
-                                    }}
-                                    fullWidth
-                                    required
-                                />
-
-                                <TextField
-                                    label="Confirm Password"
-                                    name="confirmPassword"
-                                    type={showConfirmPassword ? "text" : "password"}
-                                    value={form.confirmPassword}
-                                    onChange={handleChange}
-                                    className="auth-text-field"
-                                    autoComplete="new-password"
-                                    slotProps={{
-                                        input: {
-                                            endAdornment: (
-                                                <InputAdornment position="end">
-                                                    <IconButton
-                                                        type="button"
-                                                        className="auth-password-toggle"
-                                                        onClick={() =>
-                                                            setShowConfirmPassword((previous) => !previous)
-                                                        }
-                                                        aria-label={
-                                                            showConfirmPassword
-                                                                ? "Hide confirm password"
-                                                                : "Show confirm password"
-                                                        }
-                                                        edge="end"
-                                                    >
-                                                        <i
-                                                            className={`fa-solid ${
-                                                                showConfirmPassword
-                                                                    ? "fa-eye-slash"
-                                                                    : "fa-eye"
-                                                            }`}
-                                                            aria-hidden="true"
-                                                        />
-                                                    </IconButton>
-                                                </InputAdornment>
-                                            )
-                                        }
-                                    }}
-                                    fullWidth
-                                    required
-                                />
+                                {fields.map((field) => (
+                                    <TextField
+                                        key={field.name}
+                                        label={field.label}
+                                        name={field.name}
+                                        type={field.password ? (visible[field.name] ? "text" : "password") : field.type || "text"}
+                                        value={form[field.name]}
+                                        onChange={handleChange}
+                                        className="auth-text-field"
+                                        autoComplete={field.password ? "new-password" : field.autoComplete}
+                                        slotProps={{
+                                            htmlInput: {
+                                                maxLength: field.maxLength,
+                                                inputMode: field.name === "phone" ? "numeric" : undefined,
+                                            },
+                                            input: field.password
+                                                ? {
+                                                      endAdornment: (
+                                                          <InputAdornment position="end">
+                                                              <IconButton
+                                                                  type="button"
+                                                                  className="auth-password-toggle"
+                                                                  onClick={() => setVisible((previous) => ({
+                                                                      ...previous,
+                                                                      [field.name]: !previous[field.name],
+                                                                  }))}
+                                                                  aria-label={`${visible[field.name] ? "Hide" : "Show"} ${field.label}`}
+                                                                  edge="end"
+                                                              >
+                                                                  <i
+                                                                      className={`fa-solid ${visible[field.name] ? "fa-eye-slash" : "fa-eye"}`}
+                                                                      aria-hidden="true"
+                                                                  />
+                                                              </IconButton>
+                                                          </InputAdornment>
+                                                      ),
+                                                  }
+                                                : undefined,
+                                        }}
+                                        fullWidth
+                                        required
+                                    />
+                                ))}
 
                                 <Button
                                     type="submit"
                                     variant="contained"
                                     className="auth-submit"
+                                    disabled={busy}
                                     disableElevation
                                     fullWidth
                                 >
-                                    Create Account
+                                    {busy ? "Creating Account…" : "Create Account"}
                                     <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                                 </Button>
                             </form>
 
-                            {/* Sign In Link */}
                             <div className="auth-account-row">
                                 <p className="auth-switch">
                                     Already have an account? <Link to="/manage">Sign In</Link>

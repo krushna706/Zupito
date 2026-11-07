@@ -12,21 +12,19 @@ const imageTypes = {
     ".webp": "image/webp",
 };
 
-function createImageUpload(fieldName, fields) {
-    const upload = multer({
+function createImageUpload(fieldName, fields, maxFiles = 1) {
+    const parser = multer({
         storage: multer.memoryStorage(),
-
         limits: {
             fileSize: MAX_IMAGE_SIZE,
-            files: 1,
+            files: maxFiles,
             fields,
-            parts: fields + 1,
-            fieldSize: 2048,
+            parts: fields + maxFiles,
+            fieldSize: maxFiles > 1 ? 100 * 1024 : 2048,
             fieldNameSize: 100,
             fieldNestingDepth: 1,
             fieldArrayIndexLimit: 0,
         },
-
         fileFilter: (req, file, callback) => {
             const extension = path.extname(file.originalname).toLowerCase();
 
@@ -34,14 +32,18 @@ function createImageUpload(fieldName, fields) {
                 return callback(
                     new ExpressError(
                         400,
-                        "Upload a JPG, JPEG, PNG or WebP image."
+                        "Upload JPG, JPEG, PNG or WebP images."
                     )
                 );
             }
 
             callback(null, true);
         },
-    }).single(fieldName);
+    });
+
+    const upload = maxFiles === 1
+        ? parser.single(fieldName)
+        : parser.array(fieldName, maxFiles);
 
     return (req, res, next) => {
         upload(req, res, async (error) => {
@@ -53,8 +55,8 @@ function createImageUpload(fieldName, fields) {
                         new ExpressError(
                             tooLarge ? 413 : 400,
                             tooLarge
-                                ? "Image must be 3 MB or smaller."
-                                : "Check the submitted fields and upload only one image."
+                                ? "Each image must be 3 MB or smaller."
+                                : "Check the submitted fields and image count."
                         )
                     );
                 }
@@ -62,28 +64,33 @@ function createImageUpload(fieldName, fields) {
                 return next(error);
             }
 
-            if (!req.file) return next();
-
             try {
-                if (!req.file.size || req.file.size > MAX_IMAGE_SIZE) {
-                    throw new ExpressError(
-                        400,
-                        "Image must be valid and 3 MB or smaller."
-                    );
-                }
+                const files = req.files || (req.file ? [req.file] : []);
 
-                const { fileTypeFromBuffer } = await import("file-type");
-                const detected = await fileTypeFromBuffer(req.file.buffer);
+                if (files.length) {
+                    const { fileTypeFromBuffer } = await import("file-type");
 
-                if (
-                    !detected ||
-                    detected.mime !== req.file.mimetype ||
-                    !Object.values(imageTypes).includes(detected.mime)
-                ) {
-                    throw new ExpressError(
-                        400,
-                        "The selected file is not a supported image."
-                    );
+                    for (const file of files) {
+                        if (!file.size || file.size > MAX_IMAGE_SIZE) {
+                            throw new ExpressError(
+                                400,
+                                "Each image must be valid and 3 MB or smaller."
+                            );
+                        }
+
+                        const detected = await fileTypeFromBuffer(file.buffer);
+
+                        if (
+                            !detected ||
+                            detected.mime !== file.mimetype ||
+                            !Object.values(imageTypes).includes(detected.mime)
+                        ) {
+                            throw new ExpressError(
+                                400,
+                                "A selected file is not a supported image."
+                            );
+                        }
+                    }
                 }
 
                 next();
@@ -91,10 +98,7 @@ function createImageUpload(fieldName, fields) {
                 next(
                     error.statusCode
                         ? error
-                        : new ExpressError(
-                            400,
-                            "Unable to read the selected image."
-                        )
+                        : new ExpressError(400, "Unable to read the selected image.")
                 );
             }
         });
@@ -103,3 +107,4 @@ function createImageUpload(fieldName, fields) {
 
 exports.uploadProfileImage = createImageUpload("avatar", 1);
 exports.uploadStoreLogo = createImageUpload("logo", 12);
+exports.uploadProductImages = createImageUpload("images", 1, 4);

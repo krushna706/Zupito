@@ -200,3 +200,86 @@ exports.storeProfileSchema = Joi.object({
     removeLogo: Joi.boolean().default(false),
     version: Joi.number().integer().min(0).required(),
 });
+
+// Seller products
+const productFields = {
+    name: Joi.string().trim().min(3).max(150).required(),
+    brand: Joi.string().trim().min(2).max(80).required(),
+    categoryId: Joi.string().hex().length(24).required(),
+    description: Joi.string().trim().min(20).max(5000).required(),
+    highlights: Joi.array()
+        .items(Joi.string().trim().min(1).max(200))
+        .max(10)
+        .required(),
+    specifications: Joi.array()
+        .items(Joi.object({
+            label: Joi.string().trim().min(1).max(40).required(),
+            value: Joi.string().trim().min(1).max(500).required(),
+        }))
+        .max(30)
+        .unique((a, b) => a.label.toLowerCase() === b.label.toLowerCase())
+        .required(),
+    imageKeys: Joi.array()
+        .items(Joi.string().max(300).required())
+        .min(1)
+        .max(4)
+        .unique()
+        .required(),
+    variants: Joi.array()
+        .items(Joi.object({
+            variantId: Joi.string().guid({ version: "uuidv4" }).required(),
+            sku: Joi.string()
+                .trim()
+                .uppercase()
+                .pattern(/^[A-Z0-9_-]{3,30}$/)
+                .required(),
+            label: Joi.string().trim().min(1).max(80).required(),
+            pricePaise: Joi.number().integer().min(1).max(1000000000).required(),
+            mrpPaise: Joi.number().integer().min(1).max(1000000000).required(),
+            stock: Joi.number().integer().min(0).max(999999).required(),
+            imageIndex: Joi.number().integer().min(0).max(3).required(),
+        }))
+        .min(1)
+        .max(50)
+        .required(),
+    stockReason: Joi.string()
+        .valid("", "Restock", "Adjustment", "Damage/Loss")
+        .default(""),
+    stockNote: Joi.string().trim().max(300).allow("").default(""),
+};
+
+const productRules = (value, helpers) => {
+    const variants = value.variants;
+
+    if (
+        new Set(variants.map((item) => item.sku)).size !== variants.length ||
+        new Set(variants.map((item) => item.variantId)).size !== variants.length
+    ) {
+        return helpers.message("Variant IDs and SKUs must be unique.");
+    }
+
+    if (variants.some((item) =>
+        item.mrpPaise < item.pricePaise ||
+        item.imageIndex >= value.imageKeys.length
+    )) {
+        return helpers.message("Check variant MRP and image selection.");
+    }
+
+    return value;
+};
+
+exports.productCreateSchema = Joi.object(productFields).custom(productRules);
+
+exports.productUpdateSchema = Joi.object({
+    ...productFields,
+    version: Joi.number().integer().min(0).required(),
+}).custom(productRules);
+
+exports.sellerProductListSchema = Joi.object({
+    search: Joi.string().trim().max(100).allow("").default(""),
+    status: Joi.string()
+        .valid("All", "Pending", "Approved", "Rejected", "Suspended")
+        .default("All"),
+    page: Joi.number().integer().min(1).max(100000).default(1),
+    limit: Joi.number().valid(10, 20, 50).default(10),
+});

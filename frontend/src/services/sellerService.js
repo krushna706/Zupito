@@ -770,3 +770,36 @@ export async function updateStoreProfile(values, logoFile) {
         })
     ).data;
 }
+
+// Product API
+export const fetchProductCategories = async (signal) =>
+    (await api.get("/seller/product-categories", { signal })).data.categories;
+
+export const fetchSellerProducts = async (params, signal) =>
+    (await api.get("/seller/products", { params, signal })).data;
+
+export const fetchSellerProduct = async (productId, signal) =>
+    (await api.get(`/seller/products/${productId}`, { signal })).data.product;
+
+export async function submitSellerProduct(productId, values, images) {
+    const form = new FormData();
+    const files = [];
+
+    const imageKeys = images.map((image) => {
+        if (!image.file) return image.publicId;
+
+        const key = `upload:${files.length}`;
+        files.push(image.file);
+        return key;
+    });
+
+    form.append("data", JSON.stringify({ ...values, imageKeys }));
+
+    files.forEach((file) => form.append("images", file));
+
+    const config = { timeout: 240000 };
+
+    return productId
+        ? (await api.patch(`/seller/products/${productId}`, form, config)).data
+        : (await api.post("/seller/products", form, config)).data;
+}

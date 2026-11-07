@@ -11,6 +11,8 @@ async function connectDB() {
         require("../models/PasswordReset").init(),
         require("../models/SellerProfile").init(),
         require("../models/Category").init(),
+        require("../models/Product").init(),
+        require("../models/StockMovement").init(),
     ]);
 
     console.log("MongoDB connected");

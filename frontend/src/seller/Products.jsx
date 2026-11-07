@@ -1,165 +1,108 @@
-
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-    Button, MenuItem, Table, TableBody, TableCell,
+    Alert, Button, MenuItem, Table, TableBody, TableCell,
     TableContainer, TableHead, TablePagination, TableRow, TextField,
 } from "@mui/material";
 
-import {
-    ownProducts, formatMoney, productStock, getCategories,
-} from "../services/sellerService";
+import { fetchSellerProducts } from "../services/sellerService";
 
-const statusList = ["All", "Pending", "Approved", "Rejected", "Suspended"];
+const money = (paise) => new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+}).format((paise || 0) / 100);
 
-function Badge({ status }) {
-    return (
-        <span className={`sp-badge sp-badge-${String(status || "Pending").toLowerCase()}`}>
-            <i className="fa-solid fa-circle" aria-hidden="true" />
-            {status || "Pending"}
-        </span>
-    );
-}
-
-function Products({ user }) {
-    const [products, setProducts] = useState(() => ownProducts(user));
+function Products() {
+    const [data, setData] = useState({
+        products: [],
+        total: 0,
+        statistics: { total: 0, pending: 0, approved: 0, restricted: 0 },
+    });
     const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("All");
+    const [status, setStatus] = useState("All");
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
-
-    const refresh = () => {
-        setProducts(ownProducts(user));
-        setPage(0);
-    };
+    const [limit, setLimit] = useState(10);
+    const [revision, setRevision] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
-        const sync = () => setProducts(ownProducts(user));
+        const controller = new AbortController();
+        let active = true;
 
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
+        setLoading(true);
+        setError("");
+
+        const timer = setTimeout(async () => {
+            try {
+                const result = await fetchSellerProducts(
+                    { search, status, page: page + 1, limit },
+                    controller.signal
+                );
+
+                if (!active) return;
+                setData(result);
+
+                const lastPage = Math.max(0, Math.ceil(result.total / limit) - 1);
+                if (page > lastPage) setPage(lastPage);
+            } catch (failure) {
+                if (active) setError(failure.message);
+            } finally {
+                if (active) setLoading(false);
+            }
+        }, 300);
 
         return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
+            active = false;
+            clearTimeout(timer);
+            controller.abort();
         };
-    }, [user]);
-
-    const categories = getCategories();
-
-    const categoryName = (slug) =>
-        categories.find((item) => item.slug === slug)?.name || slug;
+    }, [search, status, page, limit, revision]);
 
     const stats = [
-        [
-            "Total Listings", products.length,
-            "Your submitted products", "fa-boxes-stacked", "blue",
-        ],
-        [
-            "Under Review",
-            products.filter((p) => p.status === "Pending").length,
-            "Awaiting moderation", "fa-clock", "orange",
-        ],
-        [
-            "Approved",
-            products.filter((p) => p.status === "Approved").length,
-            "Ready for selling", "fa-circle-check", "green",
-        ],
-        [
-            "Restricted",
-            products.filter((p) =>
-                ["Rejected", "Suspended"].includes(p.status)
-            ).length,
-            "Require attention", "fa-ban", "red",
-        ],
+        ["Total Listings", "total", "blue", "fa-boxes-stacked"],
+        ["Under Review", "pending", "orange", "fa-clock"],
+        ["Approved", "approved", "green", "fa-circle-check"],
+        ["Restricted", "restricted", "red", "fa-ban"],
     ];
-
-    const filtered = useMemo(() => products.filter((product) => {
-        const query = search.trim().toLowerCase();
-
-        return (
-            (statusFilter === "All" || product.status === statusFilter) &&
-            [
-                product.name,
-                product.brand,
-                product.productCode,
-                product.category,
-                product.variants?.map((v) => v.sku).join(" "),
-            ].some((value) =>
-                String(value || "").toLowerCase().includes(query)
-            )
-        );
-    }).sort((a, b) =>
-        new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0)
-    ), [products, search, statusFilter]);
-
-    const visible = filtered.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
-    );
 
     return (
         <main className="seller-product-page">
-            {/* Page Header */}
             <section className="sp-hero">
                 <div>
-                    <h1>
-                        <i className="fa-solid fa-box-open" aria-hidden="true" />
-                        MANAGE PRODUCTS
-                    </h1>
-                    <p>
-                        Create listings, manage product details and track
-                        approval decisions.
-                    </p>
+                    <h1><i className="fa-solid fa-box-open" /> MANAGE PRODUCTS</h1>
+                    <p>Create listings, manage product details and track approval decisions.</p>
                 </div>
-
                 <div className="sp-hero-actions">
-                    <Button
-                        variant="outlined"
-                        onClick={refresh}
-                        startIcon={<i className="fa-solid fa-arrows-rotate" />}
-                    >
+                    <Button variant="outlined" disabled={loading} onClick={() => setRevision((value) => value + 1)}>
                         Refresh
                     </Button>
-
-                    <Button
-                        variant="contained"
-                        component={Link}
-                        to="/manage/products/new"
-                        startIcon={<i className="fa-solid fa-plus" />}
-                    >
+                    <Button variant="contained" component={Link} to="/manage/products/new">
                         Add Product
                     </Button>
                 </div>
             </section>
 
-            {/* Statistics */}
-            <section className="sp-stats" aria-label="Seller product statistics">
-                {stats.map(([label, value, note, icon, color]) => (
-                    <div key={label} className={`sp-stat sp-stat-${color}`}>
-                        <div>
-                            <span>{label}</span>
-                            <i className={`fa-solid ${icon}`} aria-hidden="true" />
-                        </div>
-                        <strong>{value}</strong>
-                        <small>{note}</small>
+            {error && <Alert severity="error">{error}</Alert>}
+
+            <section className="sp-stats">
+                {stats.map(([label, key, color, icon]) => (
+                    <div key={key} className={`sp-stat sp-stat-${color}`}>
+                        <div><span>{label}</span><i className={`fa-solid ${icon}`} /></div>
+                        <strong>{loading || error ? "—" : data.statistics[key]}</strong>
+                        <small>Your store listings</small>
                     </div>
                 ))}
             </section>
 
-            {/* Product Listings */}
             <section className="sp-card sp-list-card">
                 <div className="sp-card-head">
-                    <span className="sp-section-icon">
-                        <i className="fa-solid fa-list-check" />
-                    </span>
-
+                    <span className="sp-section-icon"><i className="fa-solid fa-list-check" /></span>
                     <div>
                         <h2>Product Listings</h2>
                         <p>Only your seller account's products are displayed.</p>
                     </div>
-
-                    <span className="sp-count">{filtered.length} Records</span>
+                    <span className="sp-count">{data.total} Records</span>
                 </div>
 
                 <div className="sp-toolbar">
@@ -167,144 +110,72 @@ function Products({ user }) {
                         size="small"
                         label="Search Products"
                         value={search}
-                        onChange={(e) => {
-                            setSearch(e.target.value);
-                            setPage(0);
-                        }}
+                        slotProps={{ htmlInput: { maxLength: 100 } }}
+                        onChange={(event) => { setSearch(event.target.value); setPage(0); }}
                     />
-
                     <TextField
                         select
                         size="small"
                         label="Approval Status"
-                        value={statusFilter}
-                        onChange={(e) => {
-                            setStatusFilter(e.target.value);
-                            setPage(0);
-                        }}
+                        value={status}
+                        onChange={(event) => { setStatus(event.target.value); setPage(0); }}
                     >
-                        {statusList.map((value) => (
-                            <MenuItem value={value} key={value}>
-                                {value}
-                            </MenuItem>
+                        {["All", "Pending", "Approved", "Rejected", "Suspended"].map((item) => (
+                            <MenuItem key={item} value={item}>{item}</MenuItem>
                         ))}
                     </TextField>
-
-                    <Button
-                        variant="outlined"
-                        color="inherit"
-                        onClick={() => {
-                            setSearch("");
-                            setStatusFilter("All");
-                            setPage(0);
-                        }}
-                    >
+                    <Button onClick={() => { setSearch(""); setStatus("All"); setPage(0); }}>
                         Reset
                     </Button>
                 </div>
 
                 <TableContainer className="sp-table-scroll">
-                    <Table className="sp-table" aria-label="My product listings">
+                    <Table className="sp-table">
                         <TableHead>
                             <TableRow>
                                 <TableCell>Product Details</TableCell>
-                                <TableCell>Category</TableCell>
+                                <TableCell>Variants</TableCell>
                                 <TableCell>Price / Stock</TableCell>
                                 <TableCell>Review Status</TableCell>
                                 <TableCell align="right">Actions</TableCell>
                             </TableRow>
                         </TableHead>
-
                         <TableBody>
-                            {visible.map((product) => (
-                                <TableRow key={product.id} hover>
+                            {!loading && !error && data.products.map((product) => (
+                                <TableRow key={product._id}>
                                     <TableCell>
                                         <div className="sp-product-cell">
-                                            {product.image ? (
-                                                <img src={product.image} alt="" />
-                                            ) : (
-                                                <span className="sp-no-image">
-                                                    <i className="fa-solid fa-image" />
-                                                </span>
-                                            )}
-
+                                            <img src={product.image} alt="" />
                                             <div>
                                                 <strong>{product.name}</strong>
-                                                <small>
-                                                    {product.brand} · {product.productCode}
-                                                </small>
+                                                <p>{product.brand}</p>
+                                                <small>{product.productCode}</small>
                                             </div>
                                         </div>
                                     </TableCell>
-
+                                    <TableCell>{product.variantCount}</TableCell>
                                     <TableCell>
-                                        {categoryName(product.category)}
+                                        <strong>From {money(product.pricePaise)}</strong>
+                                        <p>Available: {product.stock - product.reserved}</p>
+                                        <small>On hand: {product.stock} · Reserved: {product.reserved}</small>
                                     </TableCell>
-
                                     <TableCell>
-                                        <div className="sp-cell-stack">
-                                            <strong>{formatMoney(product.price)}</strong>
-                                            <small>
-                                                {productStock(product)} in stock
-                                            </small>
-                                        </div>
+                                        <span className={`sp-badge sp-badge-${product.status.toLowerCase()}`}>
+                                            {product.status}
+                                        </span>
+                                        {product.moderationReason && <p>{product.moderationReason}</p>}
                                     </TableCell>
-
-                                    <TableCell>
-                                        <div className="sp-cell-stack">
-                                            <Badge status={product.status} />
-                                            <small>
-                                                {product.reviewType || "New Listing"}
-                                            </small>
-
-                                            {product.moderationReason && (
-                                                <small
-                                                    className="sp-reason"
-                                                    title={product.moderationReason}
-                                                >
-                                                    {product.moderationReason}
-                                                </small>
-                                            )}
-                                        </div>
-                                    </TableCell>
-
                                     <TableCell align="right">
-                                        <Button
-                                            component={Link}
-                                            to={`/manage/products/${product.id}/edit`}
-                                            size="small"
-                                            variant="outlined"
-                                            startIcon={<i className="fa-solid fa-pen" />}
-                                        >
-                                            View / Edit
+                                        <Button component={Link} to={`/manage/products/${product._id}/edit`} variant="outlined">
+                                            Edit Product
                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
-
-                            {!visible.length && (
+                            {(loading || error || !data.products.length) && (
                                 <TableRow>
                                     <TableCell colSpan={5} align="center">
-                                        <div className="sp-empty">
-                                            <i className="fa-solid fa-box-open" />
-                                            <h3>No products found</h3>
-
-                                            <p>
-                                                {products.length
-                                                    ? "Try a different search or status filter."
-                                                    : "Create your first listing to preview the complete seller workflow."}
-                                            </p>
-
-                                            {!products.length && (
-                                                <Button
-                                                    component={Link}
-                                                    to="/manage/products/new"
-                                                    variant="outlined"
-                                                >
-                                                    Add First Product
-                                                </Button>
-                                            )}
-                                        </div>
+                                        {loading ? "Loading products..." : error ? "Unable to load products." : "No products found."}
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -314,15 +185,12 @@ function Products({ user }) {
 
                 <TablePagination
                     component="div"
-                    count={filtered.length}
-                    page={page}
-                    rowsPerPage={rowsPerPage}
-                    rowsPerPageOptions={[5, 10, 20]}
-                    onPageChange={(_, next) => setPage(next)}
-                    onRowsPerPageChange={(event) => {
-                        setRowsPerPage(Number(event.target.value));
-                        setPage(0);
-                    }}
+                    count={data.total}
+                    page={Math.min(page, Math.max(0, Math.ceil(data.total / limit) - 1))}
+                    rowsPerPage={limit}
+                    rowsPerPageOptions={[10, 20, 50]}
+                    onPageChange={(_, value) => setPage(value)}
+                    onRowsPerPageChange={(event) => { setLimit(Number(event.target.value)); setPage(0); }}
                 />
             </section>
         </main>

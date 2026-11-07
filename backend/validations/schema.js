@@ -162,3 +162,25 @@ exports.categoryListSchema = Joi.object({
     page: Joi.number().integer().min(1).max(100000).default(1),
     limit: Joi.number().valid(10, 20, 50).default(10),
 });
+
+// Admin seller management
+exports.adminSellerListSchema = Joi.object({
+    search: Joi.string().trim().max(100).allow("").default(""),
+    status: Joi.string()
+        .valid("All", "Pending", "Approved", "Rejected", "Suspended")
+        .default("All"),
+    page: Joi.number().integer().min(1).max(100000).default(1),
+    limit: Joi.number().valid(10, 20, 50).default(10),
+});
+
+exports.adminSellerStatusSchema = Joi.object({
+    action: Joi.string()
+        .valid("Approve", "Reject", "Suspend", "Reactivate")
+        .required(),
+    reason: Joi.when("action", {
+        is: Joi.valid("Reject", "Suspend"),
+        then: Joi.string().trim().min(5).max(300).required(),
+        otherwise: Joi.string().valid("").default(""),
+    }),
+    version: Joi.number().integer().min(0).required(),
+});

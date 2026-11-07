@@ -1,5 +1,35 @@
 const mongoose = require("mongoose");
 
+const statusHistorySchema = new mongoose.Schema(
+    {
+        fromStatus: {
+            type: String,
+            enum: ["Pending", "Approved", "Rejected", "Suspended"],
+            required: true,
+        },
+        toStatus: {
+            type: String,
+            enum: ["Approved", "Rejected", "Suspended"],
+            required: true,
+        },
+        reason: {
+            type: String,
+            default: "",
+            maxlength: 300,
+        },
+        changedById: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+        },
+        changedAt: {
+            type: Date,
+            default: Date.now,
+        },
+    },
+    { _id: false }
+);
+
 const sellerSchema = new mongoose.Schema(
     {
         userId: {
@@ -47,8 +77,24 @@ const sellerSchema = new mongoose.Schema(
             default: "",
             maxlength: 1000,
         },
+        reviewedById: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
+        reviewedAt: {
+            type: Date,
+            default: null,
+        },
+        statusHistory: {
+            type: [statusHistorySchema],
+            default: [],
+            select: false,
+        },
     },
     { timestamps: true }
 );
+
+sellerSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model("SellerProfile", sellerSchema);

@@ -1,138 +1,12 @@
-
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    InputAdornment,
-    MenuItem,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TablePagination,
-    TableRow,
-    TextField,
+    Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle,
+    InputAdornment, MenuItem, Table, TableBody, TableCell,
+    TableContainer, TableHead, TablePagination, TableRow, TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
 
-// ================== SELLER CONFIGURATION ==================
-const STORAGE_KEY = "zupito_admin_sellers";
-
-const initialSellers = [
-    {
-        id: "ZS1001",
-        name: "Rahul Sharma",
-        email: "rahul@example.com",
-        mobile: "9876543210",
-        storeName: "TechNova Electronics",
-        storeEmail: "store@technova.example",
-        storePhone: "9876543210",
-        description: "Electronics, mobile accessories and computer peripherals.",
-        address: "Patia Main Road",
-        locality: "Patia",
-        city: "Bhubaneswar",
-        state: "Odisha",
-        pincode: "751024",
-        appliedAt: "2026-10-20",
-        status: "Pending",
-        remarks: "",
-    },
-    {
-        id: "ZS1002",
-        name: "Priya Das",
-        email: "priya@example.com",
-        mobile: "9865432101",
-        storeName: "Urban Fashion",
-        storeEmail: "store@urbanfashion.example",
-        storePhone: "9865432101",
-        description: "Clothing and lifestyle accessories.",
-        address: "Saheed Nagar",
-        locality: "Saheed Nagar",
-        city: "Bhubaneswar",
-        state: "Odisha",
-        pincode: "751007",
-        appliedAt: "2026-10-22",
-        status: "Approved",
-        remarks: "",
-    },
-    {
-        id: "ZS1003",
-        name: "Amit Kumar",
-        email: "amit@example.com",
-        mobile: "9854321098",
-        storeName: "Fresh Basket",
-        storeEmail: "store@freshbasket.example",
-        storePhone: "9854321098",
-        description: "Groceries and household essentials.",
-        address: "Jaydev Vihar",
-        locality: "Jaydev Vihar",
-        city: "Bhubaneswar",
-        state: "Odisha",
-        pincode: "751013",
-        appliedAt: "2026-10-24",
-        status: "Approved",
-        remarks: "",
-    },
-    {
-        id: "ZS1004",
-        name: "Sneha Patel",
-        email: "sneha@example.com",
-        mobile: "9843210987",
-        storeName: "Style Avenue",
-        storeEmail: "store@styleavenue.example",
-        storePhone: "9843210987",
-        description: "Women's fashion and accessories.",
-        address: "Kharavel Nagar",
-        locality: "Unit 3",
-        city: "Bhubaneswar",
-        state: "Odisha",
-        pincode: "751001",
-        appliedAt: "2026-10-26",
-        status: "Pending",
-        remarks: "",
-    },
-    {
-        id: "ZS1005",
-        name: "Rohit Sahu",
-        email: "rohit@example.com",
-        mobile: "9832109876",
-        storeName: "Daily Essentials",
-        storeEmail: "store@dailyessentials.example",
-        storePhone: "9832109876",
-        description: "Household products and daily essentials.",
-        address: "Rasulgarh",
-        locality: "Palasuni",
-        city: "Bhubaneswar",
-        state: "Odisha",
-        pincode: "751010",
-        appliedAt: "2026-10-27",
-        status: "Suspended",
-        remarks: "Store compliance review required.",
-    },
-    {
-        id: "ZS1006",
-        name: "Ananya Singh",
-        email: "ananya@example.com",
-        mobile: "9821098765",
-        storeName: "Travel World",
-        storeEmail: "store@travelworld.example",
-        storePhone: "9821098765",
-        description: "Bags, luggage and travel accessories.",
-        address: "Chandrasekharpur",
-        locality: "BDA Colony",
-        city: "Bhubaneswar",
-        state: "Odisha",
-        pincode: "751016",
-        appliedAt: "2026-10-29",
-        status: "Rejected",
-        remarks: "Incomplete business information.",
-    },
-];
+import * as adminService from "../services/adminService";
 
 const statusActions = {
     Pending: ["Approve", "Reject"],
@@ -141,41 +15,30 @@ const statusActions = {
     Rejected: [],
 };
 
-// ================== SELLER HELPERS ==================
-function loadSellers() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-
-        if (Array.isArray(saved)) return saved;
-    } catch {
-        // Fall back to sample records.
-    }
-
-    return initialSellers;
-}
+const emptyStats = {
+    total: 0,
+    pending: 0,
+    approved: 0,
+    suspended: 0,
+};
 
 function getInitials(name) {
     return String(name || "")
         .trim()
         .split(/\s+/)
         .slice(0, 2)
-        .map((word) => word.charAt(0))
-        .join("")
-        .toUpperCase() || "ZS";
+        .map((word) => word.charAt(0).toUpperCase())
+        .join("") || "ZS";
 }
 
 function formatDate(value) {
     if (!value) return "—";
 
-    const date = new Date(value);
-
-    return Number.isNaN(date.getTime())
-        ? "—"
-        : date.toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-          });
+    return new Date(value).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    });
 }
 
 function SellerStatus({ status }) {
@@ -196,104 +59,85 @@ function SellerDetail({ label, value }) {
     );
 }
 
-// ================== MANAGE SELLERS ==================
 function Sellers() {
-    const [sellers, setSellers] = useState(loadSellers);
+    const [sellers, setSellers] = useState([]);
+    const [statistics, setStatistics] = useState(emptyStats);
+    const [total, setTotal] = useState(0);
 
-    // ================== SEARCH AND FILTERS ==================
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [revision, setRevision] = useState(0);
 
-    // ================== DETAILS AND ACTIONS ==================
-    const [selectedId, setSelectedId] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
+    const [busy, setBusy] = useState(false);
+
+    const [selected, setSelected] = useState(null);
     const [action, setAction] = useState(null);
     const [reason, setReason] = useState("");
-    const [error, setError] = useState("");
+    const [actionError, setActionError] = useState("");
 
-    const selectedSeller = sellers.find((seller) => seller.id === selectedId);
-    const actionSeller = sellers.find((seller) => seller.id === action?.sellerId);
-
-    // ================== SAVE CHANGES ==================
     useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(sellers));
-        } catch {
-            // Continue with in-memory records if storage fails.
-        }
-    }, [sellers]);
+        const controller = new AbortController();
+        let active = true;
 
-    // ================== STATISTICS ==================
-    const counts = {
-        total: sellers.length,
-        pending: sellers.filter((seller) => seller.status === "Pending").length,
-        approved: sellers.filter((seller) => seller.status === "Approved").length,
-        suspended: sellers.filter((seller) => seller.status === "Suspended").length,
-    };
+        setLoading(true);
+        setLoadError("");
 
-    const statistics = [
-        {
-            title: "Total Sellers",
-            value: counts.total,
-            description: "Registered applications",
-            icon: "fa-store",
-            theme: "total",
-        },
-        {
-            title: "Pending Approval",
-            value: counts.pending,
-            description: "Awaiting your review",
-            icon: "fa-clock",
-            theme: "pending",
-        },
-        {
-            title: "Approved Sellers",
-            value: counts.approved,
-            description: "Active selling accounts",
-            icon: "fa-circle-check",
-            theme: "approved",
-        },
-        {
-            title: "Suspended Sellers",
-            value: counts.suspended,
-            description: "Selling access restricted",
-            icon: "fa-ban",
-            theme: "suspended",
-        },
+        const timer = setTimeout(async () => {
+            try {
+                const result = await adminService.getSellers(
+                    {
+                        search: search.trim(),
+                        status: statusFilter,
+                        page: page + 1,
+                        limit: rowsPerPage,
+                    },
+                    controller.signal
+                );
+
+                if (!active) return;
+
+                setSellers(result.sellers);
+                setStatistics(result.statistics);
+                setTotal(result.total);
+
+                const lastPage = Math.max(
+                    0,
+                    Math.ceil(result.total / rowsPerPage) - 1
+                );
+
+                if (page > lastPage) setPage(lastPage);
+            } catch (error) {
+                if (!active) return;
+
+                setSellers([]);
+                setStatistics(emptyStats);
+                setTotal(0);
+                setLoadError(error.message);
+            } finally {
+                if (active) setLoading(false);
+            }
+        }, 300);
+
+        return () => {
+            active = false;
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [search, statusFilter, page, rowsPerPage, revision]);
+
+    const refresh = () => setRevision((value) => value + 1);
+    const hasFilters = Boolean(search.trim()) || statusFilter !== "All";
+
+    const stats = [
+        ["Total Sellers", statistics.total, "Registered applications", "fa-store", "total"],
+        ["Pending Approval", statistics.pending, "Awaiting your review", "fa-clock", "pending"],
+        ["Approved Sellers", statistics.approved, "Approved applications", "fa-circle-check", "approved"],
+        ["Suspended Sellers", statistics.suspended, "Selling access restricted", "fa-ban", "suspended"],
     ];
-
-    // ================== FILTERED RECORDS ==================
-    const filteredSellers = sellers.filter((seller) => {
-        const query = search.trim().toLowerCase();
-
-        const matchesSearch = [
-            seller.id,
-            seller.name,
-            seller.email,
-            seller.mobile,
-            seller.storeName,
-            seller.city,
-        ].some((value) =>
-            String(value || "").toLowerCase().includes(query)
-        );
-
-        return matchesSearch &&
-            (statusFilter === "All" || seller.status === statusFilter);
-    });
-
-    const visibleSellers = filteredSellers.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
-    );
-
-    const hasFilters = Boolean(search) || statusFilter !== "All";
-
-    // ================== REFRESH RECORDS ==================
-    const handleRefresh = () => {
-        setSellers(loadSellers());
-        toast.info("Seller records refreshed from local data.");
-    };
 
     const resetFilters = () => {
         setSearch("");
@@ -301,143 +145,123 @@ function Sellers() {
         setPage(0);
     };
 
-    // ================== STATUS ACTIONS ==================
-    const openAction = (sellerId, type) => {
-        setSelectedId(null);
-        setAction({ sellerId, type });
+    const openAction = (seller, type) => {
+        setSelected(null);
+        setAction({ seller, type });
         setReason("");
-        setError("");
+        setActionError("");
     };
 
     const closeAction = () => {
+        if (busy) return;
         setAction(null);
         setReason("");
-        setError("");
+        setActionError("");
     };
 
-    const handleStatusUpdate = () => {
-        if (
-            !actionSeller ||
-            !statusActions[actionSeller.status]?.includes(action.type)
-        ) {
-            toast.error("This seller status can no longer be updated.");
-            closeAction();
-            return;
-        }
+    const handleStatusUpdate = async () => {
+        if (busy || !action) return;
 
         const requiresReason = ["Reject", "Suspend"].includes(action.type);
 
         if (requiresReason && reason.trim().length < 5) {
-            setError("Enter a reason containing at least 5 characters.");
+            setActionError("Enter a reason containing at least 5 characters.");
             return;
         }
 
-        const nextStatus = {
-            Approve: "Approved",
-            Reject: "Rejected",
-            Suspend: "Suspended",
-            Reactivate: "Approved",
-        }[action.type];
+        setBusy(true);
+        setActionError("");
 
-        setSellers((previous) =>
-            previous.map((seller) =>
-                seller.id === action.sellerId
-                    ? {
-                          ...seller,
-                          status: nextStatus,
-                          remarks: requiresReason ? reason.trim() : "",
-                          updatedAt: new Date().toISOString(),
-                      }
-                    : seller
-            )
-        );
+        try {
+            const result = await adminService.updateSellerStatus(
+                action.seller._id,
+                {
+                    action: action.type,
+                    reason: requiresReason ? reason.trim() : "",
+                    version: action.seller.version,
+                }
+            );
 
-        setPage(0);
-        toast.success(`Seller ${nextStatus.toLowerCase()} successfully.`);
-        closeAction();
+            toast.success(result.message);
+            setAction(null);
+            refresh();
+        } catch (error) {
+            setActionError(error.message);
+        } finally {
+            setBusy(false);
+        }
     };
 
     return (
         <div className="manage-sellers">
-            {/* ================== PAGE HEADER ================== */}
             <section className="zs-hero">
                 <div className="zs-hero-content">
                     <span className="zs-eyebrow">
                         <i className="fa-solid fa-shield-halved" aria-hidden="true" />
                         SELLER MANAGEMENT
                     </span>
-
-                    <p>
-                        Review applications, verify store information and
-                        manage seller access across Zupito.
-                    </p>
+                    <p>Review applications, verify store information and manage seller access across Zupito.</p>
                 </div>
 
                 <Button
-                    type="button"
                     variant="outlined"
                     className="zs-refresh-button"
-                    onClick={handleRefresh}
-                    startIcon={
-                        <i className="fa-solid fa-arrows-rotate" aria-hidden="true" />
-                    }
+                    onClick={refresh}
+                    disabled={loading || busy}
+                    startIcon={<i className="fa-solid fa-arrows-rotate" />}
                 >
                     Refresh
                 </Button>
             </section>
 
-            {/* ================== STATISTICS ================== */}
-            <section className="zs-stats-grid" aria-label="Seller overview">
-                {statistics.map((item) => (
-                    <article
-                        key={item.title}
-                        className={`zs-stat-card is-${item.theme}`}
-                    >
-                        <div className="zs-stat-top">
-                            <span className="zs-stat-label">{item.title}</span>
+            {loadError && (
+                <Alert
+                    severity="error"
+                    action={<Button color="inherit" onClick={refresh}>Retry</Button>}
+                >
+                    {loadError}
+                </Alert>
+            )}
 
+            <section className="zs-stats-grid" aria-label="Seller overview">
+                {stats.map(([title, value, description, icon, theme]) => (
+                    <article key={title} className={`zs-stat-card is-${theme}`}>
+                        <div className="zs-stat-top">
+                            <span className="zs-stat-label">{title}</span>
                             <span className="zs-stat-icon">
-                                <i
-                                    className={`fa-solid ${item.icon}`}
-                                    aria-hidden="true"
-                                />
+                                <i className={`fa-solid ${icon}`} aria-hidden="true" />
                             </span>
                         </div>
 
-                        <strong className="zs-stat-value">{item.value}</strong>
+                        <strong className="zs-stat-value">
+                            {loading || loadError ? "—" : value}
+                        </strong>
 
-                        <span className="zs-stat-description">
-                            {item.description}
-                        </span>
+                        <span className="zs-stat-description">{description}</span>
                     </article>
                 ))}
             </section>
 
-            {/* ================== SELLER APPLICATIONS ================== */}
             <section className="zs-content-card">
                 <div className="zs-content-header">
                     <div className="zs-content-heading">
                         <span className="zs-content-icon">
                             <i className="fa-solid fa-users-gear" aria-hidden="true" />
                         </span>
-
                         <div>
                             <h2>Seller Applications</h2>
-                            <p>Manage seller verification and account status.</p>
+                            <p>Manage seller verification and selling status.</p>
                         </div>
                     </div>
 
-                    <span className="zs-record-count">
-                        {filteredSellers.length} Records
-                    </span>
+                    <span className="zs-record-count">{total} Records</span>
                 </div>
 
-                {/* ================== SEARCH AND FILTERS ================== */}
                 <div className="zs-toolbar">
                     <div className="zs-toolbar-search">
                         <TextField
                             label="Search Sellers"
-                            placeholder="Search by store, seller, email or mobile"
+                            placeholder="Store, seller, email, mobile or city"
                             value={search}
                             onChange={(event) => {
                                 setSearch(event.target.value);
@@ -470,18 +294,15 @@ function Sellers() {
                             size="small"
                             fullWidth
                         >
-                            {["All", "Pending", "Approved", "Rejected", "Suspended"].map(
-                                (status) => (
-                                    <MenuItem key={status} value={status}>
-                                        {status === "All" ? "All Statuses" : status}
-                                    </MenuItem>
-                                )
-                            )}
+                            {["All", "Pending", "Approved", "Rejected", "Suspended"].map((status) => (
+                                <MenuItem key={status} value={status}>
+                                    {status === "All" ? "All Statuses" : status}
+                                </MenuItem>
+                            ))}
                         </TextField>
                     </div>
 
                     <Button
-                        type="button"
                         variant="outlined"
                         className="zs-reset-button"
                         onClick={resetFilters}
@@ -492,7 +313,6 @@ function Sellers() {
                     </Button>
                 </div>
 
-                {/* ================== SELLERS TABLE ================== */}
                 <TableContainer className="zs-table-container">
                     <Table className="zs-table" aria-label="Seller applications">
                         <TableHead>
@@ -507,18 +327,16 @@ function Sellers() {
                         </TableHead>
 
                         <TableBody>
-                            {visibleSellers.map((seller) => (
-                                <TableRow key={seller.id} hover>
+                            {!loading && !loadError && sellers.map((seller) => (
+                                <TableRow key={seller._id} hover>
                                     <TableCell>
                                         <div className="zs-store-info">
                                             <span className="zs-store-avatar">
                                                 {getInitials(seller.storeName)}
                                             </span>
-
                                             <div className="zs-store-copy">
                                                 <strong>{seller.storeName}</strong>
                                                 <span>{seller.name}</span>
-                                                <small>{seller.id}</small>
                                             </div>
                                         </div>
                                     </TableCell>
@@ -526,27 +344,23 @@ function Sellers() {
                                     <TableCell>
                                         <div className="zs-contact-info">
                                             <strong>{seller.email}</strong>
-                                            <span>{seller.mobile}</span>
+                                            <span>{seller.phone}</span>
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
                                         <div className="zs-location">
-                                            <i
-                                                className="fa-solid fa-location-dot"
-                                                aria-hidden="true"
-                                            />
-
+                                            <i className="fa-solid fa-location-dot" aria-hidden="true" />
                                             <span>
-                                                {seller.city}
-                                                <small>{seller.state}</small>
+                                                {seller.pickupAddress?.city || "—"}
+                                                <small>{seller.pickupAddress?.state}</small>
                                             </span>
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
                                         <span className="zs-date">
-                                            {formatDate(seller.appliedAt)}
+                                            {formatDate(seller.createdAt)}
                                         </span>
                                     </TableCell>
 
@@ -559,38 +373,25 @@ function Sellers() {
                                             size="small"
                                             variant="outlined"
                                             className="zs-view-button"
-                                            onClick={() => setSelectedId(seller.id)}
+                                            onClick={() => setSelected(seller)}
+                                            disabled={busy}
                                         >
                                             View Details
-                                            <i
-                                                className="fa-solid fa-arrow-up-right-from-square"
-                                                aria-hidden="true"
-                                            />
                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
 
-                            {visibleSellers.length === 0 && (
+                            {(loading || loadError || !sellers.length) && (
                                 <TableRow>
-                                    <TableCell colSpan={6}>
-                                        <div className="zs-empty-state">
-                                            <span>
-                                                <i className="fa-solid fa-store-slash" />
-                                            </span>
-
-                                            <h3>No Sellers Found</h3>
-                                            <p>Try another search or application status.</p>
-
-                                            {hasFilters && (
-                                                <Button
-                                                    variant="outlined"
-                                                    onClick={resetFilters}
-                                                >
-                                                    Clear Filters
-                                                </Button>
-                                            )}
-                                        </div>
+                                    <TableCell colSpan={6} align="center">
+                                        <p role="status">
+                                            {loading
+                                                ? "Loading seller applications..."
+                                                : loadError
+                                                    ? "Unable to load sellers. Please retry."
+                                                    : "No seller applications found."}
+                                        </p>
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -598,15 +399,12 @@ function Sellers() {
                     </Table>
                 </TableContainer>
 
-                {/* ================== PAGINATION ================== */}
                 <TablePagination
                     component="div"
-                    className="zs-pagination"
-                    count={filteredSellers.length}
-                    page={page}
+                    count={total}
+                    page={Math.min(page, Math.max(0, Math.ceil(total / rowsPerPage) - 1))}
                     rowsPerPage={rowsPerPage}
                     rowsPerPageOptions={[10, 20, 50]}
-                    labelRowsPerPage="Rows per page:"
                     onPageChange={(_, nextPage) => setPage(nextPage)}
                     onRowsPerPageChange={(event) => {
                         setRowsPerPage(Number(event.target.value));
@@ -615,17 +413,14 @@ function Sellers() {
                 />
             </section>
 
-            {/* ================== SELLER DETAILS ================== */}
             <Dialog
-                open={Boolean(selectedSeller)}
-                onClose={() => setSelectedId(null)}
+                open={Boolean(selected)}
+                onClose={() => setSelected(null)}
                 fullWidth
                 maxWidth="sm"
-                slotProps={{
-                    paper: { className: "zs-dialog" },
-                }}
+                slotProps={{ paper: { className: "zs-dialog" } }}
             >
-                {selectedSeller && (
+                {selected && (
                     <>
                         <DialogTitle className="zs-dialog-title">
                             Seller Details
@@ -634,112 +429,78 @@ function Sellers() {
                         <DialogContent dividers>
                             <div className="zs-dialog-store">
                                 <span className="zs-dialog-avatar">
-                                    {getInitials(selectedSeller.storeName)}
+                                    {getInitials(selected.storeName)}
                                 </span>
-
                                 <div>
-                                    <h3>{selectedSeller.storeName}</h3>
-                                    <p>{selectedSeller.id}</p>
+                                    <h3>{selected.storeName}</h3>
+                                    <p>{selected.name}</p>
                                 </div>
-
-                                <SellerStatus status={selectedSeller.status} />
+                                <SellerStatus status={selected.status} />
                             </div>
 
                             <div className="zs-detail-section">
                                 <h4>Account Information</h4>
-
                                 <dl className="zs-detail-grid">
-                                    <SellerDetail
-                                        label="Seller Name"
-                                        value={selectedSeller.name}
-                                    />
-                                    <SellerDetail
-                                        label="Email Address"
-                                        value={selectedSeller.email}
-                                    />
-                                    <SellerDetail
-                                        label="Mobile Number"
-                                        value={selectedSeller.mobile}
-                                    />
-                                    <SellerDetail
-                                        label="Applied On"
-                                        value={formatDate(selectedSeller.appliedAt)}
-                                    />
+                                    <SellerDetail label="Seller Name" value={selected.name} />
+                                    <SellerDetail label="Email Address" value={selected.email} />
+                                    <SellerDetail label="Mobile Number" value={selected.phone} />
+                                    <SellerDetail label="User Account Status" value={selected.accountStatus} />
+                                    <SellerDetail label="User Account ID" value={selected.userId} />
+                                    <SellerDetail label="Seller Profile ID" value={selected._id} />
+                                    <SellerDetail label="Applied On" value={formatDate(selected.createdAt)} />
+                                    <SellerDetail label="Last Reviewed On" value={formatDate(selected.reviewedAt)} />
                                 </dl>
                             </div>
 
                             <div className="zs-detail-section">
                                 <h4>Store Information</h4>
-
                                 <dl className="zs-detail-grid">
-                                    <SellerDetail
-                                        label="Store Name"
-                                        value={selectedSeller.storeName}
-                                    />
-                                    <SellerDetail
-                                        label="Store Email"
-                                        value={selectedSeller.storeEmail}
-                                    />
-                                    <SellerDetail
-                                        label="Store Contact"
-                                        value={selectedSeller.storePhone}
-                                    />
-                                    <SellerDetail
-                                        label="Description"
-                                        value={selectedSeller.description}
-                                    />
+                                    <SellerDetail label="Store Name" value={selected.storeName} />
+                                    <SellerDetail label="Store Email" value={selected.storeEmail} />
+                                    <SellerDetail label="Store Contact" value={selected.storePhone} />
+                                    <SellerDetail label="Description" value={selected.description} />
                                 </dl>
                             </div>
 
                             <div className="zs-detail-section">
                                 <h4>Pickup Address</h4>
-
                                 <p className="zs-address">
-                                    <i
-                                        className="fa-solid fa-location-dot"
-                                        aria-hidden="true"
-                                    />
-
+                                    <i className="fa-solid fa-location-dot" aria-hidden="true" />
                                     {[
-                                        selectedSeller.address,
-                                        selectedSeller.locality,
-                                        selectedSeller.city,
-                                        selectedSeller.state,
-                                        selectedSeller.pincode,
+                                        selected.pickupAddress?.street,
+                                        selected.pickupAddress?.locality,
+                                        selected.pickupAddress?.city,
+                                        selected.pickupAddress?.state,
+                                        selected.pickupAddress?.pincode,
                                     ].filter(Boolean).join(", ")}
                                 </p>
                             </div>
 
-                            {selectedSeller.remarks && (
+                            {selected.remarks && (
                                 <Alert severity="info">
-                                    <strong>Admin Remarks:</strong>{" "}
-                                    {selectedSeller.remarks}
+                                    <strong>Admin Remarks:</strong> {selected.remarks}
                                 </Alert>
                             )}
                         </DialogContent>
 
                         <DialogActions className="zs-dialog-actions">
-                            <Button
-                                color="inherit"
-                                onClick={() => setSelectedId(null)}
-                            >
+                            <Button color="inherit" onClick={() => setSelected(null)}>
                                 Close
                             </Button>
 
-                            {statusActions[selectedSeller.status]?.map((type) => (
+                            {statusActions[selected.status]?.map((type) => (
                                 <Button
                                     key={type}
-                                    variant={
-                                        ["Approve", "Reactivate"].includes(type)
-                                            ? "contained"
-                                            : "outlined"
+                                    variant={["Approve", "Reactivate"].includes(type) ? "contained" : "outlined"}
+                                    color={["Reject", "Suspend"].includes(type) ? "error" : "primary"}
+                                    onClick={() => openAction(selected, type)}
+                                    disabled={
+                                        busy ||
+                                        (
+                                            ["Approve", "Reactivate"].includes(type) &&
+                                            selected.accountStatus !== "Active"
+                                        )
                                     }
-                                    color={
-                                        ["Reject", "Suspend"].includes(type)
-                                            ? "error"
-                                            : "primary"
-                                    }
-                                    onClick={() => openAction(selectedSeller.id, type)}
                                 >
                                     {type}
                                 </Button>
@@ -749,15 +510,12 @@ function Sellers() {
                 )}
             </Dialog>
 
-            {/* ================== STATUS CONFIRMATION ================== */}
             <Dialog
                 open={Boolean(action)}
                 onClose={closeAction}
                 fullWidth
                 maxWidth="xs"
-                slotProps={{
-                    paper: { className: "zs-dialog" },
-                }}
+                slotProps={{ paper: { className: "zs-dialog" } }}
             >
                 <DialogTitle className="zs-dialog-title">
                     {action?.type} Seller
@@ -766,14 +524,14 @@ function Sellers() {
                 <DialogContent>
                     <p className="zs-confirm-text">
                         Are you sure you want to{" "}
-                        <strong>{action?.type?.toLowerCase()}</strong>{" "}
-                        <strong>{actionSeller?.storeName}</strong>?
+                        <strong>{action?.type.toLowerCase()}</strong>{" "}
+                        <strong>{action?.seller.storeName}</strong>?
                     </p>
 
                     {action?.type === "Suspend" && (
                         <Alert severity="warning" className="zs-confirm-alert">
-                            New sales will be restricted. Existing orders
-                            and obligations must still be completed.
+                            Selling access will be restricted. Account access
+                            and existing records will be preserved.
                         </Alert>
                     )}
 
@@ -784,38 +542,34 @@ function Sellers() {
                             value={reason}
                             onChange={(event) => {
                                 setReason(event.target.value);
-                                setError("");
+                                setActionError("");
                             }}
-                            error={Boolean(error)}
-                            helperText={
-                                error || "This reason will be recorded for the seller."
-                            }
+                            helperText="This reason will be visible to the seller."
                             multiline
                             minRows={3}
-                            slotProps={{
-                                htmlInput: { maxLength: 300 },
-                            }}
+                            slotProps={{ htmlInput: { maxLength: 300 } }}
+                            disabled={busy}
                             fullWidth
                             required
                         />
                     )}
+
+                    {actionError && (
+                        <Alert severity="error">{actionError}</Alert>
+                    )}
                 </DialogContent>
 
                 <DialogActions className="zs-dialog-actions">
-                    <Button color="inherit" onClick={closeAction}>
+                    <Button color="inherit" onClick={closeAction} disabled={busy}>
                         Cancel
                     </Button>
-
                     <Button
                         variant="contained"
-                        color={
-                            ["Reject", "Suspend"].includes(action?.type)
-                                ? "error"
-                                : "primary"
-                        }
+                        color={["Reject", "Suspend"].includes(action?.type) ? "error" : "primary"}
                         onClick={handleStatusUpdate}
+                        disabled={busy}
                     >
-                        Confirm {action?.type}
+                        {busy ? "Saving..." : `Confirm ${action?.type || ""}`}
                     </Button>
                 </DialogActions>
             </Dialog>

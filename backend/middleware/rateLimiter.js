@@ -57,6 +57,16 @@ exports.resetRequestLimiter = createLimiter(30, 60 * 60 * 1000);
 exports.resetVerifyLimiter = createLimiter(60, 15 * 60 * 1000);
 exports.resetPasswordLimiter = createLimiter(20, 15 * 60 * 1000);
 
+const accountKey = (req) => String(req.user._id);
+
 exports.profileUpdateLimiter = createLimiter(10, 15 * 60 * 1000, {
-    keyGenerator: (req) => String(req.user._id),
+    keyGenerator: accountKey,
+});
+
+exports.categoryReadLimiter = createLimiter(120, 60 * 1000, {
+    keyGenerator: accountKey,
+});
+
+exports.categoryWriteLimiter = createLimiter(30, 15 * 60 * 1000, {
+    keyGenerator: accountKey,
 });

@@ -10,6 +10,7 @@ async function connectDB() {
         require("../models/AuthSession").init(),
         require("../models/PasswordReset").init(),
         require("../models/SellerProfile").init(),
+        require("../models/Category").init(),
     ]);
 
     console.log("MongoDB connected");

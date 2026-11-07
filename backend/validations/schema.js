@@ -88,3 +88,77 @@ exports.profileUpdateSchema = Joi.object({
         .max(100)
         .required(),
 });
+
+// Category validation
+const categoryFields = {
+    name: Joi.string()
+        .replace(/\s+/g, " ")
+        .trim()
+        .min(2)
+        .max(70)
+        .required(),
+    parentId: Joi.string().hex().length(24).allow(null).required(),
+    description: Joi.string().trim().max(240).allow("").default(""),
+    sortOrder: Joi.number().integer().min(1).max(999).required(),
+    attributes: Joi.array()
+        .items(Joi.string().trim().min(1).max(40))
+        .max(12)
+        .unique((a, b) => a.toLowerCase() === b.toLowerCase())
+        .required(),
+    replacementAllowed: Joi.boolean().required(),
+    replacementDays: Joi.number().integer().min(0).max(30).required(),
+};
+
+const categoryRules = (value, helpers) => {
+    if (
+        !value.parentId &&
+        (
+            value.attributes.length ||
+            value.replacementAllowed ||
+            value.replacementDays !== 0
+        )
+    ) {
+        return helpers.message(
+            "Attributes and replacement rules apply only to subcategories."
+        );
+    }
+
+    if (value.replacementAllowed && value.replacementDays < 1) {
+        return helpers.message(
+            "Replacement request window must be between 1 and 30 days."
+        );
+    }
+
+    if (!value.replacementAllowed && value.replacementDays !== 0) {
+        return helpers.message(
+            "Replacement days must be zero when replacement is disabled."
+        );
+    }
+
+    return value;
+};
+
+exports.categoryCreateSchema = Joi.object(categoryFields).custom(categoryRules);
+
+exports.categoryUpdateSchema = Joi.object({
+    ...categoryFields,
+    version: Joi.number().integer().min(0).required(),
+}).custom(categoryRules);
+
+exports.categoryStatusSchema = Joi.object({
+    status: Joi.string().valid("Active", "Disabled").required(),
+    reason: Joi.when("status", {
+        is: "Disabled",
+        then: Joi.string().trim().min(5).max(300).required(),
+        otherwise: Joi.string().valid("").default(""),
+    }),
+    version: Joi.number().integer().min(0).required(),
+});
+
+exports.categoryListSchema = Joi.object({
+    search: Joi.string().trim().max(100).allow("").default(""),
+    type: Joi.string().valid("All", "Main", "Subcategory").default("All"),
+    status: Joi.string().valid("All", "Active", "Disabled").default("All"),
+    page: Joi.number().integer().min(1).max(100000).default(1),
+    limit: Joi.number().valid(10, 20, 50).default(10),
+});

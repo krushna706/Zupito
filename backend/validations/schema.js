@@ -79,3 +79,12 @@ exports.forgotPasswordResetSchema = Joi.object({
     password,
     confirmPassword,
 });
+
+exports.profileUpdateSchema = Joi.object({
+    name: Joi.string()
+        .replace(/\s+/g, " ")
+        .trim()
+        .min(2)
+        .max(100)
+        .required(),
+});

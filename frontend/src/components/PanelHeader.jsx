@@ -6,32 +6,27 @@ import { appConfig } from "../config/appConfig";
 import { getPanelDashboardPath, panelConfig } from "../config/panelConfig";
 
 function getInitials(name) {
-    return (
-        String(name || "")
-            .trim()
-            .split(/\s+/)
-            .slice(0, 2)
-            .map((word) => word.charAt(0))
-            .join("")
-            .toUpperCase() || "Z"
-    );
+    return String(name || "")
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((word) => word.charAt(0))
+        .join("")
+        .toUpperCase() || "Z";
 }
 
 function PanelHeader({ user, isSidebarOpen, onToggleSidebar, onLogout, isLoggingOut }) {
     const [profileAnchor, setProfileAnchor] = useState(null);
 
     const profileOpen = Boolean(profileAnchor);
-
-    const displayName = user?.name?.trim() || user?.fullName?.trim() || "Zupito Staff";
+    const displayName = user?.name?.trim() || "Zupito Staff";
     const normalizedRole = user?.role === "delivery_agent" ? "delivery" : user?.role;
     const roleLabel = user?.roleLabel || panelConfig[normalizedRole]?.label || "Staff";
     const dashboardPath = getPanelDashboardPath(user?.role);
-    const avatarUrl = user?.avatarUrl || user?.profilePicture?.url || "/images/default-avatar.svg";
+    const avatarUrl = user?.avatar?.url || "/images/default-avatar.svg";
     const initials = getInitials(displayName);
 
-    const closeProfile = () => {
-        setProfileAnchor(null);
-    };
+    const closeProfile = () => setProfileAnchor(null);
 
     const handleLogout = () => {
         closeProfile();
@@ -86,21 +81,11 @@ function PanelHeader({ user, isSidebarOpen, onToggleSidebar, onLogout, isLogging
                     anchorEl={profileAnchor}
                     open={profileOpen}
                     onClose={closeProfile}
-                    anchorOrigin={{
-                        vertical: "bottom",
-                        horizontal: "right"
-                    }}
-                    transformOrigin={{
-                        vertical: "top",
-                        horizontal: "right"
-                    }}
+                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                    transformOrigin={{ vertical: "top", horizontal: "right" }}
                     slotProps={{
-                        paper: {
-                            className: "panel-profile-menu"
-                        },
-                        list: {
-                            "aria-labelledby": "panel-profile-button"
-                        }
+                        paper: { className: "panel-profile-menu" },
+                        list: { "aria-labelledby": "panel-profile-button" },
                     }}
                 >
                     <li className="panel-profile-menu-summary" role="none">
@@ -122,7 +107,6 @@ function PanelHeader({ user, isSidebarOpen, onToggleSidebar, onLogout, isLogging
                         </span>
 
                         <span>My Profile</span>
-
                         <i className="fa-solid fa-chevron-right panel-dropdown-arrow" aria-hidden="true" />
                     </MenuItem>
 

@@ -7,7 +7,9 @@ const cookieParser = require("cookie-parser");
 const csrfMiddleware = require("./middleware/csrfMiddleware");
 const errorMiddleware = require("./middleware/errorMiddleware");
 const ExpressError = require("./utils/ExpressError");
+
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
@@ -48,6 +50,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 
 app.use("/api", (req, res, next) => {
     next(new ExpressError(404, "API route not found."));

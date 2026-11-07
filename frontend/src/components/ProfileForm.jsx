@@ -1,177 +1,114 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Alert, Button, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
 const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-const ALLOWED_IMAGE_TYPES = [
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-];
+const roleLabels = {
+    admin: "Administrator",
+    seller: "Seller",
+    delivery: "Delivery Agent",
+    delivery_agent: "Delivery Agent",
+};
 
-// ================== PROFILE HELPERS ==================
 function getInitials(name) {
-    const words = String(name || "")
+    return String(name || "")
         .trim()
         .split(/\s+/)
-        .filter(Boolean);
-
-    return words
         .slice(0, 2)
         .map((word) => word.charAt(0).toUpperCase())
         .join("") || "Z";
 }
 
-function getRoleLabel(role) {
-    const labels = {
-        admin: "Administrator",
-        seller: "Seller",
-        delivery: "Delivery Agent",
-        delivery_agent: "Delivery Agent",
-    };
-
-    return labels[role] || "Staff Member";
-}
-
-function getImage(user) {
-    return (
-        user?.avatarUrl ||
-        user?.profilePicture?.url ||
-        (typeof user?.profilePicture === "string"
-            ? user.profilePicture
-            : "") ||
-        ""
-    );
-}
-
-// ================== SHARED PROFILE FORM ==================
 function ProfileForm({ user, onSave }) {
     const fileInputRef = useRef(null);
 
-    // ================== FORM STATE ==================
-    const [name, setName] = useState(user?.name || user?.fullName || "");
+    const [name, setName] = useState(user?.name || "");
     const [selectedImage, setSelectedImage] = useState(null);
     const [previewUrl, setPreviewUrl] = useState("");
     const [failedImage, setFailedImage] = useState("");
-
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
 
-    // ================== CURRENT ACCOUNT ==================
-    const accountName = user?.name || user?.fullName || "";
-    const displayName = name.trim() || accountName || "Staff Member";
+    const savedName = user?.name || "";
     const normalizedName = name.trim().replace(/\s+/g, " ");
+    const displayName = normalizedName || savedName || "Staff Member";
+    const currentImage = previewUrl || user?.avatar?.url || "";
+    const role = roleLabels[user?.role] || "Staff Member";
 
-    const email = user?.email || "";
-    const phone = user?.mobile || user?.phone || "";
-    const role = getRoleLabel(user?.role);
+    const changed =
+        normalizedName !== savedName.trim().replace(/\s+/g, " ") ||
+        Boolean(selectedImage);
 
-    const savedImage = getImage(user);
-    const currentImage = previewUrl || savedImage;
-
-    const changed = (
-        normalizedName !== accountName.trim().replace(/\s+/g, " ") ||
-        Boolean(selectedImage)
-    );
-
-    // ================== SYNC PROFILE ==================
     useEffect(() => {
-        setName(user?.name || user?.fullName || "");
-    }, [user?.name, user?.fullName]);
+        setName(user?.name || "");
+    }, [user?.name]);
 
-    // ================== PREVIEW CLEANUP ==================
     useEffect(() => {
-        return () => {
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        };
-    }, [previewUrl]);
+        if (!selectedImage) {
+            setPreviewUrl("");
+            return;
+        }
 
-    // ================== IMAGE HANDLING ==================
+        const url = URL.createObjectURL(selectedImage);
+        setPreviewUrl(url);
+
+        return () => URL.revokeObjectURL(url);
+    }, [selectedImage]);
+
     const handleImageChange = (event) => {
         const file = event.target.files?.[0];
         event.target.value = "";
 
         if (!file) return;
 
-        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        if (!IMAGE_TYPES.includes(file.type)) {
             toast.error("Upload a JPG, JPEG, PNG or WebP image.");
             return;
         }
 
-        if (file.size === 0 || file.size > MAX_IMAGE_SIZE) {
+        if (!file.size || file.size > MAX_IMAGE_SIZE) {
             toast.error("Image must be valid and 3 MB or smaller.");
             return;
         }
 
         setSelectedImage(file);
-        setPreviewUrl(URL.createObjectURL(file));
         setFailedImage("");
         setError("");
-    };
-
-    const removeSelectedImage = () => {
-        setSelectedImage(null);
-        setPreviewUrl("");
-        setFailedImage("");
     };
 
     const resetForm = () => {
-        setName(accountName);
-        removeSelectedImage();
+        setName(savedName);
+        setSelectedImage(null);
+        setFailedImage("");
         setError("");
     };
 
-    // ================== SAVE PROFILE ==================
     const handleSubmit = async (event) => {
         event.preventDefault();
+        if (saving || !changed) return;
 
-        if (saving) return;
-
-        if (normalizedName.length < 2 || normalizedName.length > 80) {
-            setError("Full name must contain 2–80 characters.");
+        if (normalizedName.length < 2 || normalizedName.length > 100) {
+            setError("Full name must contain 2–100 characters.");
             return;
         }
 
-        if (!changed) {
-            toast.info("No profile changes to save.");
-            return;
-        }
-
-        if (typeof onSave !== "function") {
-            toast.error("Profile update is not available.");
-            return;
-        }
+        setSaving(true);
+        setError("");
 
         try {
-            setSaving(true);
-            setError("");
-
-            const result = await onSave({
+            await onSave({
                 name: normalizedName,
                 pictureFile: selectedImage,
             });
 
-            if (result === false || result?.success === false) {
-                throw new Error(
-                    result?.message || "Unable to update your profile."
-                );
-            }
-
             setSelectedImage(null);
-            setPreviewUrl("");
             setName(normalizedName);
-
-            toast.success("Profile updated in your preview session.");
-        } catch (saveError) {
-            setError(
-                saveError?.message ||
-                "Unable to update your profile. Please try again."
-            );
+            toast.success("Profile updated successfully.");
+        } catch (failure) {
+            setError(failure.message || "Unable to update your profile.");
         } finally {
             setSaving(false);
         }
@@ -179,18 +116,13 @@ function ProfileForm({ user, onSave }) {
 
     return (
         <div className="staff-profile">
-            {/* ================== PAGE HEADER ================== */}
             <section className="spf-hero">
                 <div>
                     <span className="spf-eyebrow">
                         <i className="fa-solid fa-user-gear" aria-hidden="true" />
                         MY PROFILE
                     </span>
-
-                    <p>
-                        Manage your profile information and review
-                        your account security settings.
-                    </p>
+                    <p>Manage your profile information and account security.</p>
                 </div>
 
                 <span className="spf-hero-icon" aria-hidden="true">
@@ -198,14 +130,10 @@ function ProfileForm({ user, onSave }) {
                 </span>
             </section>
 
-            {/* ================== PROFILE CONTENT ================== */}
             <div className="spf-grid">
-                {/* ================== IDENTITY CARD ================== */}
                 <aside className="spf-identity">
                     <div className="spf-identity-top">
-                        <span className="spf-section-label">
-                            ACCOUNT IDENTITY
-                        </span>
+                        <span className="spf-section-label">ACCOUNT IDENTITY</span>
 
                         <div className="spf-avatar-container">
                             <div className="spf-avatar">
@@ -227,14 +155,14 @@ function ProfileForm({ user, onSave }) {
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={saving}
                             >
-                                <i className="fa-solid fa-camera" />
+                                <i className="fa-solid fa-camera" aria-hidden="true" />
                             </button>
                         </div>
 
                         <h2>{displayName}</h2>
 
                         <span className="spf-role">
-                            <i className="fa-solid fa-shield-halved" />
+                            <i className="fa-solid fa-shield-halved" aria-hidden="true" />
                             {role}
                         </span>
 
@@ -260,19 +188,16 @@ function ProfileForm({ user, onSave }) {
 
                         {selectedImage && (
                             <div className="spf-selected-file">
-                                <i className="fa-solid fa-circle-check" />
-
-                                <span title={selectedImage.name}>
-                                    {selectedImage.name}
-                                </span>
+                                <i className="fa-solid fa-circle-check" aria-hidden="true" />
+                                <span title={selectedImage.name}>{selectedImage.name}</span>
 
                                 <button
                                     type="button"
                                     aria-label="Remove selected image"
-                                    onClick={removeSelectedImage}
+                                    onClick={() => setSelectedImage(null)}
                                     disabled={saving}
                                 >
-                                    <i className="fa-solid fa-xmark" />
+                                    <i className="fa-solid fa-xmark" aria-hidden="true" />
                                 </button>
                             </div>
                         )}
@@ -284,40 +209,24 @@ function ProfileForm({ user, onSave }) {
                     </div>
 
                     <div className="spf-identity-bottom">
-                        <i className="fa-solid fa-circle-info" />
-
-                        <p>
-                            Profile changes currently apply to your
-                            frontend preview session.
-                        </p>
+                        <i className="fa-solid fa-circle-info" aria-hidden="true" />
+                        <p>Your saved name and picture appear across your account.</p>
                     </div>
                 </aside>
 
-                {/* ================== PERSONAL DETAILS ================== */}
                 <section className="spf-details">
                     <div className="spf-card-header">
                         <span className="spf-card-icon">
-                            <i className="fa-regular fa-id-card" />
+                            <i className="fa-regular fa-id-card" aria-hidden="true" />
                         </span>
-
                         <div>
                             <h3>Personal Information</h3>
-
-                            <p>
-                                Edit your full name and review
-                                your registered contact details.
-                            </p>
+                            <p>Edit your name and review your registered contact details.</p>
                         </div>
                     </div>
 
-                    <form
-                        className="spf-form"
-                        onSubmit={handleSubmit}
-                        noValidate
-                    >
-                        <span className="spf-section-label">
-                            PROFILE DETAILS
-                        </span>
+                    <form className="spf-form" onSubmit={handleSubmit} noValidate>
+                        <span className="spf-section-label">PROFILE DETAILS</span>
 
                         <div className="spf-fields">
                             <TextField
@@ -328,33 +237,24 @@ function ProfileForm({ user, onSave }) {
                                     setName(event.target.value);
                                     setError("");
                                 }}
-                                error={Boolean(error)}
                                 autoComplete="name"
                                 size="small"
                                 required
                                 fullWidth
                                 disabled={saving}
-                                slotProps={{
-                                    htmlInput: {
-                                        maxLength: 80,
-                                    },
-                                }}
+                                slotProps={{ htmlInput: { maxLength: 100 } }}
                             />
 
                             <TextField
                                 label="Email Address"
-                                name="email"
-                                value={email}
+                                value={user?.email || ""}
                                 size="small"
                                 fullWidth
                                 slotProps={{
                                     input: {
                                         readOnly: true,
                                         endAdornment: (
-                                            <i
-                                                className="fa-solid fa-lock spf-field-lock"
-                                                aria-hidden="true"
-                                            />
+                                            <i className="fa-solid fa-lock spf-field-lock" aria-hidden="true" />
                                         ),
                                     },
                                 }}
@@ -362,18 +262,14 @@ function ProfileForm({ user, onSave }) {
 
                             <TextField
                                 label="Mobile Number"
-                                name="mobile"
-                                value={phone}
+                                value={user?.phone || ""}
                                 size="small"
                                 fullWidth
                                 slotProps={{
                                     input: {
                                         readOnly: true,
                                         endAdornment: (
-                                            <i
-                                                className="fa-solid fa-lock spf-field-lock"
-                                                aria-hidden="true"
-                                            />
+                                            <i className="fa-solid fa-lock spf-field-lock" aria-hidden="true" />
                                         ),
                                     },
                                 }}
@@ -381,19 +277,12 @@ function ProfileForm({ user, onSave }) {
                         </div>
 
                         <div className="spf-readonly-note">
-                            <i className="fa-solid fa-circle-info" />
-
-                            <p>
-                                Registered email and mobile number
-                                cannot be changed from this page.
-                            </p>
+                            <i className="fa-solid fa-circle-info" aria-hidden="true" />
+                            <p>Registered email and mobile number cannot be changed from this page.</p>
                         </div>
 
                         {error && (
-                            <Alert
-                                severity="error"
-                                className="spf-error"
-                            >
+                            <Alert severity="error" className="spf-error">
                                 {error}
                             </Alert>
                         )}
@@ -414,13 +303,7 @@ function ProfileForm({ user, onSave }) {
                                 variant="contained"
                                 disabled={saving || !changed}
                                 startIcon={
-                                    <i
-                                        className={`fa-solid ${
-                                            saving
-                                                ? "fa-spinner fa-spin"
-                                                : "fa-check"
-                                        }`}
-                                    />
+                                    <i className={`fa-solid ${saving ? "fa-spinner fa-spin" : "fa-check"}`} />
                                 }
                             >
                                 {saving ? "Saving..." : "Save Changes"}
@@ -430,34 +313,25 @@ function ProfileForm({ user, onSave }) {
                 </section>
             </div>
 
-            {/* ================== ACCOUNT SECURITY ================== */}
             <section className="spf-security">
                 <span className="spf-security-icon">
-                    <i className="fa-solid fa-lock" />
+                    <i className="fa-solid fa-lock" aria-hidden="true" />
                 </span>
 
                 <div>
                     <h3>Password & Security</h3>
-
-                    <p>
-                        Need to change your password?
-                        Open the account recovery page.
-                        Password reset is currently a frontend preview.
-                    </p>
+                    <p>Use account recovery to verify your email and set a new password.</p>
                 </div>
 
                 <Button
                     component={Link}
                     to="/manage/forgot-password"
                     variant="outlined"
-                    endIcon={
-                        <i className="fa-solid fa-arrow-right" />
-                    }
+                    endIcon={<i className="fa-solid fa-arrow-right" />}
                 >
                     Forgot Password
                 </Button>
             </section>
-
         </div>
     );
 }

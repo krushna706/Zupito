@@ -1,63 +1,58 @@
-import { useAuth } from "../context/AuthContext";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
+import { useAuth } from "../context/AuthContext";
+import { updateProfile as saveProfile } from "../services/userService";
+
 const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-function getProfileImage(user) {
-    const picture = user?.profilePicture ?? user?.avatar;
-
-    if (typeof picture === "string") {
-        return picture;
-    }
-
-    return typeof picture?.url === "string" ? picture.url : "";
-}
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function getInitials(name) {
-    const words = String(name || "")
+    return String(name || "")
         .trim()
         .split(/\s+/)
-        .filter(Boolean);
-
-    if (!words.length) return "U";
-
-    return words
         .slice(0, 2)
         .map((word) => word.charAt(0).toUpperCase())
-        .join("");
+        .join("") || "U";
 }
 
-function ProfileContent({ user = null, onSave = null }) {
+function Profile() {
+    const { user, updateProfile } = useAuth();
     const fileInputRef = useRef(null);
 
     const [name, setName] = useState(user?.name || "");
     const [nameError, setNameError] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState("");
-    useEffect(
-        () => () => {
-            if (imagePreview) URL.revokeObjectURL(imagePreview);
-        },
-        [imagePreview]
-    );
-    const [failedImage, setFailedImage] = useState(null);
+    const [failedImage, setFailedImage] = useState("");
     const [saving, setSaving] = useState(false);
 
     const savedName = user?.name || "";
-    const savedImage = getProfileImage(user);
-    const email = user?.email || "";
-    const mobile = user?.mobile || user?.phone || "";
-
-    const currentImage = imagePreview || savedImage;
-    const imageError = failedImage === currentImage;
-    const displayName = name.trim() || savedName || "Your Profile";
-
     const normalizedName = name.trim().replace(/\s+/g, " ");
-    const hasChanges = normalizedName !== savedName.trim().replace(/\s+/g, " ") || Boolean(selectedImage);
+    const displayName = normalizedName || savedName || "Your Profile";
+    const currentImage = imagePreview || user?.avatar?.url || "";
+
+    const hasChanges =
+        normalizedName !== savedName.trim().replace(/\s+/g, " ") ||
+        Boolean(selectedImage);
+
+    useEffect(() => {
+        setName(user?.name || "");
+    }, [user?.name]);
+
+    useEffect(() => {
+        if (!selectedImage) {
+            setImagePreview("");
+            return;
+        }
+
+        const url = URL.createObjectURL(selectedImage);
+        setImagePreview(url);
+
+        return () => URL.revokeObjectURL(url);
+    }, [selectedImage]);
 
     const handleImageChange = (event) => {
         const file = event.target.files?.[0];
@@ -65,65 +60,51 @@ function ProfileContent({ user = null, onSave = null }) {
 
         if (!file) return;
 
-        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        if (!IMAGE_TYPES.includes(file.type)) {
             toast.error("Upload a JPG, JPEG, PNG or WebP image.");
             return;
         }
 
-        if (file.size > MAX_IMAGE_SIZE) {
-            toast.error("Profile picture must be 3 MB or smaller.");
+        if (!file.size || file.size > MAX_IMAGE_SIZE) {
+            toast.error("Image must be valid and 3 MB or smaller.");
             return;
         }
 
         setSelectedImage(file);
-        setImagePreview(URL.createObjectURL(file));
+        setFailedImage("");
     };
 
     const handleReset = () => {
         setName(savedName);
         setSelectedImage(null);
-        setImagePreview("");
         setNameError("");
+        setFailedImage("");
     };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        if (saving || !hasChanges) return;
 
-        if (normalizedName.length < 2 || normalizedName.length > 80) {
-            setNameError("Full name must contain 2 to 80 characters.");
+        if (normalizedName.length < 2 || normalizedName.length > 100) {
+            setNameError("Full name must contain 2–100 characters.");
             return;
         }
 
         setNameError("");
-
-        if (!hasChanges) {
-            toast.info("No profile changes to save.");
-            return;
-        }
-
-        if (!user || typeof onSave !== "function") {
-            toast.info("Profile updates will be available after account integration.");
-            return;
-        }
+        setSaving(true);
 
         try {
-            setSaving(true);
-
-            const result = await onSave({
+            const account = await saveProfile({
                 name: normalizedName,
-                profilePicture: selectedImage
+                pictureFile: selectedImage,
             });
 
-            if (result === false || result?.success === false) {
-                toast.error(result?.message || "Unable to update your profile.");
-                return;
-            }
-
+            updateProfile(account);
             setSelectedImage(null);
-            setImagePreview("");
+            setName(account.name);
             toast.success("Profile updated successfully.");
-        } catch {
-            toast.error("Unable to update your profile. Please try again.");
+        } catch (error) {
+            toast.error(error.message || "Unable to update your profile.");
         } finally {
             setSaving(false);
         }
@@ -131,13 +112,10 @@ function ProfileContent({ user = null, onSave = null }) {
 
     return (
         <div className="customer-profile-page">
-            {/* Page Heading */}
             <div className="customer-profile-heading">
                 <div>
                     <span className="customer-profile-eyebrow">PERSONAL DETAILS</span>
-
                     <h2>My Profile</h2>
-
                     <p>Manage your profile information and keep your account details up to date.</p>
                 </div>
 
@@ -146,16 +124,14 @@ function ProfileContent({ user = null, onSave = null }) {
                 </span>
             </div>
 
-            {/* Profile Content */}
             <div className="customer-profile-grid">
-                {/* Left Identity Card */}
                 <aside className="customer-profile-identity">
                     <div className="customer-profile-identity-top">
                         <span className="customer-profile-identity-label">YOUR PROFILE</span>
 
                         <div className="customer-profile-avatar-wrap">
                             <div className="customer-profile-avatar">
-                                {currentImage && !imageError ? (
+                                {currentImage && failedImage !== currentImage ? (
                                     <img
                                         src={currentImage}
                                         alt={`${displayName} profile`}
@@ -172,14 +148,12 @@ function ProfileContent({ user = null, onSave = null }) {
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={saving}
                                 aria-label="Change profile picture"
-                                title="Change profile picture"
                             >
                                 <i className="fa-solid fa-camera" aria-hidden="true" />
                             </button>
                         </div>
 
                         <h3>{displayName}</h3>
-
                         <p className="customer-profile-account-type">Customer Account</p>
 
                         <input
@@ -189,6 +163,7 @@ function ProfileContent({ user = null, onSave = null }) {
                             onChange={handleImageChange}
                             className="d-none"
                             aria-label="Upload profile picture"
+                            disabled={saving}
                         />
 
                         <button
@@ -204,7 +179,6 @@ function ProfileContent({ user = null, onSave = null }) {
                         {selectedImage && (
                             <div className="customer-profile-image-selected">
                                 <i className="fa-solid fa-circle-check" aria-hidden="true" />
-
                                 <span>New picture selected</span>
 
                                 <button
@@ -219,7 +193,7 @@ function ProfileContent({ user = null, onSave = null }) {
                         )}
 
                         <p className="customer-profile-image-note">
-                            JPG, PNG or WebP
+                            JPG, JPEG, PNG or WebP
                             <span>Maximum file size: 3 MB</span>
                         </p>
                     </div>
@@ -228,12 +202,10 @@ function ProfileContent({ user = null, onSave = null }) {
                         <span>
                             <i className="fa-solid fa-shield-halved" aria-hidden="true" />
                         </span>
-
                         <p>Keep your personal details accurate for a better shopping experience.</p>
                     </div>
                 </aside>
 
-                {/* Right Details Card */}
                 <div className="customer-profile-details">
                     <div className="customer-profile-details-header">
                         <span className="customer-profile-details-icon">
@@ -242,7 +214,6 @@ function ProfileContent({ user = null, onSave = null }) {
 
                         <div>
                             <h3>Personal Information</h3>
-
                             <p>Edit your name and review your registered contact details.</p>
                         </div>
                     </div>
@@ -258,10 +229,7 @@ function ProfileContent({ user = null, onSave = null }) {
                                     value={name}
                                     onChange={(event) => {
                                         setName(event.target.value);
-
-                                        if (nameError) {
-                                            setNameError("");
-                                        }
+                                        setNameError("");
                                     }}
                                     error={Boolean(nameError)}
                                     helperText={nameError}
@@ -270,50 +238,36 @@ function ProfileContent({ user = null, onSave = null }) {
                                     fullWidth
                                     size="small"
                                     disabled={saving}
-                                    slotProps={{
-                                        htmlInput: {
-                                            maxLength: 80
-                                        }
-                                    }}
+                                    slotProps={{ htmlInput: { maxLength: 100 } }}
                                 />
 
                                 <TextField
                                     label="Email Address"
-                                    name="email"
-                                    value={email}
-                                    placeholder="Registered email address"
+                                    value={user?.email || ""}
                                     fullWidth
                                     size="small"
                                     slotProps={{
                                         input: {
                                             readOnly: true,
                                             endAdornment: (
-                                                <i
-                                                    className="fa-solid fa-lock customer-profile-field-lock"
-                                                    aria-hidden="true"
-                                                />
-                                            )
-                                        }
+                                                <i className="fa-solid fa-lock customer-profile-field-lock" aria-hidden="true" />
+                                            ),
+                                        },
                                     }}
                                 />
 
                                 <TextField
                                     label="Mobile Number"
-                                    name="mobile"
-                                    value={mobile}
-                                    placeholder="Registered mobile number"
+                                    value={user?.phone || ""}
                                     fullWidth
                                     size="small"
                                     slotProps={{
                                         input: {
                                             readOnly: true,
                                             endAdornment: (
-                                                <i
-                                                    className="fa-solid fa-lock customer-profile-field-lock"
-                                                    aria-hidden="true"
-                                                />
-                                            )
-                                        }
+                                                <i className="fa-solid fa-lock customer-profile-field-lock" aria-hidden="true" />
+                                            ),
+                                        },
                                     }}
                                 />
                             </div>
@@ -321,11 +275,7 @@ function ProfileContent({ user = null, onSave = null }) {
 
                         <div className="customer-profile-readonly-note">
                             <i className="fa-solid fa-circle-info" aria-hidden="true" />
-
-                            <p>
-                                Email address and mobile number are linked to your account and cannot be
-                                changed here.
-                            </p>
+                            <p>Email address and mobile number are linked to your account and cannot be changed here.</p>
                         </div>
 
                         <div className="customer-profile-actions">
@@ -343,24 +293,17 @@ function ProfileContent({ user = null, onSave = null }) {
                                 className="customer-profile-save-button"
                                 disabled={saving || !hasChanges}
                             >
-                                {saving ? (
-                                    <>
-                                        <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" />
-                                        Saving...
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="fa-solid fa-check" aria-hidden="true" />
-                                        Save Changes
-                                    </>
-                                )}
+                                <i
+                                    className={`fa-solid ${saving ? "fa-spinner fa-spin" : "fa-check"}`}
+                                    aria-hidden="true"
+                                />
+                                {saving ? "Saving..." : "Save Changes"}
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            {/* Password & Security */}
             <div className="customer-profile-security">
                 <span className="customer-profile-security-icon">
                     <i className="fa-solid fa-lock" aria-hidden="true" />
@@ -368,11 +311,7 @@ function ProfileContent({ user = null, onSave = null }) {
 
                 <div>
                     <h3>Password & Security</h3>
-
-                    <p>
-                        Want to change your password? Use the secure Forgot Password process to verify your
-                        account.
-                    </p>
+                    <p>Want to change your password? Use the secure Forgot Password process to verify your account.</p>
                 </div>
 
                 <Link to="/manage/forgot-password" className="customer-profile-security-link">
@@ -384,28 +323,4 @@ function ProfileContent({ user = null, onSave = null }) {
     );
 }
 
-export default function Profile(props) {
-    const { user, updateProfile } = useAuth();
-    const save = async ({ name, profilePicture }) => {
-        let picture = user?.profilePicture;
-        if (profilePicture) {
-            const url = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(profilePicture);
-            });
-            picture = { url };
-        }
-        updateProfile({ name, profilePicture: picture });
-    };
-    const account = props.user || user;
-    return (
-        <ProfileContent
-            key={`${account?.id}-${account?.name}`}
-            {...props}
-            user={account}
-            onSave={props.onSave || save}
-        />
-    );
-}
+export default Profile;

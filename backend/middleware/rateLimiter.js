@@ -32,7 +32,6 @@ const createLimiter = (limit, windowMs, options = {}) =>
 
 exports.loginIpLimiter = createLimiter(30, 15 * 60 * 1000);
 
-// Email and phone share the account limit.
 exports.loginAccountLimiter = createLimiter(10, 15 * 60 * 1000, {
     skipSuccessfulRequests: true,
 
@@ -57,3 +56,7 @@ exports.signupLimiter = createLimiter(10, 60 * 60 * 1000);
 exports.resetRequestLimiter = createLimiter(30, 60 * 60 * 1000);
 exports.resetVerifyLimiter = createLimiter(60, 15 * 60 * 1000);
 exports.resetPasswordLimiter = createLimiter(20, 15 * 60 * 1000);
+
+exports.profileUpdateLimiter = createLimiter(10, 15 * 60 * 1000, {
+    keyGenerator: (req) => String(req.user._id),
+});

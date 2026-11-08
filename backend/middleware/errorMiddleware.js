@@ -24,7 +24,7 @@ module.exports = (error, req, res, next) => {
     }
 
     if (status >= 500 && !error.statusCode) {
-        console.error("Request failed:", error.name);
+       console.error("Request failed:", error.stack || error.message);
         message = "Unable to complete your request. Please try again.";
     }
 

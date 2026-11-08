@@ -19,3 +19,15 @@ export const getSellers = async (params, signal) =>
 
 export const updateSellerStatus = async (sellerId, values) =>
     (await api.patch(`/admin/sellers/${sellerId}/status`, values)).data;
+
+export const getAdminProducts = async (params) =>
+    (await api.get("/admin/products", { params })).data;
+
+export const getAdminProduct = async (productId) =>
+    (await api.get(`/admin/products/${productId}`)).data.product;
+
+export const updateProductStatus = async (productId, values) =>
+    (await api.patch(`/admin/products/${productId}/status`, values)).data;
+
+export const bulkProductStatus = async (values) =>
+    (await api.post("/admin/products/bulk-status", values)).data;

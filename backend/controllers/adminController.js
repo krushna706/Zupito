@@ -1,7 +1,11 @@
 const User = require("../models/User");
 const SellerProfile = require("../models/SellerProfile");
 const ExpressError = require("../utils/ExpressError");
+const mongoose = require("mongoose");
+const Product = require("../models/Product");
+const Category = require("../models/Category");
 const { adminSellerListSchema } = require("../validations/schema");
+const { adminProductListSchema } = require("../validations/schema");
 
 const transitions = {
     Approve: { from: "Pending", to: "Approved" },
@@ -219,5 +223,479 @@ exports.updateSellerStatus = async (req, res, next) => {
         });
     } catch (error) {
         next(error);
+    }
+};
+
+// Product review helpers
+const productDecisions = {
+    Approve: { from: "Pending", to: "Approved" },
+    Reject: { from: "Pending", to: "Rejected" },
+    Suspend: { from: "Approved", to: "Suspended" },
+    Reactivate: { from: "Suspended", to: "Approved" },
+};
+
+function populateProductReview(query) {
+    return query
+        .populate({
+            path: "sellerProfileId",
+            select: "storeName status userId",
+            populate: {
+                path: "userId",
+                select: "name role status",
+            },
+        })
+        .populate({
+            path: "categoryId",
+            select: "name status parentId",
+            populate: {
+                path: "parentId",
+                select: "name status",
+            },
+        });
+}
+
+function productReviewResponse(product, includeDetails = false) {
+    const seller = product.sellerProfileId;
+    const account = seller?.userId;
+    const category = product.categoryId;
+    const parent = category?.parentId;
+    const variants = product.variants || [];
+
+    let approvalIssue = "";
+
+    if (!seller || seller.status !== "Approved") {
+        approvalIssue = "Seller profile is not approved.";
+    } else if (!account || account.role !== "seller" || account.status !== "Active") {
+        approvalIssue = "Seller account is unavailable or inactive.";
+    } else if (!category || category.status !== "Active") {
+        approvalIssue = "Product category is unavailable or disabled.";
+    } else if (!parent || parent.status !== "Active") {
+        approvalIssue = "Parent category is unavailable or disabled.";
+    }
+
+    const result = {
+        id: String(product._id),
+        version: product.__v ?? 0,
+        productCode: product.productCode,
+        name: product.name,
+        brand: product.brand,
+        image: product.images?.[0]?.url || "",
+
+        sellerName: seller?.storeName || "Unavailable seller",
+        sellerProfileId: seller ? String(seller._id) : null,
+        sellerUserId: account ? String(account._id) : null,
+        sellerStatus: seller?.status || "Unavailable",
+        sellerAccountStatus: account?.status || "Unavailable",
+
+        categoryName: category?.name || "Unavailable category",
+        parentCategoryName: parent?.name || "Unavailable category",
+
+        pricePaise: variants.length
+            ? Math.min(...variants.map((variant) => variant.pricePaise))
+            : 0,
+
+        stock: variants.reduce((total, variant) => total + variant.stock, 0),
+
+        reservedQuantity: variants.reduce(
+            (total, variant) => total + (variant.reservedQuantity || 0),
+            0
+        ),
+
+        variantCount: variants.length,
+        status: product.status,
+        reviewType: product.reviewType,
+        moderationReason: product.moderationReason,
+        submittedAt: product.submittedAt,
+        reviewedAt: product.reviewedAt,
+        approvalIssue,
+    };
+
+    if (!includeDetails) return result;
+
+    return {
+        ...result,
+
+        description: product.description,
+        highlights: product.highlights || [],
+        specifications: product.specifications || [],
+
+        images: (product.images || []).map((image) => ({
+            url: image.url,
+        })),
+
+        variants: variants.map((variant) => ({
+            variantId: variant.variantId,
+            sku: variant.sku,
+            label: variant.label,
+            pricePaise: variant.pricePaise,
+            mrpPaise: variant.mrpPaise,
+            stock: variant.stock,
+            reservedQuantity: variant.reservedQuantity || 0,
+            imageIndex: variant.imageIndex,
+        })),
+
+        reviewedById: product.reviewedById,
+
+        moderationHistory: (product.moderationHistory || [])
+            .slice(-20)
+            .reverse(),
+    };
+}
+
+// Product listing
+exports.getAdminProducts = async (req, res, next) => {
+    try {
+        const { value, error } = adminProductListSchema.validate(req.query, {
+            abortEarly: true,
+            allowUnknown: false,
+        });
+
+        if (error) {
+            throw new ExpressError(400, error.details[0].message);
+        }
+
+        const { search, status, categoryId, page, limit } = value;
+        const filter = {};
+
+        if (status !== "All") filter.status = status;
+
+        if (categoryId) {
+            const children = await Category.distinct("_id", {
+                parentId: categoryId,
+            });
+
+            filter.categoryId = { $in: [categoryId, ...children] };
+        }
+
+        if (search) {
+            const expression = new RegExp(
+                search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                "i"
+            );
+
+            const [sellerIds, matchingCategories] = await Promise.all([
+                SellerProfile.distinct("_id", { storeName: expression }),
+                Category.distinct("_id", { name: expression }),
+            ]);
+
+            const childCategories = await Category.distinct("_id", {
+                parentId: { $in: matchingCategories },
+            });
+
+            filter.$or = [
+                { name: expression },
+                { brand: expression },
+                { productCode: expression },
+                { sellerProfileId: { $in: sellerIds } },
+                {
+                    categoryId: {
+                        $in: [...matchingCategories, ...childCategories],
+                    },
+                },
+            ];
+
+            if (mongoose.isObjectIdOrHexString(search)) {
+                filter.$or.push({ _id: search });
+            }
+        }
+
+        const [products, total, counts, categories] = await Promise.all([
+            populateProductReview(
+                Product.find(filter)
+                    .sort({ submittedAt: -1, _id: -1 })
+                    .skip((page - 1) * limit)
+                    .limit(limit)
+            ).lean(),
+
+            Product.countDocuments(filter),
+
+            Product.aggregate([
+                {
+                    $group: {
+                        _id: "$status",
+                        count: { $sum: 1 },
+                    },
+                },
+            ]),
+
+            Category.find({ parentId: null })
+                .select("name status")
+                .sort({ sortOrder: 1, name: 1 })
+                .lean(),
+        ]);
+
+        const statusCounts = Object.fromEntries(
+            counts.map((item) => [item._id, item.count])
+        );
+
+        return res.json({
+            success: true,
+            products: products.map((product) => productReviewResponse(product)),
+            total,
+            page,
+            limit,
+            categories,
+            statistics: {
+                total: counts.reduce((sum, item) => sum + item.count, 0),
+                pending: statusCounts.Pending || 0,
+                approved: statusCounts.Approved || 0,
+                restricted:
+                    (statusCounts.Rejected || 0) + (statusCounts.Suspended || 0),
+            },
+        });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+// Product review details
+exports.getAdminProduct = async (req, res, next) => {
+    try {
+        const product = await populateProductReview(
+            Product.findById(req.params.productId).select("+moderationHistory")
+        ).lean();
+
+        if (!product) {
+            throw new ExpressError(404, "Product not found.");
+        }
+
+        return res.json({
+            success: true,
+            product: productReviewResponse(product, true),
+        });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+// Apply one decision atomically
+async function applyProductDecision(productId, values, adminUserId) {
+    const { action, reason, version } = values;
+    const decision = productDecisions[action];
+    const session = await mongoose.startSession();
+
+    try {
+        let updatedProduct;
+
+        await session.withTransaction(async () => {
+            const product = await Product.findById(productId)
+                .session(session)
+                .lean();
+
+            if (!product) {
+                throw new ExpressError(404, "Product not found.");
+            }
+
+            if ((product.__v ?? 0) !== version || product.status !== decision.from) {
+                throw new ExpressError(
+                    409,
+                    "Product changed after it was loaded. Refresh and review it again."
+                );
+            }
+
+            if (decision.to === "Approved") {
+                const seller = await SellerProfile.findOneAndUpdate(
+                    {
+                        _id: product.sellerProfileId,
+                        status: "Approved",
+                    },
+                    { $inc: { __v: 1 } },
+                    { session, returnDocument: "after" }
+                );
+
+                if (!seller) {
+                    throw new ExpressError(409, "Seller profile is not approved.");
+                }
+
+                const account = await User.findOneAndUpdate(
+                    {
+                        _id: seller.userId,
+                        role: "seller",
+                        status: "Active",
+                    },
+                    { $inc: { __v: 1 } },
+                    { session, returnDocument: "after" }
+                ).select("_id");
+
+                if (!account) {
+                    throw new ExpressError(409, "Seller account is inactive or unavailable.");
+                }
+
+                const category = await Category.findOneAndUpdate(
+                    {
+                        _id: product.categoryId,
+                        parentId: { $ne: null },
+                        status: "Active",
+                    },
+                    { $inc: { __v: 1 } },
+                    { session, returnDocument: "after" }
+                );
+
+                if (!category) {
+                    throw new ExpressError(409, "Product category is disabled or unavailable.");
+                }
+
+                const parent = await Category.findOneAndUpdate(
+                    {
+                        _id: category.parentId,
+                        parentId: null,
+                        status: "Active",
+                    },
+                    { $inc: { __v: 1 } },
+                    { session, returnDocument: "after" }
+                );
+
+                if (!parent) {
+                    throw new ExpressError(409, "Parent category is disabled or unavailable.");
+                }
+
+                const specificationNames = new Set(
+                    (product.specifications || []).map((item) =>
+                        item.label.trim().toLowerCase()
+                    )
+                );
+
+                const missingAttribute = (category.attributes || []).find(
+                    (attribute) =>
+                        !specificationNames.has(attribute.trim().toLowerCase())
+                );
+
+                if (missingAttribute) {
+                    throw new ExpressError(
+                        409,
+                        `Seller must add the required specification: ${missingAttribute}.`
+                    );
+                }
+
+                if (!product.images?.length || !product.variants?.length) {
+                    throw new ExpressError(
+                        409,
+                        "Product must have an image and at least one variant."
+                    );
+                }
+            }
+
+            const changedAt = new Date();
+
+            updatedProduct = await Product.findOneAndUpdate(
+                {
+                    _id: productId,
+                    status: decision.from,
+                    __v: version,
+                },
+                {
+                    $set: {
+                        status: decision.to,
+                        moderationReason: ["Reject", "Suspend"].includes(action)
+                            ? reason
+                            : "",
+                        reviewedAt: changedAt,
+                        reviewedById: adminUserId,
+                    },
+
+                    $inc: { __v: 1 },
+
+                    $push: {
+                        moderationHistory: {
+                            action,
+                            fromStatus: decision.from,
+                            toStatus: decision.to,
+                            reason,
+                            reviewedVersion: version,
+                            changedById: adminUserId,
+                            changedAt,
+                        },
+                    },
+                },
+                {
+                    session,
+                    returnDocument: "after",
+                    runValidators: true,
+                }
+            ).select("_id status __v");
+
+            if (!updatedProduct) {
+                throw new ExpressError(
+                    409,
+                    "Product changed. Refresh and review it again."
+                );
+            }
+        });
+
+        return {
+            id: String(updatedProduct._id),
+            status: updatedProduct.status,
+            version: updatedProduct.__v,
+        };
+    } finally {
+        await session.endSession();
+    }
+}
+
+// Single product decision
+exports.updateProductStatus = async (req, res, next) => {
+    try {
+        const product = await applyProductDecision(
+            req.params.productId,
+            req.body,
+            req.user._id
+        );
+
+        return res.json({
+            success: true,
+            message: `Product status updated to ${product.status}.`,
+            product,
+        });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+// Bulk review returns a result for every product
+exports.bulkProductStatus = async (req, res, next) => {
+    try {
+        const { action, reason, items } = req.body;
+        const results = [];
+
+        for (const item of items) {
+            try {
+                const product = await applyProductDecision(
+                    item.productId,
+                    {
+                        action,
+                        reason,
+                        version: item.version,
+                    },
+                    req.user._id
+                );
+
+                results.push({
+                    productId: item.productId,
+                    success: true,
+                    message: `Product ${product.status.toLowerCase()}.`,
+                });
+            } catch (error) {
+                const expected = error.statusCode >= 400 && error.statusCode < 500;
+
+                if (!expected) {
+                    console.error("Product moderation failed:", error.message);
+                }
+
+                results.push({
+                    productId: item.productId,
+                    success: false,
+                    message: expected
+                        ? error.message
+                        : "Decision could not be completed. Refresh before retrying.",
+                });
+            }
+        }
+
+        return res.json({
+            success: true,
+            results,
+        });
+    } catch (error) {
+        return next(error);
     }
 };

@@ -17,15 +17,25 @@ router.use((req, res, next) => {
     next();
 });
 
-router.param("sellerId", (req, res, next, sellerId) => {
-    if (!mongoose.isObjectIdOrHexString(sellerId)) {
-        return next(new ExpressError(400, "Invalid seller profile ID."));
+function validateId(req, res, next, value) {
+    if (!mongoose.isObjectIdOrHexString(value)) {
+        return next(new ExpressError(400, "Invalid record ID."));
     }
 
     next();
-});
+}
 
+router.param("sellerId", validateId);
+router.param("productId", validateId);
+
+// Seller management
 router.get("/sellers", limits.adminReadLimiter, admin.getSellers);
 router.patch("/sellers/:sellerId/status", limits.adminWriteLimiter, validate(schema.adminSellerStatusSchema), admin.updateSellerStatus);
+
+// Product management
+router.get("/products", limits.adminReadLimiter, admin.getAdminProducts);
+router.get("/products/:productId", limits.adminReadLimiter, admin.getAdminProduct);
+router.patch("/products/:productId/status", limits.adminWriteLimiter, validate(schema.adminProductDecisionSchema), admin.updateProductStatus);
+router.post("/products/bulk-status", limits.adminWriteLimiter, validate(schema.adminProductBulkSchema), admin.bulkProductStatus);
 
 module.exports = router;

@@ -75,6 +75,54 @@ const productSchema = new mongoose.Schema(
             ref: "User",
             default: null,
         },
+        moderationHistory: {
+            type: [
+                {
+                    _id: false,
+
+                    action: {
+                        type: String,
+                        enum: ["Approve", "Reject", "Suspend", "Reactivate"],
+                        required: true,
+                    },
+
+                    fromStatus: {
+                        type: String,
+                        required: true,
+                    },
+
+                    toStatus: {
+                        type: String,
+                        required: true,
+                    },
+
+                    reason: {
+                        type: String,
+                        default: "",
+                        maxlength: 300,
+                    },
+
+                    reviewedVersion: {
+                        type: Number,
+                        required: true,
+                    },
+
+                    changedById: {
+                        type: mongoose.Schema.Types.ObjectId,
+                        ref: "User",
+                        required: true,
+                    },
+
+                    changedAt: {
+                        type: Date,
+                        default: Date.now,
+                    },
+                },
+            ],
+
+            default: [],
+            select: false,
+        },
     },
     { timestamps: true }
 );

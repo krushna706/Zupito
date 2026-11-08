@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -8,7 +7,6 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    InputAdornment,
     MenuItem,
     Table,
     TableBody,
@@ -20,141 +18,75 @@ import {
     TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
-import { sortNewestFirst } from "../utils/sortNewestFirst";
 
-import { productCatalog } from "../data/productCatalog";
+import {
+    getAdminProducts,
+    getAdminProduct,
+    updateProductStatus,
+    bulkProductStatus,
+} from "../services/adminService";
 
-// ================== PRODUCT CONFIGURATION ==================
-const STORAGE_KEY = "zupito_admin_products";
-const CATEGORY_KEY = "zupito_admin_categories";
-
-const sellerGroups = {
-    electronics: "TechNova Electronics",
-    fashion: "Urban Fashion",
-    grocery: "Fresh Basket",
-    "personal-care": "GlowCare Store",
-    "home-kitchen": "HomeCraft Living",
-    travel: "TravelMate Store",
+const initialData = {
+    products: [],
+    total: 0,
+    categories: [],
+    statistics: {},
 };
 
-const groupNames = {
-    electronics: "Electronics",
-    fashion: "Fashion",
-    grocery: "Groceries",
-    "personal-care": "Health & Beauty",
-    "home-kitchen": "Home & Living",
-    travel: "Travel Essentials",
+const statuses = ["All", "Pending", "Approved", "Rejected", "Suspended"];
+
+const availableActions = {
+    Pending: ["Reject", "Approve"],
+    Approved: ["Suspend"],
+    Suspended: ["Reactivate"],
+    Rejected: [],
 };
 
-const categoryNames = {
-    mobiles: "Mobiles",
-    laptops: "Laptops",
-    headphones: "Headphones",
-    "mens-wear": "Men's Wear",
-    "womens-wear": "Women's Wear",
-    "kids-wear": "Kids' Wear",
-    footwear: "Footwear",
-    watches: "Watches",
-    "personal-care": "Personal Care",
-    "daily-essentials": "Daily Essentials",
-    "snacks-drinks": "Snacks & Drinks",
-    beauty: "Beauty",
-    "home-kitchen": "Home & Kitchen",
-    backpacks: "Backpacks",
-    "trolley-bags": "Trolley Bags",
-    "travel-accessories": "Travel Accessories",
-};
+const statisticsConfig = [
+    {
+        key: "total",
+        label: "Total Products",
+        description: "Submitted product listings",
+        icon: "fa-boxes-stacked",
+        theme: "blue",
+    },
+    {
+        key: "pending",
+        label: "Pending Reviews",
+        description: "Awaiting admin decision",
+        icon: "fa-clock",
+        theme: "orange",
+    },
+    {
+        key: "approved",
+        label: "Approved Products",
+        description: "Approved listing records",
+        icon: "fa-circle-check",
+        theme: "green",
+    },
+    {
+        key: "restricted",
+        label: "Restricted Products",
+        description: "Rejected or suspended listings",
+        icon: "fa-ban",
+        theme: "red",
+    },
+];
 
-const pendingProducts = new Set([
-    "preview-smartphone",
-    "preview-dress",
-    "preview-pantry",
-    "preview-backpack",
-]);
-
-const reviewTypes = {
-    "preview-dress": "Content Update",
-    "preview-backpack": "Content Update",
-};
-
-const initialProducts = productCatalog.map((product, index) => {
-    const status = pendingProducts.has(product._id)
-        ? "Pending"
-        : product._id === "preview-watch"
-            ? "Rejected"
-            : product._id === "preview-headphones"
-                ? "Suspended"
-                : "Approved";
-
-    return {
-        id: product._id,
-        productCode: `ZP${1001 + index}`,
-        name: product.name,
-        brand: product.brand,
-        seller: sellerGroups[product.group] || "Marketplace Seller",
-        category: product.category,
-        group: product.group,
-        image: product.image,
-        price: product.price,
-        mrp: product.mrp,
-        stock: product.stock,
-        variants: product.variants || [],
-        highlights: product.highlights || [],
-        description: product.description || [],
-        specifications: product.specifications || [],
-        reviewType: reviewTypes[product._id] || "New Listing",
-        status,
-        submittedAt: new Date(Date.UTC(2026, 9, 18 + index)).toISOString(),
-        reviewedAt: status === "Pending" ? null : "2026-11-03T10:00:00.000Z",
-        moderationReason: status === "Rejected"
-            ? "Product description needs additional information."
-            : status === "Suspended"
-                ? "Listing temporarily restricted for review."
-                : "",
-        history: [],
-    };
-});
-
-// ================== HELPERS ==================
-function readStorage(key) {
-    try {
-        const saved = JSON.parse(localStorage.getItem(key));
-        return Array.isArray(saved) ? saved : null;
-    } catch {
-        return null;
-    }
-}
-
-function loadProducts() {
-    return readStorage(STORAGE_KEY) || initialProducts;
-}
-
-function formatPrice(value) {
+function formatPrice(paise) {
     return new Intl.NumberFormat("en-IN", {
         style: "currency",
         currency: "INR",
-        maximumFractionDigits: 0,
-    }).format(Number(value) || 0);
+    }).format((paise || 0) / 100);
 }
 
 function formatDate(value) {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    return Number.isNaN(date.getTime())
-        ? "—"
-        : date.toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-          });
+    return value ? new Date(value).toLocaleString("en-IN") : "—";
 }
 
-function getStock(product) {
-    return product.variants?.length
-        ? product.variants.reduce((total, variant) => total + Number(variant.stock || 0), 0)
-        : Number(product.stock || 0);
+function errorMessage(error) {
+    return error.response?.data?.message ||
+        "Unable to complete the request. Please try again.";
 }
 
 function StatusBadge({ value }) {
@@ -182,380 +114,346 @@ function DetailItem({ label, value }) {
     );
 }
 
-// ================== MANAGE PRODUCTS ==================
 function Products() {
-    const [products, setProducts] = useState(loadProducts);
-    const [categories, setCategories] = useState(() => readStorage(CATEGORY_KEY) || []);
-
-    // ================== FILTERS ==================
+    const [data, setData] = useState(initialData);
     const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("All");
-    const [groupFilter, setGroupFilter] = useState("All");
+    const [status, setStatus] = useState("All");
+    const [categoryId, setCategoryId] = useState("");
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [limit, setLimit] = useState(10);
+    const [reload, setReload] = useState(0);
 
-    // ================== SELECTION AND ACTIONS ==================
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
     const [selectedIds, setSelectedIds] = useState([]);
-    const [selectedId, setSelectedId] = useState(null);
+
+    const [detailId, setDetailId] = useState(null);
+    const [detail, setDetail] = useState(null);
+
     const [action, setAction] = useState(null);
     const [reason, setReason] = useState("");
     const [actionError, setActionError] = useState("");
+    const [saving, setSaving] = useState(false);
+    const [bulkResults, setBulkResults] = useState([]);
 
-    const selectedProduct = products.find((product) => product.id === selectedId);
-    const actionTargets = products.filter((product) => action?.ids.includes(product.id));
-
-    // ================== LOCAL STORAGE ==================
     useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-        } catch {
-            // Continue with the current React state.
-        }
-    }, [products]);
+        let active = true;
 
-    // ================== CATEGORY VALIDATION ==================
-    const getCategoryIssue = (product) => {
-        if (!categories.length) return null;
+        setLoading(true);
+        setError("");
+        setSelectedIds([]);
 
-        const category = categories.find((item) => item.slug === product.category);
+        const timer = setTimeout(async () => {
+            try {
+                const result = await getAdminProducts({
+                    search,
+                    status,
+                    categoryId,
+                    page: page + 1,
+                    limit,
+                });
 
-        if (!category) {
-            return "Product category is no longer registered.";
-        }
+                if (!active) return;
 
-        if (category.status !== "Active") {
-            return "Product category is disabled.";
-        }
+                if (page > 0 && page * limit >= result.total) {
+                    setPage(Math.max(0, Math.ceil(result.total / limit) - 1));
+                    return;
+                }
 
-        if (category.parentId) {
-            const parent = categories.find((item) => item.slug === category.parentId);
+                setData(result);
+            } catch (requestError) {
+                if (!active) return;
 
-            if (!parent || parent.status !== "Active") {
-                return "Parent category is disabled or unavailable.";
+                setError(errorMessage(requestError));
+                setData(initialData);
+            } finally {
+                if (active) setLoading(false);
             }
-        }
+        }, 250);
 
-        return null;
-    };
+        return () => {
+            active = false;
+            clearTimeout(timer);
+        };
+    }, [search, status, categoryId, page, limit, reload]);
 
-    // ================== STATISTICS ==================
-    const statistics = [
-        {
-            label: "Total Products",
-            value: products.length,
-            description: "Submitted product listings",
-            icon: "fa-boxes-stacked",
-            theme: "blue",
-        },
-        {
-            label: "Pending Reviews",
-            value: products.filter((item) => item.status === "Pending").length,
-            description: "Awaiting admin decision",
-            icon: "fa-clock",
-            theme: "orange",
-        },
-        {
-            label: "Approved Products",
-            value: products.filter((item) => item.status === "Approved").length,
-            description: "Approved listing records",
-            icon: "fa-circle-check",
-            theme: "green",
-        },
-        {
-            label: "Restricted Products",
-            value: products.filter((item) => ["Rejected", "Suspended"].includes(item.status)).length,
-            description: "Rejected or suspended listings",
-            icon: "fa-ban",
-            theme: "red",
-        },
-    ];
+    useEffect(() => {
+        if (!detailId) return;
 
-    // ================== SEARCH RESULTS ==================
-    const filteredProducts = products.filter((product) => {
-        const query = search.trim().toLowerCase();
+        let active = true;
 
-        const matchesSearch = [
-            product.name,
-            product.productCode,
-            product.brand,
-            product.seller,
-            product.category,
-            categoryNames[product.category],
-        ].some((value) => String(value || "").toLowerCase().includes(query));
+        getAdminProduct(detailId)
+            .then((product) => {
+                if (active) setDetail(product);
+            })
+            .catch((requestError) => {
+                if (!active) return;
 
-        return matchesSearch &&
-            (statusFilter === "All" || product.status === statusFilter) &&
-            (groupFilter === "All" || product.group === groupFilter);
-    });
+                toast.error(errorMessage(requestError));
+                setDetailId(null);
+            });
 
-    const sortedProducts = sortNewestFirst(filteredProducts, "submittedAt");
+        return () => {
+            active = false;
+        };
+    }, [detailId]);
 
-    const visibleProducts = sortedProducts.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
+    const pendingProducts = data.products.filter(
+        (product) => product.status === "Pending"
     );
 
-    const visiblePending = visibleProducts.filter((item) => item.status === "Pending");
-    const allVisibleSelected = visiblePending.length > 0 &&
-        visiblePending.every((item) => selectedIds.includes(item.id));
-    const someVisibleSelected = visiblePending.some((item) => selectedIds.includes(item.id));
+    const selectedProducts = pendingProducts.filter(
+        (product) => selectedIds.includes(product.id)
+    );
+
+    const allSelected = pendingProducts.length > 0 &&
+        pendingProducts.every((product) => selectedIds.includes(product.id));
 
     const hasFilters = Boolean(search.trim()) ||
-        statusFilter !== "All" ||
-        groupFilter !== "All";
+        status !== "All" ||
+        Boolean(categoryId);
 
-    // ================== FILTER ACTIONS ==================
-    const resetFilters = () => {
+    const reasonRequired = ["Reject", "Suspend"].includes(action?.type);
+
+    function refresh() {
+        setSelectedIds([]);
+        setReload((value) => value + 1);
+    }
+
+    function changeFilter(setter, value) {
+        setter(value);
+        setPage(0);
+        setSelectedIds([]);
+        setBulkResults([]);
+    }
+
+    function resetFilters() {
         setSearch("");
-        setStatusFilter("All");
-        setGroupFilter("All");
-        setSelectedIds([]);
+        setStatus("All");
+        setCategoryId("");
         setPage(0);
-    };
-
-    const handleRefresh = () => {
-        setProducts(loadProducts());
-        setCategories(readStorage(CATEGORY_KEY) || []);
         setSelectedIds([]);
-        setPage(0);
-        toast.info("Product records refreshed.");
-    };
+        setBulkResults([]);
+    }
 
-    // ================== BULK SELECTION ==================
-    const toggleProduct = (productId) => {
+    function toggleProduct(productId) {
         setSelectedIds((previous) =>
             previous.includes(productId)
                 ? previous.filter((id) => id !== productId)
                 : [...previous, productId]
         );
-    };
+    }
 
-    const toggleVisible = () => {
-        const ids = visiblePending.map((item) => item.id);
+    function openDetails(productId) {
+        setDetail(null);
+        setDetailId(productId);
+    }
 
-        setSelectedIds((previous) =>
-            allVisibleSelected
-                ? previous.filter((id) => !ids.includes(id))
-                : [...new Set([...previous, ...ids])]
-        );
-    };
+    function openAction(type, products) {
+        if (!products.length) return;
 
-    // ================== MODERATION ACTIONS ==================
-    const openAction = (type, ids) => {
-        setSelectedId(null);
-        setAction({ type, ids });
+        setAction({
+            type,
+            items: products.map((product) => ({
+                productId: product.id,
+                version: product.version,
+                name: product.name,
+            })),
+        });
+
         setReason("");
         setActionError("");
-    };
+        setDetailId(null);
+    }
 
-    const closeAction = () => {
-        setAction(null);
-        setReason("");
-        setActionError("");
-    };
+    function closeAction() {
+        if (!saving) setAction(null);
+    }
 
-    const blockedApprovals = action?.type === "approve" || action?.type === "restore"
-        ? actionTargets.filter((product) => getCategoryIssue(product))
-        : [];
+    async function confirmAction() {
+        if (!action || saving) return;
 
-    const handleConfirm = () => {
-        if (!action || !actionTargets.length) {
-            closeAction();
-            return;
-        }
-
-        const allowedStatus = ["approve", "reject"].includes(action.type)
-            ? "Pending"
-            : action.type === "suspend" ? "Approved" : "Suspended";
-
-        if (actionTargets.some((product) => product.status !== allowedStatus)) {
-            setActionError("One or more listing statuses have changed. Refresh and try again.");
-            return;
-        }
-
-        if (blockedApprovals.length) {
-            setActionError("Enable the affected categories before approving these listings.");
-            return;
-        }
-
-        if (["reject", "suspend"].includes(action.type) && reason.trim().length < 5) {
+        if (reasonRequired && reason.trim().length < 5) {
             setActionError("Enter a reason containing at least 5 characters.");
             return;
         }
 
-        const nextStatus = {
-            approve: "Approved",
-            reject: "Rejected",
-            suspend: "Suspended",
-            restore: "Approved",
-        }[action.type];
+        setSaving(true);
+        setActionError("");
+        setBulkResults([]);
 
-        const now = new Date().toISOString();
-        const targetIds = new Set(action.ids);
+        try {
+            if (action.items.length === 1) {
+                const item = action.items[0];
 
-        setProducts((previous) => previous.map((product) => {
-            if (!targetIds.has(product.id)) return product;
+                const result = await updateProductStatus(item.productId, {
+                    action: action.type,
+                    reason: reason.trim(),
+                    version: item.version,
+                });
 
-            return {
-                ...product,
-                status: nextStatus,
-                moderationReason: ["reject", "suspend"].includes(action.type)
-                    ? reason.trim()
-                    : "",
-                reviewedAt: now,
-                updatedAt: now,
-                history: [
-                    ...(product.history || []),
-                    {
-                        status: nextStatus,
-                        reason: reason.trim(),
-                        date: now,
-                    },
-                ],
-            };
-        }));
+                toast.success(result.message);
+            } else {
+                const result = await bulkProductStatus({
+                    action: action.type,
+                    reason: reason.trim(),
+                    items: action.items.map(({ productId, version }) => ({
+                        productId,
+                        version,
+                    })),
+                });
 
-        setSelectedIds((previous) =>
-            previous.filter((id) => !targetIds.has(id))
-        );
-        setPage(0);
+                const results = result.results.map((item) => ({
+                    ...item,
+                    name: action.items.find(
+                        (target) => target.productId === item.productId
+                    )?.name || item.productId,
+                }));
 
-        const messages = {
-            approve: "approved",
-            reject: "rejected",
-            suspend: "suspended",
-            restore: "restored",
-        };
+                setBulkResults(results);
 
-        toast.success(`${actionTargets.length} product listing(s) ${messages[action.type]}.`);
-        closeAction();
-    };
+                const completed = results.filter((item) => item.success).length;
+                const message = `${completed} of ${results.length} decisions completed.`;
+
+                if (completed === results.length) {
+                    toast.success(message);
+                } else {
+                    toast.warning(message);
+                }
+            }
+
+            setAction(null);
+            refresh();
+        } catch (requestError) {
+            setActionError(errorMessage(requestError));
+        } finally {
+            setSaving(false);
+        }
+    }
 
     return (
         <div className="manage-products">
-            {/* ================== PAGE HEADER ================== */}
             <section className="mp-hero">
                 <div className="mp-hero-content">
                     <span className="zs-eyebrow">
                         <i className="fa-solid fa-box-open" aria-hidden="true" />
                         PRODUCT MANAGEMENT
                     </span>
-
                     <p>
-                        Review seller listings, product content, approval requests
-                        and marketplace restrictions.
+                        Review seller listings, product content and marketplace restrictions.
                     </p>
                 </div>
 
                 <Button
                     variant="outlined"
                     className="mp-refresh-button"
-                    onClick={handleRefresh}
+                    onClick={refresh}
+                    disabled={loading || saving}
                     startIcon={<i className="fa-solid fa-arrows-rotate" />}
                 >
                     Refresh
                 </Button>
             </section>
 
-            {/* ================== STATISTICS ================== */}
             <section className="mp-stats" aria-label="Product overview">
-                {statistics.map((item) => (
-                    <article key={item.label} className={`mp-stat mp-stat--${item.theme}`}>
+                {statisticsConfig.map((item) => (
+                    <article key={item.key} className={`mp-stat mp-stat--${item.theme}`}>
                         <div className="mp-stat-heading">
                             <span>{item.label}</span>
-
                             <span className="mp-stat-icon">
                                 <i className={`fa-solid ${item.icon}`} aria-hidden="true" />
                             </span>
                         </div>
-
-                        <strong className="mp-stat-value">{item.value}</strong>
+                        <strong className="mp-stat-value">
+                            {data.statistics[item.key] || 0}
+                        </strong>
                         <p>{item.description}</p>
                     </article>
                 ))}
             </section>
 
-            {/* ================== PRODUCT LIST ================== */}
+            {error && <Alert severity="error">{error}</Alert>}
+
+            {bulkResults.length > 0 && (
+                <section className="mp-card">
+                    <div className="mp-section-header">
+                        <div className="mp-section-heading">
+                            <h2>Bulk Review Results</h2>
+                        </div>
+                        <Button onClick={() => setBulkResults([])}>Dismiss</Button>
+                    </div>
+
+                    {bulkResults.map((result) => (
+                        <Alert
+                            key={result.productId}
+                            severity={result.success ? "success" : "warning"}
+                            className="mp-dialog-alert"
+                        >
+                            <strong>{result.name}:</strong> {result.message}
+                        </Alert>
+                    ))}
+                </section>
+            )}
+
             <section className="mp-card">
                 <div className="mp-section-header">
                     <div className="mp-section-heading">
                         <span className="mp-section-icon">
                             <i className="fa-solid fa-clipboard-check" aria-hidden="true" />
                         </span>
-
                         <div>
                             <h2>Product Listings</h2>
-                            <p>Review new submissions and major content changes from sellers.</p>
+                            <p>Review new submissions and major content changes.</p>
                         </div>
                     </div>
-
-                    <span className="mp-record-count">
-                        {filteredProducts.length} Records
-                    </span>
+                    <span className="mp-record-count">{data.total} Records</span>
                 </div>
 
-                {/* ================== SEARCH AND FILTERS ================== */}
                 <div className="mp-toolbar">
                     <div className="mp-search">
                         <TextField
                             label="Search Products"
-                            placeholder="Product, brand, seller, category or product ID"
+                            placeholder="Product, code, brand, seller or category"
                             value={search}
-                            onChange={(event) => {
-                                setSearch(event.target.value);
-                                setSelectedIds([]);
-                                setPage(0);
-                            }}
+                            onChange={(event) => changeFilter(setSearch, event.target.value)}
+                            slotProps={{ htmlInput: { maxLength: 100 } }}
                             size="small"
-                            slotProps={{
-                                input: {
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <i className="fa-solid fa-magnifying-glass" />
-                                        </InputAdornment>
-                                    ),
-                                },
-                                htmlInput: { maxLength: 100 },
-                            }}
                             fullWidth
+                            disabled={saving}
                         />
                     </div>
 
                     <TextField
                         select
                         label="Review Status"
-                        value={statusFilter}
-                        onChange={(event) => {
-                            setStatusFilter(event.target.value);
-                            setSelectedIds([]);
-                            setPage(0);
-                        }}
+                        value={status}
+                        onChange={(event) => changeFilter(setStatus, event.target.value)}
                         className="mp-filter"
                         size="small"
+                        disabled={saving}
                     >
-                        <MenuItem value="All">All Statuses</MenuItem>
-                        <MenuItem value="Pending">Pending</MenuItem>
-                        <MenuItem value="Approved">Approved</MenuItem>
-                        <MenuItem value="Rejected">Rejected</MenuItem>
-                        <MenuItem value="Suspended">Suspended</MenuItem>
+                        {statuses.map((value) => (
+                            <MenuItem key={value} value={value}>
+                                {value === "All" ? "All Statuses" : value}
+                            </MenuItem>
+                        ))}
                     </TextField>
 
                     <TextField
                         select
                         label="Category"
-                        value={groupFilter}
-                        onChange={(event) => {
-                            setGroupFilter(event.target.value);
-                            setSelectedIds([]);
-                            setPage(0);
-                        }}
+                        value={categoryId}
+                        onChange={(event) => changeFilter(setCategoryId, event.target.value)}
                         className="mp-filter"
                         size="small"
+                        disabled={saving}
                     >
-                        <MenuItem value="All">All Categories</MenuItem>
-
-                        {Object.entries(groupNames).map(([value, label]) => (
-                            <MenuItem key={value} value={value}>{label}</MenuItem>
+                        <MenuItem value="">All Categories</MenuItem>
+                        {data.categories.map((category) => (
+                            <MenuItem key={category._id} value={category._id}>
+                                {category.name}
+                                {category.status !== "Active" ? " (Disabled)" : ""}
+                            </MenuItem>
                         ))}
                     </TextField>
 
@@ -563,41 +461,32 @@ function Products() {
                         variant="outlined"
                         className="mp-reset-button"
                         onClick={resetFilters}
-                        disabled={!hasFilters}
-                        startIcon={<i className="fa-solid fa-rotate-left" />}
+                        disabled={!hasFilters || saving}
                     >
                         Reset
                     </Button>
                 </div>
 
-                {/* ================== BULK ACTIONS ================== */}
-                {selectedIds.length > 0 && (
+                {selectedProducts.length > 0 && (
                     <div className="mp-bulk-actions">
-                        <span>
-                            <i className="fa-solid fa-check-double" aria-hidden="true" />
-                            {selectedIds.length} pending listing(s) selected
-                        </span>
-
+                        <span>{selectedProducts.length} pending listing(s) selected</span>
                         <div>
-                            <Button
-                                variant="outlined"
-                                onClick={() => setSelectedIds([])}
-                            >
+                            <Button onClick={() => setSelectedIds([])} disabled={saving}>
                                 Clear
                             </Button>
-
                             <Button
                                 variant="outlined"
                                 color="error"
-                                onClick={() => openAction("reject", selectedIds)}
+                                disabled={loading || saving}
+                                onClick={() => openAction("Reject", selectedProducts)}
                             >
                                 Reject Selected
                             </Button>
-
                             <Button
                                 variant="contained"
                                 color="success"
-                                onClick={() => openAction("approve", selectedIds)}
+                                disabled={loading || saving}
+                                onClick={() => openAction("Approve", selectedProducts)}
                             >
                                 Approve Selected
                             </Button>
@@ -605,7 +494,6 @@ function Products() {
                     </div>
                 )}
 
-                {/* ================== PRODUCTS TABLE ================== */}
                 <TableContainer className="mp-table-container">
                     <Table className="mp-table" aria-label="Product listings">
                         <TableHead>
@@ -613,10 +501,14 @@ function Products() {
                                 <TableCell padding="checkbox">
                                     <Checkbox
                                         size="small"
-                                        checked={allVisibleSelected}
-                                        indeterminate={someVisibleSelected && !allVisibleSelected}
-                                        disabled={!visiblePending.length}
-                                        onChange={toggleVisible}
+                                        checked={allSelected}
+                                        indeterminate={selectedProducts.length > 0 && !allSelected}
+                                        disabled={loading || saving || !pendingProducts.length}
+                                        onChange={() => setSelectedIds(
+                                            allSelected
+                                                ? []
+                                                : pendingProducts.map((product) => product.id)
+                                        )}
                                         inputProps={{ "aria-label": "Select visible pending products" }}
                                     />
                                 </TableCell>
@@ -631,13 +523,13 @@ function Products() {
                         </TableHead>
 
                         <TableBody>
-                            {visibleProducts.map((product) => (
+                            {!loading && data.products.map((product) => (
                                 <TableRow key={product.id} hover>
                                     <TableCell padding="checkbox">
                                         <Checkbox
                                             size="small"
                                             checked={selectedIds.includes(product.id)}
-                                            disabled={product.status !== "Pending"}
+                                            disabled={saving || product.status !== "Pending"}
                                             onChange={() => toggleProduct(product.id)}
                                             inputProps={{ "aria-label": `Select ${product.name}` }}
                                         />
@@ -646,9 +538,10 @@ function Products() {
                                     <TableCell>
                                         <div className="mp-product">
                                             <span className="mp-product-image">
-                                                <img src={product.image} alt="" loading="lazy" />
+                                                {product.image && (
+                                                    <img src={product.image} alt="" loading="lazy" />
+                                                )}
                                             </span>
-
                                             <div>
                                                 <strong>{product.name}</strong>
                                                 <span>{product.brand}</span>
@@ -659,22 +552,24 @@ function Products() {
 
                                     <TableCell>
                                         <div className="mp-cell-stack">
-                                            <strong>{product.seller}</strong>
-                                            <small>Marketplace Seller</small>
+                                            <strong>{product.sellerName}</strong>
+                                            <small>Seller: {product.sellerStatus}</small>
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
                                         <div className="mp-cell-stack">
-                                            <strong>{categoryNames[product.category] || product.category}</strong>
-                                            <small>{groupNames[product.group] || product.group}</small>
+                                            <strong>{product.categoryName}</strong>
+                                            <small>{product.parentCategoryName}</small>
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
                                         <div className="mp-cell-stack">
-                                            <strong>{formatPrice(product.price)}</strong>
-                                            <small>{getStock(product)} units in stock</small>
+                                            <strong>{formatPrice(product.pricePaise)}</strong>
+                                            <small>
+                                                {product.stock} on hand · {product.reservedQuantity} reserved
+                                            </small>
                                         </div>
                                     </TableCell>
 
@@ -694,28 +589,21 @@ function Products() {
                                             size="small"
                                             variant="outlined"
                                             className="mp-view-button"
-                                            onClick={() => setSelectedId(product.id)}
+                                            disabled={saving}
+                                            onClick={() => openDetails(product.id)}
                                         >
                                             View Details
-                                            <i className="fa-solid fa-arrow-up-right-from-square" />
                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
 
-                            {visibleProducts.length === 0 && (
+                            {(loading || data.products.length === 0) && (
                                 <TableRow>
                                     <TableCell colSpan={8}>
                                         <div className="mp-empty">
-                                            <span><i className="fa-solid fa-box-open" /></span>
-                                            <h3>No Products Found</h3>
-                                            <p>Try a different search or filter selection.</p>
-
-                                            {hasFilters && (
-                                                <Button variant="outlined" onClick={resetFilters}>
-                                                    Clear Filters
-                                                </Button>
-                                            )}
+                                            <h3>{loading ? "Loading Products..." : "No Products Found"}</h3>
+                                            {!loading && <p>Try a different search or filter.</p>}
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -727,192 +615,197 @@ function Products() {
                 <TablePagination
                     component="div"
                     className="mp-pagination"
-                    count={filteredProducts.length}
+                    count={data.total}
                     page={page}
-                    rowsPerPage={rowsPerPage}
+                    rowsPerPage={limit}
                     rowsPerPageOptions={[10, 20, 50]}
-                    onPageChange={(_, nextPage) => setPage(nextPage)}
-                    onRowsPerPageChange={(event) => {
-                        setRowsPerPage(Number(event.target.value));
+                    onPageChange={(_, value) => {
                         setSelectedIds([]);
-                        setPage(0);
+                        setPage(value);
                     }}
+                    onRowsPerPageChange={(event) =>
+                        changeFilter(setLimit, Number(event.target.value))
+                    }
+                    disabled={loading || saving}
                 />
             </section>
 
-            {/* ================== PRODUCT DETAILS ================== */}
             <Dialog
-                open={Boolean(selectedProduct)}
-                onClose={() => setSelectedId(null)}
+                open={Boolean(detailId)}
+                onClose={() => setDetailId(null)}
                 fullWidth
                 maxWidth="md"
                 slotProps={{ paper: { className: "mp-dialog-paper" } }}
             >
-                {selectedProduct && (
-                    <>
-                        <DialogTitle className="mp-dialog-title">
-                            Product Review Details
-                        </DialogTitle>
+                <DialogTitle className="mp-dialog-title">
+                    Product Review Details
+                </DialogTitle>
 
-                        <DialogContent dividers className="mp-dialog-content">
+                <DialogContent dividers className="mp-dialog-content">
+                    {!detail && <p>Loading product details...</p>}
+
+                    {detail && (
+                        <>
                             <div className="mp-detail-product">
                                 <span className="mp-detail-image">
-                                    <img src={selectedProduct.image} alt={selectedProduct.name} />
+                                    {detail.image && <img src={detail.image} alt={detail.name} />}
                                 </span>
-
                                 <div>
-                                    <h3>{selectedProduct.name}</h3>
-                                    <p>{selectedProduct.brand} · {selectedProduct.productCode}</p>
-                                    <span>{selectedProduct.seller}</span>
+                                    <h3>{detail.name}</h3>
+                                    <p>{detail.brand} · {detail.productCode}</p>
+                                    <span>{detail.sellerName}</span>
                                 </div>
-
-                                <StatusBadge value={selectedProduct.status} />
+                                <StatusBadge value={detail.status} />
                             </div>
 
                             <div className="mp-detail-section">
                                 <h4>Listing Information</h4>
-
                                 <dl className="mp-detail-grid">
-                                    <DetailItem label="Submitted By" value={selectedProduct.seller} />
-                                    <DetailItem label="Request Type" value={selectedProduct.reviewType} />
-                                    <DetailItem label="Category" value={categoryNames[selectedProduct.category] || selectedProduct.category} />
-                                    <DetailItem label="Submitted On" value={formatDate(selectedProduct.submittedAt)} />
-                                    <DetailItem label="Selling Price" value={formatPrice(selectedProduct.price)} />
-                                    <DetailItem label="Total Stock" value={`${getStock(selectedProduct)} units`} />
-                                    <DetailItem label="Variants" value={selectedProduct.variants.length || "Single option"} />
-                                    <DetailItem label="Reviewed On" value={formatDate(selectedProduct.reviewedAt)} />
+                                    <DetailItem label="Product ID" value={detail.id} />
+                                    <DetailItem label="Product Code" value={detail.productCode} />
+                                    <DetailItem label="Seller Profile ID" value={detail.sellerProfileId} />
+                                    <DetailItem label="Seller User Account ID" value={detail.sellerUserId} />
+                                    <DetailItem label="Store Name" value={detail.sellerName} />
+                                    <DetailItem label="Seller Status" value={detail.sellerStatus} />
+                                    <DetailItem label="Seller Account Status" value={detail.sellerAccountStatus} />
+                                    <DetailItem label="Category" value={detail.categoryName} />
+                                    <DetailItem label="Parent Category" value={detail.parentCategoryName} />
+                                    <DetailItem label="Request Type" value={detail.reviewType} />
+                                    <DetailItem label="Submitted On" value={formatDate(detail.submittedAt)} />
+                                    <DetailItem label="Reviewed On" value={formatDate(detail.reviewedAt)} />
+                                    <DetailItem label="Reviewed By — Admin User Account ID" value={detail.reviewedById} />
                                 </dl>
                             </div>
 
-                            {getCategoryIssue(selectedProduct) && (
+                            {detail.approvalIssue && (
                                 <Alert severity="warning" className="mp-dialog-alert">
-                                    {getCategoryIssue(selectedProduct)} Approval is unavailable until the category is enabled.
+                                    {detail.approvalIssue}
                                 </Alert>
                             )}
 
-                            {selectedProduct.moderationReason && (
+                            {detail.moderationReason && (
                                 <Alert severity="warning" className="mp-dialog-alert">
-                                    <strong>Admin Remarks:</strong> {selectedProduct.moderationReason}
+                                    <strong>Admin Remarks:</strong> {detail.moderationReason}
                                 </Alert>
                             )}
 
-                            {selectedProduct.highlights.length > 0 && (
+                            <div className="mp-detail-section">
+                                <h4>Product Images</h4>
+                                <div className="mp-variants">
+                                    {detail.images.map((image, index) => (
+                                        <span className="mp-detail-image" key={image.url}>
+                                            <img
+                                                src={image.url}
+                                                alt={`${detail.name} — image ${index + 1}`}
+                                                loading="lazy"
+                                            />
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mp-detail-section">
+                                <h4>Product Description</h4>
+                                <div className="mp-description">
+                                    <p>{detail.description}</p>
+                                </div>
+                            </div>
+
+                            {detail.highlights.length > 0 && (
                                 <div className="mp-detail-section">
                                     <h4>Product Highlights</h4>
-
                                     <ul className="mp-highlights">
-                                        {selectedProduct.highlights.map((highlight, index) => (
+                                        {detail.highlights.map((highlight, index) => (
                                             <li key={index}>{highlight}</li>
                                         ))}
                                     </ul>
                                 </div>
                             )}
 
-                            {selectedProduct.description.length > 0 && (
-                                <div className="mp-detail-section">
-                                    <h4>Product Description</h4>
-
-                                    <div className="mp-description">
-                                        {selectedProduct.description.map((section, index) => (
-                                            <div key={index}>
-                                                <strong>{section.title}</strong>
-                                                <p>{section.text}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {selectedProduct.specifications.length > 0 && (
+                            {detail.specifications.length > 0 && (
                                 <div className="mp-detail-section">
                                     <h4>Specifications</h4>
-
                                     <dl className="mp-detail-grid">
-                                        {selectedProduct.specifications.map((specification, index) => (
+                                        {detail.specifications.map((item, index) => (
                                             <DetailItem
                                                 key={index}
-                                                label={specification.label}
-                                                value={specification.value}
+                                                label={item.label}
+                                                value={item.value}
                                             />
                                         ))}
                                     </dl>
                                 </div>
                             )}
 
-                            {selectedProduct.variants.length > 0 && (
+                            <div className="mp-detail-section">
+                                <h4>Product Variants</h4>
+                                <div className="mp-variants">
+                                    {detail.variants.map((variant) => (
+                                        <div key={variant.variantId} className="mp-variant-row">
+                                            <div>
+                                                <strong>{variant.label}</strong>
+                                                <small>SKU: {variant.sku}</small>
+                                                <small>Variant ID: {variant.variantId}</small>
+                                                <small>Product Image: {variant.imageIndex + 1}</small>
+                                            </div>
+                                            <div>
+                                                <strong>{formatPrice(variant.pricePaise)}</strong>
+                                                <small>MRP: {formatPrice(variant.mrpPaise)}</small>
+                                                <small>
+                                                    {variant.stock} on hand · {variant.reservedQuantity} reserved
+                                                </small>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {detail.moderationHistory.length > 0 && (
                                 <div className="mp-detail-section">
-                                    <h4>Product Variants</h4>
-
+                                    <h4>Recent Admin Decisions</h4>
                                     <div className="mp-variants">
-                                        {selectedProduct.variants.map((variant) => (
-                                            <div key={variant.id} className="mp-variant-row">
+                                        {detail.moderationHistory.map((item, index) => (
+                                            <div key={index} className="mp-variant-row">
                                                 <div>
-                                                    <strong>
-                                                        {Object.values(variant.options || {}).join(" · ") || variant.id}
-                                                    </strong>
-                                                    <small>{variant.id}</small>
+                                                    <strong>{item.fromStatus} → {item.toStatus}</strong>
+                                                    {item.reason && <small>{item.reason}</small>}
+                                                    <small>Admin User Account ID: {item.changedById}</small>
                                                 </div>
-
                                                 <div>
-                                                    <strong>{formatPrice(variant.price)}</strong>
-                                                    <small>{variant.stock} in stock</small>
+                                                    <strong>{item.action}</strong>
+                                                    <small>{formatDate(item.changedAt)}</small>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
-                        </DialogContent>
+                        </>
+                    )}
+                </DialogContent>
 
-                        <DialogActions className="mp-dialog-actions">
-                            <Button color="inherit" onClick={() => setSelectedId(null)}>
-                                Close
-                            </Button>
+                <DialogActions className="mp-dialog-actions">
+                    <Button color="inherit" onClick={() => setDetailId(null)}>
+                        Close
+                    </Button>
 
-                            {selectedProduct.status === "Pending" && (
-                                <>
-                                    <Button
-                                        variant="outlined"
-                                        color="error"
-                                        onClick={() => openAction("reject", [selectedProduct.id])}
-                                    >
-                                        Reject
-                                    </Button>
-
-                                    <Button
-                                        variant="contained"
-                                        color="success"
-                                        onClick={() => openAction("approve", [selectedProduct.id])}
-                                    >
-                                        Approve
-                                    </Button>
-                                </>
-                            )}
-
-                            {selectedProduct.status === "Approved" && (
-                                <Button
-                                    variant="contained"
-                                    color="error"
-                                    onClick={() => openAction("suspend", [selectedProduct.id])}
-                                >
-                                    Suspend Listing
-                                </Button>
-                            )}
-
-                            {selectedProduct.status === "Suspended" && (
-                                <Button
-                                    variant="contained"
-                                    onClick={() => openAction("restore", [selectedProduct.id])}
-                                >
-                                    Restore Listing
-                                </Button>
-                            )}
-                        </DialogActions>
-                    </>
-                )}
+                    {detail && (availableActions[detail.status] || []).map((type) => (
+                        <Button
+                            key={type}
+                            variant="contained"
+                            color={["Reject", "Suspend"].includes(type) ? "error" : "success"}
+                            disabled={
+                                ["Approve", "Reactivate"].includes(type) &&
+                                Boolean(detail.approvalIssue)
+                            }
+                            onClick={() => openAction(type, [detail])}
+                        >
+                            {type}
+                        </Button>
+                    ))}
+                </DialogActions>
             </Dialog>
 
-            {/* ================== MODERATION CONFIRMATION ================== */}
             <Dialog
                 open={Boolean(action)}
                 onClose={closeAction}
@@ -921,29 +814,24 @@ function Products() {
                 slotProps={{ paper: { className: "mp-dialog-paper" } }}
             >
                 <DialogTitle className="mp-dialog-title">
-                    {({
-                        approve: "Approve Product Listings",
-                        reject: "Reject Product Listings",
-                        suspend: "Suspend Product Listing",
-                        restore: "Restore Product Listing",
-                    })[action?.type]}
+                    {action?.type} Product Listings
                 </DialogTitle>
 
                 <DialogContent className="mp-dialog-content">
                     <p className="mp-confirm-text">
-                        Confirm this action for {actionTargets.length} product listing(s)?
+                        Confirm this action for {action?.items.length || 0} product listing(s)?
                     </p>
 
-                    {blockedApprovals.length > 0 && (
-                        <Alert severity="warning" className="mp-dialog-alert">
-                            {blockedApprovals.length} listing(s) cannot be approved because
-                            their category or parent category is unavailable.
+                    {action?.items.length > 1 && (
+                        <Alert severity="info" className="mp-dialog-alert">
+                            Each listing is checked separately. Results will show any
+                            listings that could not be updated.
                         </Alert>
                     )}
 
-                    {["reject", "suspend"].includes(action?.type) && (
+                    {reasonRequired && (
                         <TextField
-                            label={action?.type === "reject" ? "Rejection Reason" : "Suspension Reason"}
+                            label={action?.type === "Reject" ? "Rejection Reason" : "Suspension Reason"}
                             value={reason}
                             onChange={(event) => {
                                 setReason(event.target.value);
@@ -954,13 +842,8 @@ function Products() {
                             minRows={3}
                             fullWidth
                             required
+                            disabled={saving}
                         />
-                    )}
-
-                    {action?.type === "suspend" && (
-                        <Alert severity="info" className="mp-dialog-alert">
-                            Suspension restricts the listing. It does not cancel existing customer orders.
-                        </Alert>
                     )}
 
                     {actionError && (
@@ -971,17 +854,16 @@ function Products() {
                 </DialogContent>
 
                 <DialogActions className="mp-dialog-actions">
-                    <Button color="inherit" onClick={closeAction}>
+                    <Button color="inherit" onClick={closeAction} disabled={saving}>
                         Cancel
                     </Button>
-
                     <Button
                         variant="contained"
-                        color={["reject", "suspend"].includes(action?.type) ? "error" : "primary"}
-                        disabled={blockedApprovals.length > 0}
-                        onClick={handleConfirm}
+                        color={reasonRequired ? "error" : "primary"}
+                        onClick={confirmAction}
+                        disabled={saving}
                     >
-                        Confirm
+                        {saving ? "Saving..." : "Confirm"}
                     </Button>
                 </DialogActions>
             </Dialog>

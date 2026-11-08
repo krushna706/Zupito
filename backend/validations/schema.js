@@ -341,3 +341,74 @@ exports.inventoryCsvRowSchema = Joi.object({
         .pattern(/^(0|[1-9]\d{0,5})$/)
         .required(),
 });
+
+const productReviewFields = {
+    action: Joi.string()
+        .valid("Approve", "Reject", "Suspend", "Reactivate")
+        .required(),
+
+    reason: Joi.string()
+        .trim()
+        .max(300)
+        .when("action", {
+            is: Joi.valid("Reject", "Suspend"),
+            then: Joi.string().min(5).required(),
+            otherwise: Joi.string().allow("").default(""),
+        }),
+};
+
+exports.adminProductListSchema = Joi.object({
+    search: Joi.string().trim().max(100).allow("").default(""),
+
+    status: Joi.string()
+        .valid("All", "Pending", "Approved", "Rejected", "Suspended")
+        .default("All"),
+
+    categoryId: Joi.string()
+        .hex()
+        .length(24)
+        .lowercase()
+        .allow("")
+        .default(""),
+
+    page: Joi.number().integer().min(1).max(100000).default(1),
+
+    limit: Joi.number().valid(10, 20, 50).default(10),
+});
+
+exports.adminProductDecisionSchema = Joi.object({
+    ...productReviewFields,
+
+    version: Joi.number()
+        .integer()
+        .min(0)
+        .max(Number.MAX_SAFE_INTEGER)
+        .required(),
+});
+
+exports.adminProductBulkSchema = Joi.object({
+    ...productReviewFields,
+
+    action: Joi.string().valid("Approve", "Reject").required(),
+
+    items: Joi.array()
+        .items(
+            Joi.object({
+                productId: Joi.string()
+                    .hex()
+                    .length(24)
+                    .lowercase()
+                    .required(),
+
+                version: Joi.number()
+                    .integer()
+                    .min(0)
+                    .max(Number.MAX_SAFE_INTEGER)
+                    .required(),
+            })
+        )
+        .min(1)
+        .max(50)
+        .unique("productId")
+        .required(),
+});

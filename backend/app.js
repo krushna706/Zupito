@@ -13,6 +13,7 @@ const userRoutes = require("./routes/userRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const sellerRoutes = require("./routes/sellerRoutes");
+const productRoutes = require("./routes/productRoutes");
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/seller", sellerRoutes);
+app.use("/api/products", productRoutes);
 
 app.use("/api", (req, res, next) => {
     next(new ExpressError(404, "API route not found."));

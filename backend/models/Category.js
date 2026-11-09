@@ -61,6 +61,29 @@ const categorySchema = new mongoose.Schema(
             min: 1,
             max: 999,
         },
+        image: {
+            url: {
+                type: String,
+                default: "",
+            },
+            publicId: {
+                type: String,
+                default: "",
+                select: false,
+            },
+        },
+        showOnHome: {
+            type: Boolean,
+            default: false,
+        },
+        filterAttributes: {
+            type: [String],
+            default: [],
+        },
+        filterBrand: {
+            type: Boolean,
+            default: true,
+        },
         attributes: {
             type: [String],
             default: [],

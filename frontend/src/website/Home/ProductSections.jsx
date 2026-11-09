@@ -2,68 +2,9 @@ import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 
 import ProductCard from "../../components/ProductCard";
-import { productCatalog } from "../../data/productCatalog";
 import { getDisplayVariant, getProductView } from "../../utils/productVariants";
 
 // Keep this export until the listing page imports the catalogue directly.
-
-const productMap = new Map(productCatalog.map((product) => [product._id, product]));
-
-const selectProducts = (...ids) => ids.map((id) => productMap.get(`preview-${id}`)).filter(Boolean);
-
-// Add another object here to introduce a new home section.
-const previewSections = [
-    {
-        key: "featured",
-        title: "Featured Products",
-        viewAllPath: "/products?collection=featured",
-        products: selectProducts(
-            "smartphone",
-            "headphones",
-            "shirt",
-            "shoes",
-            "watch",
-            "backpack",
-            "laptop",
-            "kitchen"
-        )
-    },
-    {
-        key: "top-selling",
-        title: "Top Selling",
-        viewAllPath: "/products?sort=best-selling",
-        products: selectProducts(
-            "headphones",
-            "shoes",
-            "watch",
-            "smartphone",
-            "backpack",
-            "snacks",
-            "shirt",
-            "personal-care"
-        ),
-        // Populate from sales data when the API is connected.
-        preferredVariantIds: {}
-    },
-    {
-        key: "fashion",
-        title: "Fashion Picks",
-        viewAllPath: "/products?category=fashion",
-        products: selectProducts("shirt", "dress", "kids", "shoes", "watch", "backpack")
-    },
-    {
-        key: "daily-essentials",
-        title: "Daily Essentials",
-        viewAllPath: "/products?collection=daily-essentials",
-        products: selectProducts("pantry", "personal-care", "snacks", "kitchen")
-    },
-    {
-        key: "new-arrivals",
-        title: "New Arrivals",
-        viewAllPath: "/products?sort=newest",
-        products: selectProducts("laptop", "dress", "beauty", "trolley", "travel", "kids", "kitchen", "watch")
-    }
-];
 
 const MIN_LOOP_ITEMS = 12;
 const AUTO_SCROLL_SPEED = 24;
@@ -402,7 +343,7 @@ function ProductRow({ section }) {
     );
 }
 
-function ProductSections({ sections = previewSections }) {
+function ProductSections({ sections = [] }) {
     const visibleSections = sections.filter((section) => section.products?.length > 0);
 
     if (visibleSections.length === 0) return null;

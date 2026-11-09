@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Rating } from "@mui/material";
 
 import { useCart } from "../../context/CartContext";
-import { productCatalog } from "../../data/productCatalog";
+import { getPublicProduct } from "../../services/productService";
 import {
     getCartProduct,
     getDisplayVariant,
@@ -52,19 +52,117 @@ function ProductUnavailable({ product }) {
 function ProductDetails() {
     const { productId } = useParams();
     const [searchParams] = useSearchParams();
+    const [reload, setReload] = useState(0);
 
-    const product = productCatalog.find((item) => item._id === productId);
+    const [state, setState] = useState({
+        id: null,
+        loading: true,
+        product: null,
+        related: [],
+        error: "",
+        unavailable: false,
+    });
 
-    if (!product) return <ProductUnavailable />;
+    useEffect(() => {
+        let active = true;
 
-    const { variant, invalidVariant } = resolveProductVariant(product, searchParams.get("variant"));
+        setState({
+            id: productId,
+            loading: true,
+            product: null,
+            related: [],
+            error: "",
+            unavailable: false,
+        });
 
-    if (invalidVariant) return <ProductUnavailable product={product} />;
+        getPublicProduct(productId)
+            .then((result) => {
+                if (!active) return;
 
-    return <ProductContent key={product._id} product={product} selectedVariant={variant} />;
+                setState({
+                    id: productId,
+                    loading: false,
+                    product: result.product,
+                    related: result.related,
+                    error: "",
+                    unavailable: false,
+                });
+            })
+            .catch((requestError) => {
+                if (!active) return;
+
+                const status = requestError.response?.status;
+
+                setState({
+                    id: productId,
+                    loading: false,
+                    product: null,
+                    related: [],
+                    unavailable: status === 404 || status === 400,
+                    error: requestError.response?.data?.message ||
+                        "Unable to load this product. Please try again.",
+                });
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [productId, reload]);
+
+    if (state.id !== productId || state.loading) {
+        return (
+            <section className="product-details-page">
+                <div className="container-fluid website-shell">
+                    <div className="products-empty" role="status">
+                        <h2>Loading product...</h2>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    if (state.unavailable) return <ProductUnavailable />;
+
+    if (state.error) {
+        return (
+            <section className="product-details-page">
+                <div className="container-fluid website-shell">
+                    <div className="products-empty" role="alert">
+                        <h2>Unable to load product</h2>
+                        <p>{state.error}</p>
+                        <button
+                            type="button"
+                            className="products-filter-button"
+                            onClick={() => setReload((value) => value + 1)}
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    const { variant, invalidVariant } = resolveProductVariant(
+        state.product,
+        searchParams.get("variant")
+    );
+
+    if (invalidVariant) {
+        return <ProductUnavailable product={state.product} />;
+    }
+
+    return (
+        <ProductContent
+            key={state.product._id}
+            product={state.product}
+            selectedVariant={variant}
+            related={state.related}
+        />
+    );
 }
 
-function ProductContent({ product, selectedVariant }) {
+function ProductContent({ product, selectedVariant, related = [] }) {
     const navigate = useNavigate();
     const { getQuantity, changeQuantity } = useCart();
     const [expanded, setExpanded] = useState(false);
@@ -72,32 +170,23 @@ function ProductContent({ product, selectedVariant }) {
     const view = getProductView(product, selectedVariant);
     const cartProduct = getCartProduct(product, selectedVariant);
 
+    // Related product sections
     const similarSections = useMemo(() => {
-        const related = productCatalog
-            .filter(
-                (item) =>
-                    item._id !== product._id &&
-                    (item.category === product.category || (product.group && item.group === product.group))
-            )
+        const relatedProducts = related
             .map((item) => getProductView(item, getDisplayVariant(item)))
-            .filter((item) => item?.availableForPurchase);
+            .filter(Boolean);
 
-        const products = [
-            ...related.filter((item) => item.category === product.category),
-            ...related.filter((item) => item.category !== product.category)
-        ].slice(0, 12);
-
-        return products.length
+        return relatedProducts.length
             ? [
-                  {
-                      key: `similar-${product._id}`,
-                      title: "Similar Products",
-                      viewAllPath: `/products?category=${encodeURIComponent(product.category)}`,
-                      products
-                  }
-              ]
+                {
+                    key: `similar-${product._id}`,
+                    title: "Similar Products",
+                    viewAllPath: `/products?category=${encodeURIComponent(product.category)}`,
+                    products: relatedProducts,
+                },
+            ]
             : [];
-    }, [product]);
+    }, [related, product._id, product.category]);
 
     if (!view || !cartProduct) return <ProductUnavailable product={product} />;
 
@@ -122,8 +211,8 @@ function ProductContent({ product, selectedVariant }) {
     const description = Array.isArray(product.description)
         ? product.description
         : product.description
-          ? [{ title: "", text: product.description }]
-          : [];
+            ? [{ title: "", text: product.description }]
+            : [];
 
     const visibleDescription = expanded ? description : description.slice(0, 2);
 

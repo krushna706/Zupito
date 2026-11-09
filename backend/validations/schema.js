@@ -35,6 +35,7 @@ const confirmPassword = Joi.string()
 
 const token = Joi.string().hex().length(64).required();
 
+// Authentication
 exports.signupSchema = Joi.object({
     name,
     email,
@@ -97,14 +98,30 @@ const categoryFields = {
         .min(2)
         .max(70)
         .required(),
+
     parentId: Joi.string().hex().length(24).allow(null).required(),
     description: Joi.string().trim().max(240).allow("").default(""),
     sortOrder: Joi.number().integer().min(1).max(999).required(),
+
     attributes: Joi.array()
         .items(Joi.string().trim().min(1).max(40))
         .max(12)
-        .unique((a, b) => a.toLowerCase() === b.toLowerCase())
+        .unique((first, second) =>
+            first.toLowerCase() === second.toLowerCase()
+        )
         .required(),
+
+    showOnHome: Joi.boolean().default(false),
+    filterBrand: Joi.boolean().default(true),
+
+    filterAttributes: Joi.array()
+        .items(Joi.string().trim().min(1).max(40))
+        .max(12)
+        .unique((first, second) =>
+            first.toLowerCase() === second.toLowerCase()
+        )
+        .default([]),
+
     replacementAllowed: Joi.boolean().required(),
     replacementDays: Joi.number().integer().min(0).max(30).required(),
 };
@@ -114,12 +131,33 @@ const categoryRules = (value, helpers) => {
         !value.parentId &&
         (
             value.attributes.length ||
+            value.filterAttributes.length ||
             value.replacementAllowed ||
             value.replacementDays !== 0
         )
     ) {
         return helpers.message(
-            "Attributes and replacement rules apply only to subcategories."
+            "Attributes, attribute filters and replacement rules apply only to subcategories."
+        );
+    }
+
+    if (value.parentId && value.showOnHome) {
+        return helpers.message(
+            "Only main categories can appear in the Home category section."
+        );
+    }
+
+    const attributes = new Set(
+        value.attributes.map((attribute) => attribute.toLowerCase())
+    );
+
+    if (
+        value.filterAttributes.some(
+            (attribute) => !attributes.has(attribute.toLowerCase())
+        )
+    ) {
+        return helpers.message(
+            "Choose filter attributes from the category specifications."
         );
     }
 
@@ -147,11 +185,13 @@ exports.categoryUpdateSchema = Joi.object({
 
 exports.categoryStatusSchema = Joi.object({
     status: Joi.string().valid("Active", "Disabled").required(),
+
     reason: Joi.when("status", {
         is: "Disabled",
         then: Joi.string().trim().min(5).max(300).required(),
         otherwise: Joi.string().valid("").default(""),
     }),
+
     version: Joi.number().integer().min(0).required(),
 });
 
@@ -166,9 +206,11 @@ exports.categoryListSchema = Joi.object({
 // Admin seller management
 exports.adminSellerListSchema = Joi.object({
     search: Joi.string().trim().max(100).allow("").default(""),
+
     status: Joi.string()
         .valid("All", "Pending", "Approved", "Rejected", "Suspended")
         .default("All"),
+
     page: Joi.number().integer().min(1).max(100000).default(1),
     limit: Joi.number().valid(10, 20, 50).default(10),
 });
@@ -177,11 +219,13 @@ exports.adminSellerStatusSchema = Joi.object({
     action: Joi.string()
         .valid("Approve", "Reject", "Suspend", "Reactivate")
         .required(),
+
     reason: Joi.when("action", {
         is: Joi.valid("Reject", "Suspend"),
         then: Joi.string().trim().min(5).max(300).required(),
         otherwise: Joi.string().valid("").default(""),
     }),
+
     version: Joi.number().integer().min(0).required(),
 });
 
@@ -207,44 +251,60 @@ const productFields = {
     brand: Joi.string().trim().min(2).max(80).required(),
     categoryId: Joi.string().hex().length(24).required(),
     description: Joi.string().trim().min(20).max(5000).required(),
+
     highlights: Joi.array()
         .items(Joi.string().trim().min(1).max(200))
         .max(10)
         .required(),
+
     specifications: Joi.array()
-        .items(Joi.object({
-            label: Joi.string().trim().min(1).max(40).required(),
-            value: Joi.string().trim().min(1).max(500).required(),
-        }))
+        .items(
+            Joi.object({
+                label: Joi.string().trim().min(1).max(40).required(),
+                value: Joi.string().trim().min(1).max(500).required(),
+            })
+        )
         .max(30)
-        .unique((a, b) => a.label.toLowerCase() === b.label.toLowerCase())
+        .unique((first, second) =>
+            first.label.toLowerCase() === second.label.toLowerCase()
+        )
         .required(),
+
     imageKeys: Joi.array()
         .items(Joi.string().max(300).required())
         .min(1)
         .max(4)
         .unique()
         .required(),
+
     variants: Joi.array()
-        .items(Joi.object({
-            variantId: Joi.string().guid({ version: "uuidv4" }).required(),
-            sku: Joi.string()
-                .trim()
-                .uppercase()
-                .pattern(/^[A-Z0-9_-]{3,30}$/)
-                .required(),
-            label: Joi.string().trim().min(1).max(80).required(),
-            pricePaise: Joi.number().integer().min(1).max(1000000000).required(),
-            mrpPaise: Joi.number().integer().min(1).max(1000000000).required(),
-            stock: Joi.number().integer().min(0).max(999999).required(),
-            imageIndex: Joi.number().integer().min(0).max(3).required(),
-        }))
+        .items(
+            Joi.object({
+                variantId: Joi.string()
+                    .guid({ version: "uuidv4" })
+                    .required(),
+
+                sku: Joi.string()
+                    .trim()
+                    .uppercase()
+                    .pattern(/^[A-Z0-9_-]{3,30}$/)
+                    .required(),
+
+                label: Joi.string().trim().min(1).max(80).required(),
+                pricePaise: Joi.number().integer().min(1).max(1000000000).required(),
+                mrpPaise: Joi.number().integer().min(1).max(1000000000).required(),
+                stock: Joi.number().integer().min(0).max(999999).required(),
+                imageIndex: Joi.number().integer().min(0).max(3).required(),
+            })
+        )
         .min(1)
         .max(50)
         .required(),
+
     stockReason: Joi.string()
         .valid("", "Restock", "Adjustment", "Damage/Loss")
         .default(""),
+
     stockNote: Joi.string().trim().max(300).allow("").default(""),
 };
 
@@ -258,10 +318,12 @@ const productRules = (value, helpers) => {
         return helpers.message("Variant IDs and SKUs must be unique.");
     }
 
-    if (variants.some((item) =>
-        item.mrpPaise < item.pricePaise ||
-        item.imageIndex >= value.imageKeys.length
-    )) {
+    if (
+        variants.some((item) =>
+            item.mrpPaise < item.pricePaise ||
+            item.imageIndex >= value.imageKeys.length
+        )
+    ) {
         return helpers.message("Check variant MRP and image selection.");
     }
 
@@ -277,9 +339,11 @@ exports.productUpdateSchema = Joi.object({
 
 exports.sellerProductListSchema = Joi.object({
     search: Joi.string().trim().max(100).allow("").default(""),
+
     status: Joi.string()
         .valid("All", "Pending", "Approved", "Rejected", "Suspended")
         .default("All"),
+
     page: Joi.number().integer().min(1).max(100000).default(1),
     limit: Joi.number().valid(10, 20, 50).default(10),
 });
@@ -297,9 +361,11 @@ const inventorySku = Joi.string()
 
 exports.inventoryListSchema = Joi.object({
     search: inventorySearch,
+
     status: Joi.string()
         .valid("All", "In Stock", "Low Stock", "Out of Stock", "Needs Attention")
         .default("All"),
+
     threshold: Joi.number().integer().min(1).max(100).default(5),
     page: inventoryPage,
     limit: inventoryLimit,
@@ -308,9 +374,11 @@ exports.inventoryListSchema = Joi.object({
 exports.inventoryHistorySchema = Joi.object({
     search: inventorySearch,
     sku: Joi.string().trim().uppercase().max(30).allow("").default(""),
+
     type: Joi.string()
         .valid("All", "Opening", "Restock", "Adjustment", "Damage/Loss")
         .default("All"),
+
     page: inventoryPage,
     limit: inventoryLimit,
 });
@@ -327,21 +395,25 @@ exports.inventoryChangeSchema = Joi.object({
 
 exports.inventoryImportSchema = Joi.object({
     mode: Joi.string().valid("add", "set").required(),
+
     reference: Joi.string()
         .trim()
         .uppercase()
         .pattern(/^[A-Z0-9_-]{3,80}$/)
         .required(),
+
     reason: Joi.string().trim().min(5).max(300).required(),
 });
 
 exports.inventoryCsvRowSchema = Joi.object({
     sku: inventorySku,
+
     stock: Joi.string()
         .pattern(/^(0|[1-9]\d{0,5})$/)
         .required(),
 });
 
+// Admin product review
 const productReviewFields = {
     action: Joi.string()
         .valid("Approve", "Reject", "Suspend", "Reactivate")
@@ -372,7 +444,6 @@ exports.adminProductListSchema = Joi.object({
         .default(""),
 
     page: Joi.number().integer().min(1).max(100000).default(1),
-
     limit: Joi.number().valid(10, 20, 50).default(10),
 });
 
@@ -388,7 +459,6 @@ exports.adminProductDecisionSchema = Joi.object({
 
 exports.adminProductBulkSchema = Joi.object({
     ...productReviewFields,
-
     action: Joi.string().valid("Approve", "Reject").required(),
 
     items: Joi.array()
@@ -412,3 +482,68 @@ exports.adminProductBulkSchema = Joi.object({
         .unique("productId")
         .required(),
 });
+
+// Public products
+exports.publicProductListSchema = Joi.object({
+    search: Joi.string().trim().max(100).allow("").default(""),
+
+    category: Joi.string()
+        .trim()
+        .max(1000)
+        .pattern(/^[a-z0-9-]+(?:,[a-z0-9-]+)*$/)
+        .allow("")
+        .default("")
+        .custom((value, helpers) =>
+            value.split(",").length <= 20
+                ? value
+                : helpers.error("any.invalid")
+        ),
+
+    sort: Joi.string()
+        .valid("newest", "price-asc", "price-desc")
+        .default("newest"),
+
+    minPricePaise: Joi.number()
+        .integer()
+        .min(0)
+        .max(1000000000)
+        .default(0),
+
+    maxPricePaise: Joi.number()
+        .integer()
+        .min(Joi.ref("minPricePaise"))
+        .max(1000000000)
+        .default(1000000000),
+
+    inStock: Joi.boolean().default(false),
+    brands: Joi.string().max(3000).default("[]"),
+    attributes: Joi.string().max(12000).default("[]"),
+    page: Joi.number().integer().min(1).max(100000).default(1),
+    limit: Joi.number().valid(12, 30).default(30),
+});
+
+exports.brandsSchema = Joi.array()
+    .items(Joi.string().trim().min(1).max(80))
+    .max(20)
+    .unique();
+
+exports.attributesSchema = Joi.array()
+    .items(
+        Joi.object({
+            key: Joi.string()
+                .trim()
+                .lowercase()
+                .min(1)
+                .max(40)
+                .required(),
+
+            values: Joi.array()
+                .items(Joi.string().trim().min(1).max(500))
+                .min(1)
+                .max(20)
+                .unique()
+                .required(),
+        })
+    )
+    .max(12)
+    .unique("key");

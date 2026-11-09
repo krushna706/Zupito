@@ -1,35 +1,93 @@
 import { useId } from "react";
-import { Button, Checkbox, FormControlLabel, Radio, RadioGroup, Rating, Slider } from "@mui/material";
+import {
+    Button,
+    Checkbox,
+    FormControlLabel,
+    Slider,
+} from "@mui/material";
 
 const priceFormatter = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
 });
 
-function ProductFilters({ categories = [], filters, priceBounds = [0, 100000], onChange, onClear }) {
+function ProductFilters({
+    categories = [],
+    brands = [],
+    attributes = [],
+    filters,
+    priceBounds = [0, 1000],
+    onChange,
+    onClear,
+}) {
     const filterId = useId();
-    const [minPrice, maxPrice] = priceBounds;
-
     const selectedCategories = filters.categories || [];
+    const selectedBrands = filters.brands || [];
+    const selectedAttributes = filters.attributes || [];
     const priceRange = filters.priceRange || priceBounds;
-    const minRating = filters.minRating || 0;
-    const inStockOnly = Boolean(filters.inStockOnly);
 
     const hasActiveFilters =
         selectedCategories.length > 0 ||
-        priceRange[0] !== minPrice ||
-        priceRange[1] !== maxPrice ||
-        minRating > 0 ||
-        inStockOnly;
+        selectedBrands.length > 0 ||
+        selectedAttributes.length > 0 ||
+        priceRange[0] !== priceBounds[0] ||
+        priceRange[1] !== priceBounds[1] ||
+        filters.inStockOnly;
 
-    const changeCategory = (id, checked) => {
-        const categories = checked
-            ? [...new Set([...selectedCategories, id])]
-            : selectedCategories.filter((category) => category !== id);
+    function toggleParent(parent, checked) {
+        const family = new Set([
+            parent.id,
+            ...parent.children.map((child) => child.id),
+        ]);
 
-        onChange({ categories });
-    };
+        const next = selectedCategories.filter(
+            (slug) => !family.has(slug)
+        );
+
+        if (checked) next.push(parent.id);
+
+        onChange({ categories: next });
+    }
+
+    function toggleChild(parent, child, checked) {
+        let next = selectedCategories;
+
+        if (next.includes(parent.id)) {
+            next = [
+                ...next.filter((slug) => slug !== parent.id),
+                ...parent.children.map((item) => item.id),
+            ];
+        }
+
+        next = checked
+            ? [...new Set([...next, child.id])]
+            : next.filter((slug) => slug !== child.id);
+
+        onChange({ categories: next });
+    }
+
+    function toggleValue(values, value, checked) {
+        return checked
+            ? [...new Set([...values, value])]
+            : values.filter((item) => item !== value);
+    }
+
+    function toggleAttribute(key, value, checked) {
+        const current = selectedAttributes.find(
+            (item) => item.key === key
+        )?.values || [];
+
+        const values = toggleValue(current, value, checked);
+
+        const next = selectedAttributes.filter(
+            (item) => item.key !== key
+        );
+
+        if (values.length) next.push({ key, values });
+
+        onChange({ attributes: next });
+    }
 
     return (
         <div className="product-filters">
@@ -39,54 +97,100 @@ function ProductFilters({ categories = [], filters, priceBounds = [0, 100000], o
                 <Button
                     size="small"
                     className="product-filters-clear"
-                    onClick={onClear}
                     disabled={!hasActiveFilters}
+                    onClick={onClear}
                 >
                     Clear all
                 </Button>
             </div>
 
-            {/* Category */}
-            <section className="product-filter-group" aria-labelledby={`${filterId}-category`}>
-                <h3 id={`${filterId}-category`} className="product-filter-heading">
+            <section
+                className="product-filter-group"
+                aria-labelledby={`${filterId}-category`}
+            >
+                <h3
+                    id={`${filterId}-category`}
+                    className="product-filter-heading"
+                >
                     Category
                 </h3>
 
-                <div className="product-filter-options">
-                    {categories.map((category) => (
-                        <FormControlLabel
-                            key={category.id}
-                            className="product-filter-option"
-                            control={
-                                <Checkbox
-                                    size="small"
-                                    className="product-filter-control"
-                                    checked={selectedCategories.includes(category.id)}
-                                    onChange={(_, checked) => changeCategory(category.id, checked)}
-                                />
-                            }
-                            label={
-                                <span className="product-filter-option-label">
-                                    <span>{category.name}</span>
-                                    {Number.isInteger(category.count) && (
-                                        <span className="product-filter-count">({category.count})</span>
-                                    )}
-                                </span>
-                            }
-                        />
-                    ))}
+                {categories.map((parent) => {
+                    const checked = selectedCategories.includes(parent.id);
 
-                    {categories.length === 0 && (
-                        <p className="product-filter-note">No categories available.</p>
-                    )}
-                </div>
+                    const childCount = parent.children.filter(
+                        (child) => selectedCategories.includes(child.id)
+                    ).length;
+
+                    return (
+                        <details
+                            key={`${parent.id}-${checked || childCount > 0}`}
+                            className="border-bottom py-2"
+                            open={checked || childCount > 0}
+                        >
+                            <summary className="product-filter-heading mb-1">
+                                {parent.name}
+                            </summary>
+
+                            <FormControlLabel
+                                className="product-filter-option"
+                                label={
+                                    <span className="product-filter-option-label">
+                                        All {parent.name}
+                                    </span>
+                                }
+                                control={
+                                    <Checkbox
+                                        size="small"
+                                        className="product-filter-control"
+                                        checked={checked}
+                                        indeterminate={!checked && childCount > 0}
+                                        onChange={(_, value) =>
+                                            toggleParent(parent, value)
+                                        }
+                                    />
+                                }
+                            />
+
+                            <div className="product-filter-options ps-3">
+                                {parent.children.map((child) => (
+                                    <FormControlLabel
+                                        key={child.id}
+                                        className="product-filter-option"
+                                        label={
+                                            <span className="product-filter-option-label">
+                                                {child.name}
+                                            </span>
+                                        }
+                                        control={
+                                            <Checkbox
+                                                size="small"
+                                                className="product-filter-control"
+                                                checked={
+                                                    checked ||
+                                                    selectedCategories.includes(child.id)
+                                                }
+                                                onChange={(_, value) =>
+                                                    toggleChild(parent, child, value)
+                                                }
+                                            />
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        </details>
+                    );
+                })}
+
+                {!categories.length && (
+                    <p className="product-filter-note">
+                        No categories available.
+                    </p>
+                )}
             </section>
 
-            {/* Price Range */}
-            <section className="product-filter-group" aria-labelledby={`${filterId}-price`}>
-                <h3 id={`${filterId}-price`} className="product-filter-heading">
-                    Price range
-                </h3>
+            <section className="product-filter-group">
+                <h3 className="product-filter-heading">Price range</h3>
 
                 <div className="product-filter-price-values">
                     <span>{priceFormatter.format(priceRange[0])}</span>
@@ -96,83 +200,121 @@ function ProductFilters({ categories = [], filters, priceBounds = [0, 100000], o
                 <div className="product-filter-slider">
                     <Slider
                         className="product-price-slider"
+                        min={priceBounds[0]}
+                        max={priceBounds[1]}
                         value={priceRange}
-                        min={minPrice}
-                        max={maxPrice}
-                        step={1}
-                        disabled={minPrice >= maxPrice}
                         disableSwap
-                        onChange={(_, value) => {
-                            if (Array.isArray(value)) onChange({ priceRange: value });
-                        }}
-                        getAriaLabel={(index) => (index === 0 ? "Minimum price" : "Maximum price")}
-                        getAriaValueText={priceFormatter.format}
+                        disabled={priceBounds[0] >= priceBounds[1]}
                         valueLabelDisplay="auto"
                         valueLabelFormat={priceFormatter.format}
+                        getAriaLabel={(index) =>
+                            index === 0 ? "Minimum price" : "Maximum price"
+                        }
+                        getAriaValueText={priceFormatter.format}
+                        onChange={(_, value) => {
+                            if (Array.isArray(value)) {
+                                onChange({ priceRange: value });
+                            }
+                        }}
                     />
                 </div>
             </section>
 
-            {/* Customer Rating */}
-            <section className="product-filter-group" aria-labelledby={`${filterId}-rating`}>
-                <h3 id={`${filterId}-rating`} className="product-filter-heading">
-                    Customer rating
-                </h3>
+            {brands.length > 0 && (
+                <section className="product-filter-group">
+                    <h3 className="product-filter-heading">Brand</h3>
 
-                <RadioGroup
-                    aria-labelledby={`${filterId}-rating`}
-                    name={`${filterId}-rating`}
-                    value={String(minRating)}
-                    onChange={(event) =>
-                        onChange({
-                            minRating: Number(event.target.value)
-                        })
-                    }
-                >
-                    <FormControlLabel
-                        value="0"
-                        className="product-filter-option"
-                        control={<Radio size="small" className="product-filter-control" />}
-                        label="All ratings"
-                    />
-
-                    {[4, 3, 2].map((rating) => (
-                        <FormControlLabel
-                            key={rating}
-                            value={String(rating)}
-                            className="product-filter-option"
-                            control={<Radio size="small" className="product-filter-control" />}
-                            label={
-                                <span className="product-filter-rating-label">
-                                    <span aria-hidden="true">
-                                        <Rating value={rating} readOnly size="small" />
+                    <div className="product-filter-options">
+                        {brands.map((brand) => (
+                            <FormControlLabel
+                                key={brand}
+                                className="product-filter-option"
+                                label={
+                                    <span className="product-filter-option-label">
+                                        {brand}
                                     </span>
-                                    <span aria-hidden="true">& above</span>
-                                    <span className="visually-hidden">{rating} stars and above</span>
-                                </span>
-                            }
-                        />
-                    ))}
-                </RadioGroup>
-            </section>
+                                }
+                                control={
+                                    <Checkbox
+                                        size="small"
+                                        className="product-filter-control"
+                                        checked={selectedBrands.includes(brand)}
+                                        onChange={(_, checked) =>
+                                            onChange({
+                                                brands: toggleValue(
+                                                    selectedBrands,
+                                                    brand,
+                                                    checked
+                                                ),
+                                            })
+                                        }
+                                    />
+                                }
+                            />
+                        ))}
+                    </div>
+                </section>
+            )}
 
-            {/* Availability */}
-            <section className="product-filter-group" aria-labelledby={`${filterId}-availability`}>
-                <h3 id={`${filterId}-availability`} className="product-filter-heading">
-                    Availability
-                </h3>
+            {attributes.map((attribute) => (
+                <section
+                    key={attribute.key}
+                    className="product-filter-group"
+                >
+                    <h3 className="product-filter-heading">
+                        {attribute.label}
+                    </h3>
+
+                    <div className="product-filter-options">
+                        {attribute.values.map((value) => (
+                            <FormControlLabel
+                                key={value}
+                                className="product-filter-option"
+                                label={
+                                    <span className="product-filter-option-label">
+                                        {value}
+                                    </span>
+                                }
+                                control={
+                                    <Checkbox
+                                        size="small"
+                                        className="product-filter-control"
+                                        checked={Boolean(
+                                            selectedAttributes.find(
+                                                (item) => item.key === attribute.key
+                                            )?.values.includes(value)
+                                        )}
+                                        onChange={(_, checked) =>
+                                            toggleAttribute(
+                                                attribute.key,
+                                                value,
+                                                checked
+                                            )
+                                        }
+                                    />
+                                }
+                            />
+                        ))}
+                    </div>
+                </section>
+            ))}
+
+            <section className="product-filter-group">
+                <h3 className="product-filter-heading">Availability</h3>
 
                 <FormControlLabel
                     className="product-filter-option"
+                    label="In stock only"
                     control={
                         <Checkbox
                             size="small"
                             className="product-filter-control"
-                            checked={inStockOnly}
-                            onChange={(_, checked) => onChange({ inStockOnly: checked })}
+                            checked={Boolean(filters.inStockOnly)}
+                            onChange={(_, checked) =>
+                                onChange({ inStockOnly: checked })
+                            }
                         />
                     }
-                    label="In stock only"
                 />
             </section>
         </div>

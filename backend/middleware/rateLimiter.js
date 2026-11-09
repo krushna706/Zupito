@@ -86,3 +86,5 @@ exports.sellerReadLimiter = createLimiter(120, 60 * 1000, {
 exports.sellerWriteLimiter = createLimiter(20, 15 * 60 * 1000, {
     keyGenerator: accountKey,
 });
+
+exports.publicCatalogLimiter = createLimiter(120, 60 * 1000);

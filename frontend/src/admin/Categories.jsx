@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-    Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle,
+    Alert, Button, Checkbox, FormControlLabel,
+    Dialog, DialogActions, DialogContent, DialogTitle,
     InputAdornment, MenuItem, Table, TableBody, TableCell,
     TableContainer, TableHead, TablePagination, TableRow, TextField,
 } from "@mui/material";
@@ -15,6 +16,9 @@ const emptyForm = {
     description: "",
     sortOrder: "1",
     attributes: "",
+    showOnHome: false,
+    filterBrand: true,
+    filterAttributes: [],
     replacementAllowed: "Yes",
     replacementDays: "7",
 };
@@ -64,6 +68,9 @@ function Categories() {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState("");
     const [busy, setBusy] = useState(false);
+
+    const [categoryImage, setCategoryImage] = useState(null);
+    const [categoryPreview, setCategoryPreview] = useState("");
 
     const [showForm, setShowForm] = useState(false);
     const [editing, setEditing] = useState(null);
@@ -127,6 +134,19 @@ function Categories() {
         };
     }, [search, typeFilter, statusFilter, page, rowsPerPage, revision]);
 
+    // Release temporary image previews.
+    useEffect(() => {
+        if (!categoryImage) {
+            setCategoryPreview("");
+            return;
+        }
+
+        const url = URL.createObjectURL(categoryImage);
+        setCategoryPreview(url);
+
+        return () => URL.revokeObjectURL(url);
+    }, [categoryImage]);
+
     const hasFilters =
         Boolean(search.trim()) ||
         typeFilter !== "All" ||
@@ -137,6 +157,16 @@ function Categories() {
         ["Main Categories", statistics.main, "Top-level departments", "green", "fa-folder-tree"],
         ["Subcategories", statistics.subcategories, "Product classification groups", "orange", "fa-tags"],
         ["Disabled Categories", statistics.disabled, "Includes disabled parent categories", "red", "fa-ban"],
+    ];
+
+    const attributeOptions = [
+        ...new Map(
+            form.attributes
+                .split(",")
+                .map((value) => value.trim())
+                .filter(Boolean)
+                .map((value) => [value.toLowerCase(), value])
+        ).values(),
     ];
 
     const refresh = () => setRevision((value) => value + 1);
@@ -151,6 +181,7 @@ function Categories() {
     const openForm = (category = null) => {
         setSelected(null);
         setEditing(category);
+        setCategoryImage(null);
         setFormError("");
 
         setForm(category ? {
@@ -160,6 +191,9 @@ function Categories() {
             description: category.description || "",
             sortOrder: String(category.sortOrder),
             attributes: category.attributes.join(", "),
+            showOnHome: Boolean(category.showOnHome),
+            filterBrand: category.filterBrand !== false,
+            filterAttributes: category.filterAttributes || [],
             replacementAllowed: category.replacementAllowed ? "Yes" : "No",
             replacementDays: String(category.replacementDays || 7),
         } : { ...emptyForm });
@@ -170,14 +204,18 @@ function Categories() {
 
     const closeForm = () => {
         if (busy) return;
+
         setShowForm(false);
         setEditing(null);
+        setCategoryImage(null);
         setFormError("");
         setForm({ ...emptyForm });
     };
 
     const handleFormChange = (event) => {
         const { name, value } = event.target;
+
+        if (name === "type") setCategoryImage(null);
 
         setForm((previous) => ({
             ...previous,
@@ -207,15 +245,19 @@ function Categories() {
             parentId: isSubcategory ? form.parentId : null,
             description: form.description.trim(),
             sortOrder: Number(form.sortOrder),
-            attributes: isSubcategory
-                ? [...new Map(
-                    form.attributes
-                        .split(",")
-                        .map((value) => value.trim())
-                        .filter(Boolean)
-                        .map((value) => [value.toLowerCase(), value])
-                ).values()]
+            attributes: isSubcategory ? attributeOptions : [],
+
+            showOnHome: !isSubcategory && form.showOnHome,
+            filterBrand: form.filterBrand,
+
+            filterAttributes: isSubcategory
+                ? form.filterAttributes.filter((name) =>
+                    attributeOptions.some((attribute) =>
+                        attribute.toLowerCase() === name.toLowerCase()
+                    )
+                )
                 : [],
+
             replacementAllowed,
             replacementDays: replacementAllowed
                 ? Number(form.replacementDays)
@@ -227,19 +269,37 @@ function Categories() {
             return;
         }
 
+        if (
+            values.showOnHome &&
+            !categoryImage &&
+            !editing?.image?.url
+        ) {
+            setFormError("Upload a category image before showing it on Home.");
+            return;
+        }
+
         setBusy(true);
         setFormError("");
 
         try {
+            const body = new FormData();
+
+            body.append("data", JSON.stringify({
+                ...values,
+                ...(editing ? { version: editing.version } : {}),
+            }));
+
+            if (!isSubcategory && categoryImage) {
+                body.append("images", categoryImage);
+            }
+
             const result = editing
-                ? await adminService.updateCategory(editing._id, {
-                    ...values,
-                    version: editing.version,
-                })
-                : await adminService.createCategory(values);
+                ? await adminService.updateCategory(editing._id, body)
+                : await adminService.createCategory(body);
 
             toast.success(result.message);
             setShowForm(false);
+            setCategoryImage(null);
             setEditing(null);
             setForm({ ...emptyForm });
             setPage(0);
@@ -263,6 +323,7 @@ function Categories() {
 
     const closeStatusAction = () => {
         if (busy) return;
+
         setStatusAction(null);
         setReason("");
         setActionError("");
@@ -440,6 +501,58 @@ function Categories() {
                             />
                         </div>
 
+                        {form.type === "Main" && (
+                            <div className="zc-form-grid mt-3">
+                                <div className="zc-form-full">
+                                    {(categoryPreview || editing?.image?.url) && (
+                                        <img
+                                            src={categoryPreview || editing.image.url}
+                                            alt="Category preview"
+                                            width="100"
+                                            height="100"
+                                            className="object-fit-contain rounded border d-block mb-2"
+                                        />
+                                    )}
+
+                                    <label className="d-block">
+                                        Category image (JPG, PNG or WebP, up to 3 MB)
+                                        <input
+                                            type="file"
+                                            accept=".jpg,.jpeg,.png,.webp"
+                                            className="form-control mt-2"
+                                            disabled={busy}
+                                            onChange={(event) => {
+                                                const file = event.target.files?.[0];
+
+                                                if (file && file.size > 3 * 1024 * 1024) {
+                                                    setFormError("Choose an image up to 3 MB.");
+                                                    event.target.value = "";
+                                                    return;
+                                                }
+
+                                                setCategoryImage(file || null);
+                                                setFormError("");
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+
+                                <FormControlLabel
+                                    label="Show category on Home"
+                                    control={
+                                        <Checkbox
+                                            disabled={busy}
+                                            checked={form.showOnHome}
+                                            onChange={(_, checked) => setForm((previous) => ({
+                                                ...previous,
+                                                showOnHome: checked,
+                                            }))}
+                                        />
+                                    }
+                                />
+                            </div>
+                        )}
+
                         {form.type === "Subcategory" && (
                             <>
                                 <div className="zc-form-heading zc-form-heading--policy">
@@ -460,6 +573,47 @@ function Categories() {
                                         disabled={busy}
                                         fullWidth
                                     />
+
+                                    <div className="zc-form-full">
+                                        <p className="mb-1">Show these specification filters</p>
+
+                                        {attributeOptions.map((attribute) => (
+                                            <FormControlLabel
+                                                key={attribute}
+                                                label={attribute}
+                                                control={
+                                                    <Checkbox
+                                                        disabled={busy}
+                                                        checked={form.filterAttributes.some(
+                                                            (name) => name.toLowerCase() === attribute.toLowerCase()
+                                                        )}
+                                                        onChange={(_, checked) => setForm((previous) => ({
+                                                            ...previous,
+                                                            filterAttributes: checked
+                                                                ? [...previous.filterAttributes, attribute]
+                                                                : previous.filterAttributes.filter(
+                                                                    (name) => name.toLowerCase() !== attribute.toLowerCase()
+                                                                ),
+                                                        }))}
+                                                    />
+                                                }
+                                            />
+                                        ))}
+
+                                        <FormControlLabel
+                                            label="Show Brand filter"
+                                            control={
+                                                <Checkbox
+                                                    disabled={busy}
+                                                    checked={form.filterBrand}
+                                                    onChange={(_, checked) => setForm((previous) => ({
+                                                        ...previous,
+                                                        filterBrand: checked,
+                                                    }))}
+                                                />
+                                            }
+                                        />
+                                    </div>
 
                                     <TextField
                                         select
@@ -761,7 +915,20 @@ function Categories() {
                                     <DetailItem label="Parent Category" value={selected.parentName || "None"} />
                                     <DetailItem label="Display Order" value={selected.sortOrder} />
                                     <DetailItem label="Category ID" value={selected._id} />
+                                    {!selected.parentId && (
+                                        <DetailItem label="Show on Home" value={selected.showOnHome ? "Yes" : "No"} />
+                                    )}
                                 </dl>
+
+                                {!selected.parentId && selected.image?.url && (
+                                    <img
+                                        src={selected.image.url}
+                                        alt={selected.name}
+                                        width="100"
+                                        height="100"
+                                        className="object-fit-contain rounded border mt-2"
+                                    />
+                                )}
 
                                 {selected.description && (
                                     <p className="zc-detail-description">{selected.description}</p>
@@ -777,6 +944,8 @@ function Categories() {
                                             label="Request Window"
                                             value={selected.replacementAllowed ? `${selected.replacementDays} days` : "Not applicable"}
                                         />
+                                        <DetailItem label="Brand Filter" value={selected.filterBrand !== false ? "Enabled" : "Disabled"} />
+                                        <DetailItem label="Attribute Filters" value={(selected.filterAttributes || []).join(", ") || "None"} />
                                     </dl>
 
                                     <div className="zc-attributes">

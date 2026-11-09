@@ -14,6 +14,7 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const sellerRoutes = require("./routes/sellerRoutes");
 const productRoutes = require("./routes/productRoutes");
+const cartRoutes = require("./routes/cartRoutes");
 
 const app = express();
 
@@ -26,8 +27,17 @@ app.use(
             process.env.NODE_ENV === "production"
                 ? {
                       directives: {
-                          "img-src": ["'self'", "data:", "blob:", "https:"],
-                          "style-src": ["'self'", "'unsafe-inline'", "https:"],
+                          "img-src": [
+                              "'self'",
+                              "data:",
+                              "blob:",
+                              "https:",
+                          ],
+                          "style-src": [
+                              "'self'",
+                              "'unsafe-inline'",
+                              "https:",
+                          ],
                       },
                   }
                 : false,
@@ -59,6 +69,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/seller", sellerRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
 
 app.use("/api", (req, res, next) => {
     next(new ExpressError(404, "API route not found."));

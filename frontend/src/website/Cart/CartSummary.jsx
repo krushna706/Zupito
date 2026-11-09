@@ -1,8 +1,12 @@
-import { useNavigate } from "react-router-dom";
-
-function CartSummary({ cartCount, subtotal, discount, canCheckout, formatPrice }) {
-    const navigate = useNavigate();
-
+function CartSummary({
+    cartCount,
+    subtotal,
+    discount,
+    canCheckout,
+    loading,
+    onCheckout,
+    formatPrice
+}) {
     return (
         <aside className="cart-panel cart-summary">
             <div className="cart-panel-header">
@@ -13,21 +17,29 @@ function CartSummary({ cartCount, subtotal, discount, canCheckout, formatPrice }
                 <div className="cart-summary-list">
                     <div className="cart-summary-row">
                         <span>
-                            Price ({cartCount} {cartCount === 1 ? "item" : "items"})
+                            Price ({cartCount}{" "}
+                            {cartCount === 1 ? "item" : "items"})
                         </span>
-                        <strong>{formatPrice(subtotal + discount)}</strong>
+
+                        <strong>
+                            {formatPrice(subtotal + discount)}
+                        </strong>
                     </div>
 
                     {discount > 0 && (
                         <div className="cart-summary-row cart-summary-discount">
                             <span>Product Discount</span>
-                            <strong>-{formatPrice(discount)}</strong>
+                            <strong>
+                                -{formatPrice(discount)}
+                            </strong>
                         </div>
                     )}
 
                     <div className="cart-summary-row">
                         <span>Delivery Charges</span>
-                        <span className="cart-summary-muted">At checkout</span>
+                        <span className="cart-summary-muted">
+                            At checkout
+                        </span>
                     </div>
                 </div>
 
@@ -38,34 +50,51 @@ function CartSummary({ cartCount, subtotal, discount, canCheckout, formatPrice }
 
                 {discount > 0 && (
                     <div className="cart-summary-savings">
-                        <i className="fa-solid fa-tag" aria-hidden="true" />
+                        <i
+                            className="fa-solid fa-tag"
+                            aria-hidden="true"
+                        />
                         You're saving {formatPrice(discount)} on these products
                     </div>
                 )}
 
-                {!canCheckout && (
-                    <p className="cart-summary-error" role="alert">
-                        Some items have insufficient stock or unavailable prices. Please update your cart.
+                {!loading && !canCheckout && (
+                    <p
+                        className="cart-summary-error"
+                        role="alert"
+                    >
+                        Some items have insufficient stock or unavailable
+                        prices. Please update your cart.
                     </p>
                 )}
 
                 <button
                     type="button"
                     className="cart-primary"
-                    disabled={!canCheckout}
-                    onClick={() => navigate("/checkout")}
+                    disabled={loading || !canCheckout}
+                    onClick={onCheckout}
                 >
-                    Proceed to Checkout
-                    <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                    {loading
+                        ? "Checking Cart…"
+                        : "Proceed to Checkout"}
+
+                    <i
+                        className="fa-solid fa-arrow-right"
+                        aria-hidden="true"
+                    />
                 </button>
 
                 <p className="cart-summary-secure">
-                    <i className="fa-solid fa-shield-halved" aria-hidden="true" />
+                    <i
+                        className="fa-solid fa-shield-halved"
+                        aria-hidden="true"
+                    />
                     Secure Checkout
                 </p>
 
                 <p className="cart-summary-note">
-                    Final delivery charges and taxes will be calculated at checkout.
+                    Final delivery charges and taxes will be calculated
+                    at checkout.
                 </p>
             </div>
         </aside>

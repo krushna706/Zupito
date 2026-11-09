@@ -1,29 +1,38 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import {
+    Link,
+    Navigate,
+    useLocation,
+    useNavigate
+} from "react-router-dom";
+import {
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle
+} from "@mui/material";
 import { toast } from "react-toastify";
 
+import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
+
+import {
+    emptyAddress as initialAddress,
+    getAddresses,
+    normalizeAddress,
+    removeAddress,
+    saveAddress,
+    setDefaultAddress
+} from "../../services/userService";
+
 import { getProductPath } from "../../utils/productVariants";
 import AddressForm, { validateAddress } from "../../components/AddressForm";
 import AddressSelector from "../../components/AddressSelector";
 import CheckoutSummary from "./CheckoutSummary";
 import { calculateCheckoutPricing } from "../../services/cartService";
 
-const ADDRESS_STORAGE_KEY = "zupito_delivery_addresses";
 const COUPON_STORAGE_KEY = "zupito_checkout_coupon";
-
-const initialAddress = {
-    name: "",
-    phone: "",
-    pincode: "",
-    house: "",
-    area: "",
-    city: "",
-    state: "",
-    landmark: "",
-    type: "Home"
-};
 
 const formatPrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -32,61 +41,34 @@ const formatPrice = new Intl.NumberFormat("en-IN", {
 }).format;
 
 const formatAddress = (address) =>
-    [address.house, address.area, address.landmark, address.city, address.state, address.pincode]
+    [
+        address.house,
+        address.area,
+        address.landmark,
+        address.city,
+        address.state,
+        address.pincode
+    ]
         .filter(Boolean)
         .join(", ");
 
-function loadAddressBook() {
-    const fallback = {
-        addresses: [],
-        selectedId: null
-    };
-
+function loadCoupon(accountId) {
     try {
-        const raw = window.localStorage.getItem(ADDRESS_STORAGE_KEY);
-
-        if (!raw) return fallback;
-
-        const stored = JSON.parse(raw);
-
-        const addresses = Array.isArray(stored?.addresses)
-            ? stored.addresses.filter((item) => item && item.id)
-            : [];
-
-        const selectedExists = addresses.some((item) => String(item.id) === String(stored.selectedId));
-
-        return {
-            addresses,
-            selectedId: selectedExists ? stored.selectedId : (addresses[0]?.id ?? null)
-        };
-    } catch {
-        return fallback;
-    }
-}
-
-function loadCoupon() {
-    try {
-        return window.sessionStorage.getItem(COUPON_STORAGE_KEY) || "";
+        return window.sessionStorage.getItem(
+            `${COUPON_STORAGE_KEY}:${accountId}`
+        ) || "";
     } catch {
         return "";
     }
 }
 
-const createAddressId = () =>
-    typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `address_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-
-const addressSignature = (address) =>
-    ["name", "phone", "pincode", "house", "area", "city", "state", "landmark"]
-        .map((key) =>
-            String(address[key] ?? "")
-                .trim()
-                .toLowerCase()
-        )
-        .join("|");
-
-function SelectedAddressCard({ address, onChange, onAdd, onEdit, onDelete }) {
+function SelectedAddressCard({
+    address,
+    onChange,
+    onAdd,
+    onEdit,
+    onDelete
+}) {
     return (
         <div className="checkout-selected-address">
             <div className="checkout-selected-address-top">
@@ -96,7 +78,11 @@ function SelectedAddressCard({ address, onChange, onAdd, onEdit, onDelete }) {
                     <span>Selected</span>
                 </div>
 
-                <button type="button" className="checkout-address-change" onClick={onChange}>
+                <button
+                    type="button"
+                    className="checkout-address-change"
+                    onClick={onChange}
+                >
                     Change Address
                 </button>
             </div>
@@ -118,7 +104,11 @@ function SelectedAddressCard({ address, onChange, onAdd, onEdit, onDelete }) {
                     Add New
                 </button>
 
-                <button type="button" className="is-danger" onClick={onDelete}>
+                <button
+                    type="button"
+                    className="is-danger"
+                    onClick={onDelete}
+                >
                     <i className="fa-regular fa-trash-can" aria-hidden="true" />
                     Delete
                 </button>
@@ -129,143 +119,301 @@ function SelectedAddressCard({ address, onChange, onAdd, onEdit, onDelete }) {
 
 function Checkout() {
     const navigate = useNavigate();
-    const { items } = useCart();
+    const location = useLocation();
+    const { user } = useAuth();
+
+    const {
+        items,
+        ready,
+        loading: cartLoading,
+        error: cartError,
+        refreshCart
+    } = useCart();
+
+    const accountId = user?._id || user?.id || "";
+
+    const [addressLoading, setAddressLoading] = useState(true);
+    const [addressesReady, setAddressesReady] = useState(false);
+    const [addressError, setAddressError] = useState("");
+    const [processing, setProcessing] = useState(false);
+
+    const addressBusy = useRef(false);
 
     const [step, setStep] = useState("checkout");
     const [address, setAddress] = useState(initialAddress);
     const [submitted, setSubmitted] = useState(false);
-    const [addressBook, setAddressBook] = useState(loadAddressBook);
-    const [couponCode, setCouponCode] = useState(loadCoupon);
+
+    const [addressBook, setAddressBook] = useState({
+        addresses: [],
+        selectedId: null,
+        version: 0
+    });
+
+    const [couponCode, setCouponCode] = useState(
+        () => loadCoupon(accountId)
+    );
 
     const [addressDialogOpen, setAddressDialogOpen] = useState(false);
     const [addressDialogMode, setAddressDialogMode] = useState("list");
     const [editingAddressId, setEditingAddressId] = useState(null);
     const [deletingAddressId, setDeletingAddressId] = useState(null);
-
     const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
     const savedAddresses = addressBook.addresses;
     const selectedAddressId = addressBook.selectedId;
 
-    const selectedAddress = savedAddresses.find((item) => String(item.id) === String(selectedAddressId));
+    const selectedAddress = savedAddresses.find(
+        (item) => String(item.id) === String(selectedAddressId)
+    );
 
     const deliveryAddress = selectedAddress || address;
     const errors = validateAddress(deliveryAddress);
 
     useEffect(() => {
-        try {
-            window.localStorage.setItem(ADDRESS_STORAGE_KEY, JSON.stringify(addressBook));
-        } catch {
-            // Address form remains usable without browser storage.
-        }
-    }, [addressBook]);
+        if (!accountId) return;
+
+        let active = true;
+
+        getAddresses()
+            .then((data) => {
+                if (active) {
+                    setAddressBook(data);
+                    setAddressError("");
+                }
+            })
+            .catch((failure) => {
+                if (active) setAddressError(failure.message);
+            })
+            .finally(() => {
+                if (active) {
+                    setAddressLoading(false);
+                    setAddressesReady(true);
+                }
+            });
+
+        refreshCart();
+
+        return () => {
+            active = false;
+        };
+    }, [accountId, refreshCart]);
 
     useEffect(() => {
         try {
+            const key = `${COUPON_STORAGE_KEY}:${accountId}`;
+
             if (couponCode) {
-                window.sessionStorage.setItem(COUPON_STORAGE_KEY, couponCode);
+                window.sessionStorage.setItem(key, couponCode);
             } else {
-                window.sessionStorage.removeItem(COUPON_STORAGE_KEY);
+                window.sessionStorage.removeItem(key);
             }
         } catch {
             // Coupon selection remains usable in the current page.
         }
-    }, [couponCode]);
+    }, [couponCode, accountId]);
 
     const cartItems = items.map(({ product, quantity }) => {
         const rawPrice = Number(product.price);
         const rawMrp = Number(product.mrp);
         const rawStock = Number(product.stock);
 
-        const validPrice = Number.isFinite(rawPrice) && rawPrice >= 0;
+        const validPrice =
+            product.validPrice !== false &&
+            product.availableForPurchase !== false &&
+            Number.isFinite(rawPrice) &&
+            rawPrice > 0;
+
         const price = validPrice ? rawPrice : 0;
 
         return {
             product,
             quantity,
             price,
-            mrp: Number.isFinite(rawMrp) && rawMrp > price ? rawMrp : price,
-            stock: Number.isInteger(rawStock) && rawStock >= 0 ? rawStock : 0,
+            mrp:
+                Number.isFinite(rawMrp) && rawMrp > price
+                    ? rawMrp
+                    : price,
+            stock:
+                Number.isInteger(rawStock) && rawStock >= 0
+                    ? rawStock
+                    : 0,
             validPrice
         };
     });
 
-    const itemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+    const itemCount = cartItems.reduce(
+        (total, item) => total + item.quantity,
+        0
+    );
 
     const canCheckout =
+        ready &&
+        !cartError &&
+        !addressError &&
         cartItems.length > 0 &&
         cartItems.every(
             ({ quantity, stock, validPrice }) =>
-                validPrice && Number.isInteger(quantity) && quantity > 0 && quantity <= stock
+                validPrice &&
+                Number.isInteger(quantity) &&
+                quantity > 0 &&
+                quantity <= stock
         );
 
     // Shared pricing for Checkout and Payment Status.
     const pricing = calculateCheckoutPricing(cartItems, couponCode);
 
     const openAddressDialog = (mode = "list", id = null) => {
+        if (processing || addressLoading) return;
+
         setAddressDialogMode(mode);
         setEditingAddressId(mode === "edit" ? id : null);
         setDeletingAddressId(mode === "delete" ? id : null);
         setAddressDialogOpen(true);
     };
 
-    const handleSelectAddress = (id) => {
-        setAddressBook((current) => ({
-            ...current,
-            selectedId: id
-        }));
+    const loadAddresses = async () => {
+        if (addressBusy.current) return;
 
-        setSubmitted(false);
+        setAddressLoading(true);
+
+        try {
+            const data = await getAddresses();
+
+            setAddressBook(data);
+
+            setAddressError("");
+        } catch (failure) {
+            setAddressError(failure.message);
+        } finally {
+            setAddressLoading(false);
+            setAddressesReady(true);
+        }
     };
 
-    const handleSaveAddress = (input) => {
-        const duplicate =
-            !input.id && savedAddresses.find((item) => addressSignature(item) === addressSignature(input));
+const handleSelectAddress = async (id) => {
+    if (
+        addressBusy.current ||
+        addressLoading ||
+        processing
+    ) {
+        return null;
+    }
 
-        const id = input.id || duplicate?.id || createAddressId();
+    addressBusy.current = true;
+    setProcessing(true);
 
-        const savedAddress = {
-            ...initialAddress,
-            ...input,
-            id
-        };
+    try {
+        const data = await setDefaultAddress(
+            id,
+            addressBook.version
+        );
 
-        setAddressBook((current) => {
-            const exists = current.addresses.some((item) => String(item.id) === String(id));
-
-            return {
-                addresses: exists
-                    ? current.addresses.map((item) => (String(item.id) === String(id) ? savedAddress : item))
-                    : [...current.addresses, savedAddress],
-                selectedId: id
-            };
-        });
-
+        setAddressBook(data);
         setSubmitted(false);
+        setStep("checkout");
 
-        toast.success(input.id ? "Address updated successfully." : "Address saved successfully.");
-    };
+        return data;
+    } catch (failure) {
+        toast.error(failure.message);
 
-    const handleDeleteAddress = (id) => {
-        const remaining = savedAddresses.filter((item) => String(item.id) !== String(id));
+        addressBusy.current = false;
+        await loadAddresses();
 
-        const wasSelected = String(selectedAddressId) === String(id);
+        return null;
+    } finally {
+        addressBusy.current = false;
+        setProcessing(false);
+    }
+};
 
-        setAddressBook((current) => ({
-            addresses: remaining,
-            selectedId: wasSelected ? (remaining[0]?.id ?? null) : current.selectedId
-        }));
+    const handleSaveAddress = async (input) => {
+        if (
+            addressBusy.current ||
+            addressLoading ||
+            processing
+        ) {
+            return null;
+        }
 
-        if (remaining.length === 0) {
-            setAddress({ ...initialAddress });
+        addressBusy.current = true;
+        setProcessing(true);
+
+        try {
+            const data = await saveAddress(
+                input,
+                addressBook.version,
+                true
+            );
+
+            setAddressBook({
+                ...data,
+                selectedId: data.addressId
+            });
+
             setSubmitted(false);
-        }
-
-        if (wasSelected) {
             setStep("checkout");
+
+            toast.success(
+                input.id
+                    ? "Address updated successfully."
+                    : "Address saved successfully."
+            );
+
+            return data;
+        } catch (failure) {
+            toast.error(failure.message);
+
+            addressBusy.current = false;
+            await loadAddresses();
+
+            return null;
+        } finally {
+            addressBusy.current = false;
+            setProcessing(false);
+        }
+    };
+
+    const handleDeleteAddress = async (id) => {
+        if (
+            addressBusy.current ||
+            addressLoading ||
+            processing
+        ) {
+            return null;
         }
 
-        toast.success("Address deleted successfully.");
+        addressBusy.current = true;
+        setProcessing(true);
+
+        try {
+            const data = await removeAddress(
+                id,
+                addressBook.version
+            );
+
+            setAddressBook(data);
+
+            if (!data.addresses.length) {
+                setAddress({ ...initialAddress });
+            }
+
+            setSubmitted(false);
+            setStep("checkout");
+
+            toast.success("Address deleted successfully.");
+
+            return data;
+        } catch (failure) {
+            toast.error(failure.message);
+
+            addressBusy.current = false;
+            await loadAddresses();
+
+            return null;
+        } finally {
+            addressBusy.current = false;
+            setProcessing(false);
+        }
     };
 
     const createOrderPreview = (timestamp) => ({
@@ -299,12 +447,17 @@ function Checkout() {
         if (!canCheckout || !selectedAddress) {
             setPaymentDialogOpen(false);
             setStep("checkout");
-            toast.error("Please review your cart and delivery address.");
+
+            toast.error(
+                "Please review your cart and delivery address."
+            );
             return;
         }
 
         const successful = status === "success";
-        const order = successful ? createOrderPreview(timestamp) : null;
+        const order = successful
+            ? createOrderPreview(timestamp)
+            : null;
 
         setPaymentDialogOpen(false);
 
@@ -319,56 +472,158 @@ function Checkout() {
         });
     };
 
-    const handleCheckout = (event) => {
+    const handleCheckout = async (event) => {
         event.preventDefault();
 
-        if (!canCheckout) {
-            toast.error("Some products are unavailable. Please update your cart.");
-            return;
-        }
-
-        if (step === "payment") {
-            if (!selectedAddress) {
-                toast.error("Please select a delivery address.");
-                setStep("checkout");
-                return;
-            }
-
-            if (Object.values(validateAddress(selectedAddress)).some(Boolean)) {
-                toast.error("Please update your delivery address.");
-                setStep("checkout");
-                return;
-            }
-
-            setPaymentDialogOpen(true);
+        if (
+            addressBusy.current ||
+            processing ||
+            addressLoading ||
+            cartLoading ||
+            !ready
+        ) {
             return;
         }
 
         setSubmitted(true);
 
-        const invalidField = Object.keys(errors).find((key) => errors[key]);
-
-        if (invalidField) {
+        if (Object.values(errors).some(Boolean)) {
             toast.error("Please enter valid delivery address details.");
-
-            event.currentTarget.querySelector(`[name="${invalidField}"]`)?.focus();
-
             return;
         }
 
-        // Automatically save first-order delivery address.
-        if (!selectedAddress) {
-            handleSaveAddress(address);
-        }
+        addressBusy.current = true;
+        setProcessing(true);
 
-        setStep("payment");
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        try {
+            const freshCart = await refreshCart();
+
+            if (!freshCart) return;
+
+            if (!freshCart.canCheckout) {
+                setStep("checkout");
+                toast.error(
+                    "Some products are unavailable. Please update your cart."
+                );
+                return;
+            }
+
+            const changed =
+                freshCart.items.length !== items.length ||
+                freshCart.items.some((item) => {
+                    const old = items.find(
+                        (entry) =>
+                            entry.product._id === item.product._id
+                    );
+
+                    return (
+                        !old ||
+                        old.quantity !== item.quantity ||
+                        old.product.price !== item.product.price ||
+                        old.product.mrp !== item.product.mrp
+                    );
+                });
+
+            if (changed) {
+                setStep("checkout");
+                toast.info(
+                    "Your cart changed. Review the latest prices and quantities before continuing."
+                );
+                return;
+            }
+
+            let book = await getAddresses();
+
+            if (selectedAddress) {
+                const latest = book.addresses.find(
+                    (item) => item.id === selectedAddress.id
+                );
+
+                setAddressBook({
+                    ...book,
+                    selectedId: latest?.id || null
+                });
+
+                if (!latest) {
+                    setStep("checkout");
+                    toast.error(
+                        "The selected address was removed. Please select an address again."
+                    );
+                    return;
+                }
+
+                if (
+                    JSON.stringify(normalizeAddress(latest)) !==
+                    JSON.stringify(normalizeAddress(selectedAddress))
+                ) {
+                    setStep("checkout");
+                    toast.info(
+                        "Your address changed. Review the updated details before continuing."
+                    );
+                    return;
+                }
+            } else {
+                book = await saveAddress(address, book.version, true);
+
+                setAddressBook({
+                    ...book,
+                    selectedId: book.addressId
+                });
+            }
+
+            setAddressError("");
+
+            if (step === "payment") {
+                setPaymentDialogOpen(true);
+            } else {
+                setStep("payment");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        } catch (failure) {
+            toast.error(failure.message);
+        } finally {
+            addressBusy.current = false;
+            setProcessing(false);
+        }
     };
 
     const handleBack = () => {
         setStep("checkout");
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
+
+    if (!user) {
+        return (
+            <Navigate
+                to="/login"
+                replace
+                state={{ returnTo: location.pathname }}
+            />
+        );
+    }
+
+    if (!ready || !addressesReady) {
+        return (
+            <section className="checkout-page">
+                <div className="container-fluid website-shell">
+                    <p role="status">
+                        {cartError || "Loading checkout…"}
+                    </p>
+
+                    {cartError && (
+                        <button
+                            type="button"
+                            className="cart-primary"
+                            onClick={refreshCart}
+                            disabled={cartLoading}
+                        >
+                            Retry
+                        </button>
+                    )}
+                </div>
+            </section>
+        );
+    }
 
     if (!cartItems.length) {
         return (
@@ -382,7 +637,10 @@ function Checkout() {
                         <h1>Your cart is empty</h1>
                         <p>Add products to your cart before proceeding to checkout.</p>
 
-                        <Link to="/products" className="cart-primary cart-explore">
+                        <Link
+                            to="/products"
+                            className="cart-primary cart-explore"
+                        >
                             Explore Products
                         </Link>
                     </div>
@@ -399,8 +657,11 @@ function Checkout() {
                     <i className="fa-solid fa-chevron-right" aria-hidden="true" />
                     <Link to="/cart">Cart</Link>
                     <i className="fa-solid fa-chevron-right" aria-hidden="true" />
-                    <span aria-current="page">{step === "payment" ? "Payment" : "Checkout"}</span>
+                    <span aria-current="page">
+                        {step === "payment" ? "Payment" : "Checkout"}
+                    </span>
                 </nav>
+
                 <div className="cart-page-header">
                     <div>
                         <h1>{step === "payment" ? "Payment" : "Checkout"}</h1>
@@ -412,7 +673,11 @@ function Checkout() {
                     </div>
 
                     {step === "payment" ? (
-                        <button type="button" className="cart-continue" onClick={handleBack}>
+                        <button
+                            type="button"
+                            className="cart-continue"
+                            onClick={handleBack}
+                        >
                             <i className="fa-solid fa-arrow-left" aria-hidden="true" />
                             Back to Checkout
                         </button>
@@ -424,7 +689,29 @@ function Checkout() {
                     )}
                 </div>
 
-                <form className="checkout-layout" onSubmit={handleCheckout} noValidate>
+                {(addressError || cartError) && (
+                    <div className="alert alert-danger" role="alert">
+                        {addressError || cartError}
+
+                        <button
+                            type="button"
+                            className="btn btn-link"
+                            disabled={processing || cartLoading}
+                            onClick={() => {
+                                loadAddresses();
+                                refreshCart();
+                            }}
+                        >
+                            Retry
+                        </button>
+                    </div>
+                )}
+
+                <form
+                    className="checkout-layout"
+                    onSubmit={handleCheckout}
+                    noValidate
+                >
                     <div className="checkout-main">
                         {step === "checkout" ? (
                             <>
@@ -447,7 +734,9 @@ function Checkout() {
                                                 address={selectedAddress}
                                                 onChange={() => openAddressDialog("list")}
                                                 onAdd={() => openAddressDialog("add")}
-                                                onEdit={() => openAddressDialog("edit", selectedAddress.id)}
+                                                onEdit={() =>
+                                                    openAddressDialog("edit", selectedAddress.id)
+                                                }
                                                 onDelete={() =>
                                                     openAddressDialog("delete", selectedAddress.id)
                                                 }
@@ -463,14 +752,15 @@ function Checkout() {
                                                     onChange={setAddress}
                                                     errors={errors}
                                                     submitted={submitted}
+                                                    disabled={processing}
                                                 />
                                             </>
                                         )}
 
                                         <div className="checkout-address-note">
                                             <i className="fa-solid fa-circle-info" aria-hidden="true" />
-                                            Your delivery address will be saved automatically for future
-                                            orders.
+                                            Your delivery address will be saved automatically
+                                            for future orders.
                                         </div>
                                     </div>
                                 </section>
@@ -493,34 +783,9 @@ function Checkout() {
                                     </div>
 
                                     <ul className="checkout-items">
-                                        {cartItems.map(({ product, quantity, price, stock, validPrice }) => (
-                                            <li key={product._id} className="checkout-item">
-                                                <Link
-                                                    to={
-                                                        product.productPath ||
-                                                        getProductPath(
-                                                            product.productId || product._id,
-                                                            product.variantId
-                                                        )
-                                                    }
-                                                    className="checkout-item-image"
-                                                    aria-label={`View ${product.name}`}
-                                                >
-                                                    {product.image ? (
-                                                        <img
-                                                            src={product.image}
-                                                            alt={product.name}
-                                                            loading="lazy"
-                                                        />
-                                                    ) : (
-                                                        <i
-                                                            className="fa-regular fa-image"
-                                                            aria-hidden="true"
-                                                        />
-                                                    )}
-                                                </Link>
-
-                                                <div className="checkout-item-info">
+                                        {cartItems.map(
+                                            ({ product, quantity, price, stock, validPrice }) => (
+                                                <li key={product._id} className="checkout-item">
                                                     <Link
                                                         to={
                                                             product.productPath ||
@@ -529,42 +794,69 @@ function Checkout() {
                                                                 product.variantId
                                                             )
                                                         }
-                                                        className="checkout-item-name"
+                                                        className="checkout-item-image"
+                                                        aria-label={`View ${product.name}`}
                                                     >
-                                                        {product.name}
+                                                        {product.image ? (
+                                                            <img
+                                                                src={product.image}
+                                                                alt={product.name}
+                                                                loading="lazy"
+                                                            />
+                                                        ) : (
+                                                            <i
+                                                                className="fa-regular fa-image"
+                                                                aria-hidden="true"
+                                                            />
+                                                        )}
                                                     </Link>
 
-                                                    {(product.variantLabel || product.packLabel) && (
-                                                        <p className="checkout-item-variant">
-                                                            {[
-                                                                ...new Set(
-                                                                    [
-                                                                        product.variantLabel,
-                                                                        product.packLabel
-                                                                    ].filter(Boolean)
+                                                    <div className="checkout-item-info">
+                                                        <Link
+                                                            to={
+                                                                product.productPath ||
+                                                                getProductPath(
+                                                                    product.productId || product._id,
+                                                                    product.variantId
                                                                 )
-                                                            ].join(" · ")}
-                                                        </p>
-                                                    )}
+                                                            }
+                                                            className="checkout-item-name"
+                                                        >
+                                                            {product.name}
+                                                        </Link>
 
-                                                    <span className="checkout-item-quantity">
-                                                        Quantity: {quantity}
-                                                    </span>
+                                                        {(product.variantLabel || product.packLabel) && (
+                                                            <p className="checkout-item-variant">
+                                                                {[
+                                                                    ...new Set(
+                                                                        [
+                                                                            product.variantLabel,
+                                                                            product.packLabel
+                                                                        ].filter(Boolean)
+                                                                    )
+                                                                ].join(" · ")}
+                                                            </p>
+                                                        )}
 
-                                                    {(!validPrice || quantity > stock) && (
-                                                        <p className="checkout-item-error">
-                                                            Item unavailable
-                                                        </p>
-                                                    )}
-                                                </div>
+                                                        <span className="checkout-item-quantity">
+                                                            Quantity: {quantity}
+                                                        </span>
 
-                                                <div className="checkout-item-price">
-                                                    {validPrice
-                                                        ? formatPrice(price * quantity)
-                                                        : "Unavailable"}
-                                                </div>
-                                            </li>
-                                        ))}
+                                                        {(!validPrice || quantity > stock) && (
+                                                            <p className="checkout-item-error">
+                                                                Item unavailable
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="checkout-item-price">
+                                                        {validPrice
+                                                            ? formatPrice(price * quantity)
+                                                            : "Unavailable"}
+                                                    </div>
+                                                </li>
+                                            )
+                                        )}
                                     </ul>
                                 </section>
 
@@ -605,12 +897,10 @@ function Checkout() {
                                                 />
                                                 UPI
                                             </span>
-
                                             <span>
                                                 <i className="fa-regular fa-credit-card" aria-hidden="true" />
                                                 Cards
                                             </span>
-
                                             <span>
                                                 <i
                                                     className="fa-solid fa-building-columns"
@@ -648,7 +938,9 @@ function Checkout() {
                                                 address={selectedAddress}
                                                 onChange={() => openAddressDialog("list")}
                                                 onAdd={() => openAddressDialog("add")}
-                                                onEdit={() => openAddressDialog("edit", selectedAddress.id)}
+                                                onEdit={() =>
+                                                    openAddressDialog("edit", selectedAddress.id)
+                                                }
                                                 onDelete={() =>
                                                     openAddressDialog("delete", selectedAddress.id)
                                                 }
@@ -711,8 +1003,21 @@ function Checkout() {
                             </p>
                         )}
 
-                        <button type="submit" className="checkout-pay-button" disabled={!canCheckout}>
-                            {step === "payment" ? "Pay Securely" : "Continue to Payment"}
+                        <button
+                            type="submit"
+                            className="checkout-pay-button"
+                            disabled={
+                                !canCheckout ||
+                                processing ||
+                                cartLoading ||
+                                addressLoading
+                            }
+                        >
+                            {processing
+                                ? "Checking checkout…"
+                                : step === "payment"
+                                  ? "Pay Securely"
+                                  : "Continue to Payment"}
 
                             <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                         </button>
@@ -767,7 +1072,9 @@ function Checkout() {
                         {pricing.appliedCoupon && (
                             <div className="d-flex justify-content-between gap-3 mt-2">
                                 <span className="text-muted small">Applied Coupon</span>
-                                <strong className="text-success small">{pricing.appliedCoupon}</strong>
+                                <strong className="text-success small">
+                                    {pricing.appliedCoupon}
+                                </strong>
                             </div>
                         )}
                     </div>
@@ -777,7 +1084,9 @@ function Checkout() {
                             type="button"
                             variant="contained"
                             color="success"
-                            onClick={() => handlePaymentResult("success", Date.now())}
+                            onClick={() =>
+                                handlePaymentResult("success", Date.now())
+                            }
                         >
                             Simulate Successful Payment
                         </Button>
@@ -786,7 +1095,9 @@ function Checkout() {
                             type="button"
                             variant="outlined"
                             color="error"
-                            onClick={() => handlePaymentResult("failed", Date.now())}
+                            onClick={() =>
+                                handlePaymentResult("failed", Date.now())
+                            }
                         >
                             Simulate Failed Payment
                         </Button>
@@ -795,7 +1106,9 @@ function Checkout() {
                             type="button"
                             variant="outlined"
                             color="warning"
-                            onClick={() => handlePaymentResult("cancelled", Date.now())}
+                            onClick={() =>
+                                handlePaymentResult("cancelled", Date.now())
+                            }
                         >
                             Simulate Cancelled Payment
                         </Button>
@@ -803,7 +1116,10 @@ function Checkout() {
                 </DialogContent>
 
                 <DialogActions>
-                    <Button type="button" onClick={() => setPaymentDialogOpen(false)}>
+                    <Button
+                        type="button"
+                        onClick={() => setPaymentDialogOpen(false)}
+                    >
                         Close
                     </Button>
                 </DialogActions>

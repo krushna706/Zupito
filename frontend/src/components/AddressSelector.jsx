@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
     Button,
     Dialog,
@@ -9,25 +9,22 @@ import {
     MenuItem,
     TextField
 } from "@mui/material";
+import { toast } from "react-toastify";
 
 import AddressForm, { validateAddress } from "./AddressForm";
-
-const emptyAddress = {
-    name: "",
-    phone: "",
-    pincode: "",
-    house: "",
-    area: "",
-    city: "",
-    state: "",
-    landmark: "",
-    type: "Home"
-};
+import { emptyAddress } from "../services/userService";
 
 const getAddressId = (address) => String(address.id ?? address._id);
 
 const formatAddress = (address) =>
-    [address.house, address.area, address.landmark, address.city, address.state, address.pincode]
+    [
+        address.house,
+        address.area,
+        address.landmark,
+        address.city,
+        address.state,
+        address.pincode
+    ]
         .filter(Boolean)
         .join(", ");
 
@@ -43,11 +40,19 @@ function AddressSelector({
     onSave,
     onDelete
 }) {
-    const initialEditAddress = addresses.find((item) => getAddressId(item) === String(editAddressId));
+    const initialEditAddress = addresses.find(
+        (item) => getAddressId(item) === String(editAddressId)
+    );
 
-    const [mode, setMode] = useState(initialMode === "add" || initialMode === "edit" ? "form" : "list");
+    const [mode, setMode] = useState(
+        initialMode === "add" || initialMode === "edit"
+            ? "form"
+            : "list"
+    );
 
-    const [editingId, setEditingId] = useState(initialMode === "edit" ? editAddressId : null);
+    const [editingId, setEditingId] = useState(
+        initialMode === "edit" ? editAddressId : null
+    );
 
     const [draft, setDraft] = useState(() => ({
         ...emptyAddress,
@@ -56,8 +61,14 @@ function AddressSelector({
 
     const [submitted, setSubmitted] = useState(false);
     const [pendingDeleteId, setPendingDeleteId] = useState(initialDeleteId);
+    const [saving, setSaving] = useState(false);
 
+    const busy = useRef(false);
     const errors = validateAddress(draft);
+
+    const handleClose = () => {
+        if (!busy.current) onClose();
+    };
 
     const handleAddNew = () => {
         setEditingId(null);
@@ -75,33 +86,69 @@ function AddressSelector({
         setMode("form");
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         setSubmitted(true);
 
-        if (Object.values(errors).some(Boolean)) return;
+        if (busy.current || Object.values(errors).some(Boolean)) return;
 
-        onSave({
-            ...draft,
-            id: editingId || undefined
-        });
+        busy.current = true;
+        setSaving(true);
 
-        onClose();
+        try {
+            const result = await onSave({
+                ...draft,
+                id: editingId || undefined
+            });
+
+            if (result) onClose();
+        } catch (failure) {
+            toast.error(failure.message);
+        } finally {
+            busy.current = false;
+            setSaving(false);
+        }
     };
 
-    const handleSelect = (id) => {
-        onSelect(id);
-        onClose();
+    const handleSelect = async (id) => {
+        if (busy.current) return;
+
+        busy.current = true;
+        setSaving(true);
+
+        try {
+            const result = await onSelect(id);
+
+            if (result) onClose();
+        } catch (failure) {
+            toast.error(failure.message);
+        } finally {
+            busy.current = false;
+            setSaving(false);
+        }
     };
 
-    const handleDelete = (id) => {
-        onDelete(id);
-        setPendingDeleteId(null);
+    const handleDelete = async (id) => {
+        if (busy.current) return;
+
+        busy.current = true;
+        setSaving(true);
+
+        try {
+            const result = await onDelete(id);
+
+            if (result) setPendingDeleteId(null);
+        } catch (failure) {
+            toast.error(failure.message);
+        } finally {
+            busy.current = false;
+            setSaving(false);
+        }
     };
 
     return (
         <Dialog
             open={open}
-            onClose={onClose}
+            onClose={handleClose}
             fullWidth
             maxWidth="sm"
             className="checkout-address-dialog"
@@ -116,6 +163,7 @@ function AddressSelector({
                                 : "Add New Address"
                             : "Choose Delivery Address"}
                     </h2>
+
                     <p>
                         {mode === "form"
                             ? "Enter your delivery details."
@@ -123,7 +171,13 @@ function AddressSelector({
                     </p>
                 </div>
 
-                <IconButton type="button" aria-label="Close" onClick={onClose} size="small">
+                <IconButton
+                    disabled={saving}
+                    type="button"
+                    aria-label="Close"
+                    onClick={handleClose}
+                    size="small"
+                >
                     <i className="fa-solid fa-xmark" aria-hidden="true" />
                 </IconButton>
             </DialogTitle>
@@ -145,10 +199,13 @@ function AddressSelector({
                                 return (
                                     <div
                                         key={id}
-                                        className={`checkout-address-option ${selected ? "is-selected" : ""}`}
+                                        className={`checkout-address-option ${
+                                            selected ? "is-selected" : ""
+                                        }`}
                                     >
                                         <label className="checkout-address-option-main">
                                             <input
+                                                disabled={saving}
                                                 type="radio"
                                                 name="selectedDeliveryAddress"
                                                 value={id}
@@ -182,7 +239,11 @@ function AddressSelector({
                                         </label>
 
                                         <div className="checkout-address-option-actions">
-                                            <button type="button" onClick={() => handleEdit(address)}>
+                                            <button
+                                                disabled={saving}
+                                                type="button"
+                                                onClick={() => handleEdit(address)}
+                                            >
                                                 <i
                                                     className="fa-regular fa-pen-to-square"
                                                     aria-hidden="true"
@@ -191,6 +252,7 @@ function AddressSelector({
                                             </button>
 
                                             <button
+                                                disabled={saving}
                                                 type="button"
                                                 className="is-danger"
                                                 onClick={() => setPendingDeleteId(id)}
@@ -204,11 +266,16 @@ function AddressSelector({
                                             <div className="checkout-address-delete-confirm">
                                                 <span>Delete this address?</span>
 
-                                                <button type="button" onClick={() => handleDelete(id)}>
+                                                <button
+                                                    disabled={saving}
+                                                    type="button"
+                                                    onClick={() => handleDelete(id)}
+                                                >
                                                     Yes, Delete
                                                 </button>
 
                                                 <button
+                                                    disabled={saving}
                                                     type="button"
                                                     onClick={() => setPendingDeleteId(null)}
                                                 >
@@ -224,6 +291,7 @@ function AddressSelector({
                 ) : (
                     <div className="checkout-address-editor">
                         <TextField
+                            disabled={saving}
                             select
                             fullWidth
                             size="small"
@@ -243,6 +311,7 @@ function AddressSelector({
                         </TextField>
 
                         <AddressForm
+                            disabled={saving}
                             address={draft}
                             onChange={setDraft}
                             errors={errors}
@@ -255,11 +324,17 @@ function AddressSelector({
             <DialogActions className="checkout-address-dialog-actions">
                 {mode === "list" ? (
                     <>
-                        <Button type="button" onClick={onClose} className="checkout-dialog-secondary">
+                        <Button
+                            disabled={saving}
+                            type="button"
+                            onClick={handleClose}
+                            className="checkout-dialog-secondary"
+                        >
                             Close
                         </Button>
 
                         <Button
+                            disabled={saving}
                             type="button"
                             variant="contained"
                             onClick={handleAddNew}
@@ -272,6 +347,7 @@ function AddressSelector({
                 ) : (
                     <>
                         <Button
+                            disabled={saving}
                             type="button"
                             onClick={() => {
                                 if (addresses.length > 0) {
@@ -287,6 +363,7 @@ function AddressSelector({
                         </Button>
 
                         <Button
+                            disabled={saving}
                             type="button"
                             variant="contained"
                             onClick={handleSave}

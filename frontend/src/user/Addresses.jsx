@@ -1,88 +1,36 @@
-import { useEffect, useState } from "react";
-import { Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from "@mui/material";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    MenuItem,
+    TextField
+} from "@mui/material";
 import { toast } from "react-toastify";
 
-const STORAGE_KEY = "zupito_delivery_addresses";
+import {
+    addressTypes,
+    emptyAddress,
+    getAddresses,
+    normalizeAddress,
+    removeAddress,
+    saveAddress,
+    setDefaultAddress,
+    validateAddress
+} from "../services/userService";
 
-const emptyAddress = {
-    name: "",
-    phone: "",
-    pincode: "",
-    house: "",
-    area: "",
-    city: "",
-    state: "",
-    landmark: "",
-    type: "Home"
-};
-
-const addressTypes = ["Home", "Work", "Other"];
-
-function getStoredAddresses() {
-    try {
-        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-
-        if (!stored || !Array.isArray(stored.addresses)) {
-            return {
-                addresses: [],
-                selectedId: null
-            };
-        }
-
-        const addresses = stored.addresses.filter(
-            (address) => address && typeof address === "object" && address.id
-        );
-
-        const selectedId = addresses.some((address) => address.id === stored.selectedId)
-            ? stored.selectedId
-            : addresses[0]?.id || null;
-
-        return { addresses, selectedId };
-    } catch {
-        return {
-            addresses: [],
-            selectedId: null
-        };
-    }
-}
-
-function validateAddress(address) {
-    const errors = {};
-
-    if (address.name.length < 2 || address.name.length > 80) {
-        errors.name = "Enter a valid name (2–80 characters).";
-    }
-
-    if (!/^[6-9]\d{9}$/.test(address.phone)) {
-        errors.phone = "Enter a valid 10-digit mobile number.";
-    }
-
-    if (!/^\d{6}$/.test(address.pincode)) {
-        errors.pincode = "Enter a valid 6-digit PIN code.";
-    }
-
-    if (address.house.length < 2) {
-        errors.house = "Enter house, building or flat details.";
-    }
-
-    if (address.area.length < 2) {
-        errors.area = "Enter your street or area.";
-    }
-
-    if (address.city.length < 2) {
-        errors.city = "Enter a valid city.";
-    }
-
-    if (address.state.length < 2) {
-        errors.state = "Enter a valid state.";
-    }
-
-    if (!addressTypes.includes(address.type)) {
-        errors.type = "Select an address type.";
-    }
-
-    return errors;
-}
+const addressFields = [
+    { name: "name", label: "Full Name", autoComplete: "name", maxLength: 80 },
+    { name: "phone", label: "Mobile Number", autoComplete: "tel", maxLength: 10, numeric: true },
+    { name: "pincode", label: "PIN Code", autoComplete: "postal-code", maxLength: 6, numeric: true },
+    { name: "type", label: "Address Type", select: true },
+    { name: "house", label: "House / Flat / Building", autoComplete: "address-line1", full: true },
+    { name: "area", label: "Street / Area / Locality", autoComplete: "address-line2", full: true },
+    { name: "city", label: "City", autoComplete: "address-level2", maxLength: 80 },
+    { name: "state", label: "State", autoComplete: "address-level1", maxLength: 80 },
+    { name: "landmark", label: "Landmark (Optional)", full: true }
+];
 
 function getAddressIcon(type) {
     if (type === "Home") return "fa-house";
@@ -91,52 +39,98 @@ function getAddressIcon(type) {
     return "fa-location-dot";
 }
 
-function createAddressId() {
-    if (typeof crypto !== "undefined" && crypto.randomUUID) {
-        return crypto.randomUUID();
-    }
-
-    return `address-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
 function Addresses() {
-    const [addressData, setAddressData] = useState(getStoredAddresses);
+    const [addressData, setAddressData] = useState({
+        addresses: [],
+        selectedId: null,
+        version: 0
+    });
+
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+
     const [formOpen, setFormOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState(emptyAddress);
     const [formErrors, setFormErrors] = useState({});
     const [deleteAddress, setDeleteAddress] = useState(null);
 
+    const busy = useRef(false);
+    const mounted = useRef(false);
+    const generation = useRef(0);
+
     const { addresses, selectedId } = addressData;
 
     const sortedAddresses = [...addresses].sort(
-        (a, b) => Number(b.id === selectedId) - Number(a.id === selectedId)
+        (a, b) =>
+            Number(b.id === selectedId) -
+            Number(a.id === selectedId)
     );
 
-    // Sync address changes from other browser tabs.
-    useEffect(() => {
-        const syncAddresses = (event) => {
-            if (event.key === STORAGE_KEY || event.key === null) {
-                setAddressData(getStoredAddresses());
+    const refresh = useCallback(async () => {
+        if (busy.current) return;
+
+        const request = ++generation.current;
+        setLoading(true);
+
+        try {
+            const data = await getAddresses();
+
+            if (mounted.current && request === generation.current) {
+                setAddressData(data);
+                setError("");
             }
-        };
-
-        window.addEventListener("storage", syncAddresses);
-
-        return () => {
-            window.removeEventListener("storage", syncAddresses);
-        };
+        } catch (failure) {
+            if (mounted.current && request === generation.current) {
+                setError(failure.message);
+            }
+        } finally {
+            if (mounted.current && request === generation.current) {
+                setLoading(false);
+            }
+        }
     }, []);
 
-    const saveAddressData = (nextData) => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(nextData));
+    useEffect(() => {
+        mounted.current = true;
+        refresh();
 
-            setAddressData(nextData);
-            return true;
-        } catch {
-            toast.error("Unable to save addresses. Please try again.");
-            return false;
+        window.addEventListener("focus", refresh);
+
+        return () => {
+            mounted.current = false;
+            generation.current += 1;
+            window.removeEventListener("focus", refresh);
+        };
+    }, [refresh]);
+
+    const mutate = async (operation) => {
+        if (busy.current || loading || error) return null;
+
+        busy.current = true;
+        generation.current += 1;
+        setSaving(true);
+
+        try {
+            const data = await operation();
+
+            if (!mounted.current) return null;
+
+            setAddressData(data);
+            return data;
+        } catch (failure) {
+            if (mounted.current) toast.error(failure.message);
+
+            busy.current = false;
+
+            if (mounted.current) await refresh();
+
+            return null;
+        } finally {
+            busy.current = false;
+
+            if (mounted.current) setSaving(false);
         }
     };
 
@@ -149,24 +143,14 @@ function Addresses() {
 
     const openEditForm = (address) => {
         setEditingId(address.id);
-
-        setFormData({
-            name: address.name || "",
-            phone: address.phone || "",
-            pincode: address.pincode || "",
-            house: address.house || "",
-            area: address.area || "",
-            city: address.city || "",
-            state: address.state || "",
-            landmark: address.landmark || "",
-            type: address.type || "Home"
-        });
-
+        setFormData(normalizeAddress(address));
         setFormErrors({});
         setFormOpen(true);
     };
 
     const closeForm = () => {
+        if (busy.current) return;
+
         setFormOpen(false);
         setEditingId(null);
         setFormErrors({});
@@ -189,89 +173,61 @@ function Addresses() {
             [name]: nextValue
         }));
 
-        if (formErrors[name]) {
-            setFormErrors((previous) => ({
-                ...previous,
-                [name]: ""
-            }));
-        }
+        setFormErrors((previous) => ({
+            ...previous,
+            [name]: ""
+        }));
     };
 
-    const handleSaveAddress = (event) => {
+    const handleSaveAddress = async (event) => {
         event.preventDefault();
 
-        const normalized = Object.fromEntries(
-            Object.entries(formData).map(([key, value]) => [
-                key,
-                typeof value === "string" ? value.trim() : value
-            ])
-        );
-
+        const normalized = normalizeAddress(formData);
         const errors = validateAddress(normalized);
 
-        if (Object.keys(errors).length > 0) {
+        if (Object.keys(errors).length) {
             setFormErrors(errors);
             return;
         }
 
-        let nextAddresses;
-        let nextSelectedId = selectedId;
+        const result = await mutate(() =>
+            saveAddress(
+                { ...normalized, id: editingId },
+                addressData.version
+            )
+        );
 
-        if (editingId !== null) {
-            nextAddresses = addresses.map((address) =>
-                address.id === editingId ? { ...address, ...normalized } : address
-            );
-        } else {
-            const newAddress = {
-                id: createAddressId(),
-                ...normalized
-            };
+        if (!result) return;
 
-            nextAddresses = [...addresses, newAddress];
-
-            if (!selectedId) {
-                nextSelectedId = newAddress.id;
-            }
-        }
-
-        const saved = saveAddressData({
-            addresses: nextAddresses,
-            selectedId: nextSelectedId
-        });
-
-        if (!saved) return;
-
-        toast.success(editingId !== null ? "Address updated successfully." : "Address added successfully.");
+        toast.success(
+            editingId
+                ? "Address updated successfully."
+                : "Address added successfully."
+        );
 
         closeForm();
     };
 
-    const handleSetDefault = (addressId) => {
+    const handleSetDefault = async (addressId) => {
         if (addressId === selectedId) return;
 
-        const saved = saveAddressData({
-            addresses,
-            selectedId: addressId
-        });
+        const result = await mutate(() =>
+            setDefaultAddress(addressId, addressData.version)
+        );
 
-        if (saved) {
+        if (result) {
             toast.success("Default delivery address updated.");
         }
     };
 
-    const handleDeleteAddress = () => {
+    const handleDeleteAddress = async () => {
         if (!deleteAddress) return;
 
-        const nextAddresses = addresses.filter((address) => address.id !== deleteAddress.id);
+        const result = await mutate(() =>
+            removeAddress(deleteAddress.id, addressData.version)
+        );
 
-        const nextSelectedId = selectedId === deleteAddress.id ? nextAddresses[0]?.id || null : selectedId;
-
-        const saved = saveAddressData({
-            addresses: nextAddresses,
-            selectedId: nextSelectedId
-        });
-
-        if (!saved) return;
+        if (!result) return;
 
         setDeleteAddress(null);
         toast.success("Address deleted successfully.");
@@ -282,18 +238,41 @@ function Addresses() {
             {/* Page Heading */}
             <div className="customer-addresses-heading">
                 <div>
-                    <span className="customer-addresses-eyebrow">DELIVERY LOCATIONS</span>
-
+                    <span className="customer-addresses-eyebrow">
+                        DELIVERY LOCATIONS
+                    </span>
                     <h2>Saved Addresses</h2>
-
-                    <p>Add and manage delivery addresses for a faster checkout experience.</p>
+                    <p>
+                        Add and manage delivery addresses for a faster checkout experience.
+                    </p>
                 </div>
 
-                <button type="button" className="customer-addresses-add-button" onClick={openAddForm}>
+                <button
+                    disabled={saving || loading || Boolean(error)}
+                    type="button"
+                    className="customer-addresses-add-button"
+                    onClick={openAddForm}
+                >
                     <i className="fa-solid fa-plus" aria-hidden="true" />
                     Add New Address
                 </button>
             </div>
+
+            {error && (
+                <div className="alert alert-danger" role="alert">
+                    {error}{" "}
+                    <button
+                        type="button"
+                        className="btn btn-link"
+                        onClick={refresh}
+                        disabled={loading || saving}
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
+
+            {loading && <p role="status">Loading addresses…</p>}
 
             {/* Address Summary */}
             <div className="customer-addresses-summary">
@@ -303,10 +282,12 @@ function Addresses() {
 
                 <div>
                     <strong>
-                        {addresses.length} Saved {addresses.length === 1 ? "Address" : "Addresses"}
+                        {addresses.length} Saved{" "}
+                        {addresses.length === 1 ? "Address" : "Addresses"}
                     </strong>
-
-                    <p>Choose your preferred delivery location and keep your address details updated.</p>
+                    <p>
+                        Choose your preferred delivery location and keep your address details updated.
+                    </p>
                 </div>
 
                 <span className="customer-addresses-summary-decoration">
@@ -315,118 +296,128 @@ function Addresses() {
             </div>
 
             {/* Saved Address Cards */}
-            {addresses.length === 0 ? (
-                <div className="customer-addresses-empty">
-                    <span className="customer-addresses-empty-icon">
-                        <i className="fa-solid fa-map-location-dot" aria-hidden="true" />
-                    </span>
+            {!loading && !error && (
+                addresses.length === 0 ? (
+                    <div className="customer-addresses-empty">
+                        <span className="customer-addresses-empty-icon">
+                            <i className="fa-solid fa-map-location-dot" aria-hidden="true" />
+                        </span>
 
-                    <h3>No saved addresses yet</h3>
+                        <h3>No saved addresses yet</h3>
+                        <p>
+                            Add your first delivery address to make checkout faster and more convenient.
+                        </p>
 
-                    <p>Add your first delivery address to make checkout faster and more convenient.</p>
+                        <button
+                            disabled={saving || loading || Boolean(error)}
+                            type="button"
+                            onClick={openAddForm}
+                        >
+                            <i className="fa-solid fa-plus" aria-hidden="true" />
+                            Add Your First Address
+                        </button>
+                    </div>
+                ) : (
+                    <div className="customer-addresses-grid">
+                        {sortedAddresses.map((address) => {
+                            const isDefault = address.id === selectedId;
 
-                    <button type="button" onClick={openAddForm}>
-                        <i className="fa-solid fa-plus" aria-hidden="true" />
-                        Add Your First Address
-                    </button>
-                </div>
-            ) : (
-                <div className="customer-addresses-grid">
-                    {sortedAddresses.map((address) => {
-                        const isDefault = address.id === selectedId;
-
-                        return (
-                            <article
-                                key={address.id}
-                                className={`customer-address-card ${isDefault ? "is-default" : ""}`}
-                            >
-                                <div className="customer-address-card-header">
-                                    <div className="customer-address-card-type">
-                                        <span>
-                                            <i
-                                                className={`fa-solid ${getAddressIcon(address.type)}`}
-                                                aria-hidden="true"
-                                            />
-                                        </span>
-
-                                        <strong>{address.type || "Other"}</strong>
-                                    </div>
-
-                                    {isDefault && (
-                                        <span className="customer-address-default-badge">
-                                            <i className="fa-solid fa-circle-check" aria-hidden="true" />
-                                            Default Address
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className="customer-address-card-body">
-                                    <h3>{address.name}</h3>
-
-                                    <p className="customer-address-card-phone">
-                                        <i className="fa-solid fa-phone" aria-hidden="true" />
-                                        {address.phone}
-                                    </p>
-
-                                    <div className="customer-address-card-location">
-                                        <i className="fa-solid fa-location-dot" aria-hidden="true" />
-
-                                        <p>
-                                            {address.house}, {address.area}
-                                            {address.landmark ? `, ${address.landmark}` : ""}
+                            return (
+                                <article
+                                    key={address.id}
+                                    className={`customer-address-card ${
+                                        isDefault ? "is-default" : ""
+                                    }`}
+                                >
+                                    <div className="customer-address-card-header">
+                                        <div className="customer-address-card-type">
                                             <span>
-                                                {address.city}, {address.state}
+                                                <i
+                                                    className={`fa-solid ${getAddressIcon(address.type)}`}
+                                                    aria-hidden="true"
+                                                />
                                             </span>
-                                            <span>PIN: {address.pincode}</span>
+                                            <strong>{address.type || "Other"}</strong>
+                                        </div>
+
+                                        {isDefault && (
+                                            <span className="customer-address-default-badge">
+                                                <i className="fa-solid fa-circle-check" aria-hidden="true" />
+                                                Default Address
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="customer-address-card-body">
+                                        <h3>{address.name}</h3>
+
+                                        <p className="customer-address-card-phone">
+                                            <i className="fa-solid fa-phone" aria-hidden="true" />
+                                            {address.phone}
                                         </p>
-                                    </div>
-                                </div>
 
-                                <div className="customer-address-card-footer">
-                                    <div className="customer-address-card-tools">
-                                        <button
-                                            type="button"
-                                            className="customer-address-edit"
-                                            onClick={() => openEditForm(address)}
-                                        >
-                                            <i className="fa-solid fa-pen" aria-hidden="true" />
-                                            Edit
-                                        </button>
+                                        <div className="customer-address-card-location">
+                                            <i className="fa-solid fa-location-dot" aria-hidden="true" />
 
-                                        <button
-                                            type="button"
-                                            className="customer-address-delete"
-                                            onClick={() => setDeleteAddress(address)}
-                                        >
-                                            <i className="fa-solid fa-trash-can" aria-hidden="true" />
-                                            Delete
-                                        </button>
+                                            <p>
+                                                {address.house}, {address.area}
+                                                {address.landmark ? `, ${address.landmark}` : ""}
+                                                <span>
+                                                    {address.city}, {address.state}
+                                                </span>
+                                                <span>PIN: {address.pincode}</span>
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    {!isDefault && (
-                                        <button
-                                            type="button"
-                                            className="customer-address-set-default"
-                                            onClick={() => handleSetDefault(address.id)}
-                                        >
-                                            Set as Default
-                                            <i className="fa-solid fa-arrow-right" aria-hidden="true" />
-                                        </button>
-                                    )}
-                                </div>
-                            </article>
-                        );
-                    })}
-                </div>
+                                    <div className="customer-address-card-footer">
+                                        <div className="customer-address-card-tools">
+                                            <button
+                                                disabled={saving || loading || Boolean(error)}
+                                                type="button"
+                                                className="customer-address-edit"
+                                                onClick={() => openEditForm(address)}
+                                            >
+                                                <i className="fa-solid fa-pen" aria-hidden="true" />
+                                                Edit
+                                            </button>
+
+                                            <button
+                                                disabled={saving || loading || Boolean(error)}
+                                                type="button"
+                                                className="customer-address-delete"
+                                                onClick={() => setDeleteAddress(address)}
+                                            >
+                                                <i className="fa-solid fa-trash-can" aria-hidden="true" />
+                                                Delete
+                                            </button>
+                                        </div>
+
+                                        {!isDefault && (
+                                            <button
+                                                disabled={saving || loading || Boolean(error)}
+                                                type="button"
+                                                className="customer-address-set-default"
+                                                onClick={() => handleSetDefault(address.id)}
+                                            >
+                                                Set as Default
+                                                <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </article>
+                            );
+                        })}
+                    </div>
+                )
             )}
 
             {/* Important Information */}
             <div className="customer-addresses-info">
                 <i className="fa-solid fa-circle-info" aria-hidden="true" />
-
                 <p>
-                    Your default address is preselected at checkout. Updating a saved address will not change
-                    delivery details on an existing order.
+                    Your default address is preselected at checkout. Updating a saved address
+                    will not change delivery details on an existing order.
                 </p>
             </div>
 
@@ -451,181 +442,74 @@ function Addresses() {
                         </span>
 
                         <span>
-                            <strong>{editingId !== null ? "Edit Address" : "Add New Address"}</strong>
-
+                            <strong>
+                                {editingId !== null ? "Edit Address" : "Add New Address"}
+                            </strong>
                             <small>Fill in your delivery information below.</small>
                         </span>
                     </span>
                 </DialogTitle>
 
                 <DialogContent dividers>
-                    <form id="customer-address-form" onSubmit={handleSaveAddress} noValidate>
+                    <form
+                        id="customer-address-form"
+                        onSubmit={handleSaveAddress}
+                        noValidate
+                    >
                         <div className="customer-address-form-grid">
-                            <TextField
-                                label="Full Name"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleInputChange}
-                                error={Boolean(formErrors.name)}
-                                helperText={formErrors.name}
-                                autoComplete="name"
-                                required
-                                fullWidth
-                                size="small"
-                                slotProps={{
-                                    htmlInput: { maxLength: 80 }
-                                }}
-                            />
-
-                            <TextField
-                                label="Mobile Number"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleInputChange}
-                                error={Boolean(formErrors.phone)}
-                                helperText={formErrors.phone}
-                                autoComplete="tel"
-                                required
-                                fullWidth
-                                size="small"
-                                slotProps={{
-                                    htmlInput: {
-                                        inputMode: "numeric"
+                            {addressFields.map((field) => (
+                                <TextField
+                                    key={field.name}
+                                    disabled={saving}
+                                    select={Boolean(field.select)}
+                                    label={field.label}
+                                    name={field.name}
+                                    value={formData[field.name]}
+                                    onChange={handleInputChange}
+                                    error={Boolean(formErrors[field.name])}
+                                    helperText={formErrors[field.name]}
+                                    autoComplete={field.autoComplete}
+                                    required={field.name !== "landmark"}
+                                    fullWidth
+                                    size="small"
+                                    className={
+                                        field.full ? "customer-address-form-full" : undefined
                                     }
-                                }}
-                            />
-
-                            <TextField
-                                label="PIN Code"
-                                name="pincode"
-                                value={formData.pincode}
-                                onChange={handleInputChange}
-                                error={Boolean(formErrors.pincode)}
-                                helperText={formErrors.pincode}
-                                autoComplete="postal-code"
-                                required
-                                fullWidth
-                                size="small"
-                                slotProps={{
-                                    htmlInput: {
-                                        inputMode: "numeric"
-                                    }
-                                }}
-                            />
-
-                            <TextField
-                                select
-                                label="Address Type"
-                                name="type"
-                                value={formData.type}
-                                onChange={handleInputChange}
-                                error={Boolean(formErrors.type)}
-                                helperText={formErrors.type}
-                                required
-                                fullWidth
-                                size="small"
-                            >
-                                {addressTypes.map((type) => (
-                                    <MenuItem key={type} value={type}>
-                                        {type}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-
-                            <TextField
-                                label="House / Flat / Building"
-                                name="house"
-                                value={formData.house}
-                                onChange={handleInputChange}
-                                error={Boolean(formErrors.house)}
-                                helperText={formErrors.house}
-                                autoComplete="address-line1"
-                                required
-                                fullWidth
-                                size="small"
-                                className="customer-address-form-full"
-                                slotProps={{
-                                    htmlInput: { maxLength: 150 }
-                                }}
-                            />
-
-                            <TextField
-                                label="Street / Area / Locality"
-                                name="area"
-                                value={formData.area}
-                                onChange={handleInputChange}
-                                error={Boolean(formErrors.area)}
-                                helperText={formErrors.area}
-                                autoComplete="address-line2"
-                                required
-                                fullWidth
-                                size="small"
-                                className="customer-address-form-full"
-                                slotProps={{
-                                    htmlInput: { maxLength: 150 }
-                                }}
-                            />
-
-                            <TextField
-                                label="City"
-                                name="city"
-                                value={formData.city}
-                                onChange={handleInputChange}
-                                error={Boolean(formErrors.city)}
-                                helperText={formErrors.city}
-                                autoComplete="address-level2"
-                                required
-                                fullWidth
-                                size="small"
-                                slotProps={{
-                                    htmlInput: { maxLength: 80 }
-                                }}
-                            />
-
-                            <TextField
-                                label="State"
-                                name="state"
-                                value={formData.state}
-                                onChange={handleInputChange}
-                                error={Boolean(formErrors.state)}
-                                helperText={formErrors.state}
-                                autoComplete="address-level1"
-                                required
-                                fullWidth
-                                size="small"
-                                slotProps={{
-                                    htmlInput: { maxLength: 80 }
-                                }}
-                            />
-
-                            <TextField
-                                label="Landmark (Optional)"
-                                name="landmark"
-                                value={formData.landmark}
-                                onChange={handleInputChange}
-                                fullWidth
-                                size="small"
-                                className="customer-address-form-full"
-                                slotProps={{
-                                    htmlInput: { maxLength: 150 }
-                                }}
-                            />
+                                    slotProps={{
+                                        htmlInput: {
+                                            maxLength: field.maxLength || 150,
+                                            inputMode: field.numeric ? "numeric" : "text"
+                                        }
+                                    }}
+                                >
+                                    {field.select && addressTypes.map((type) => (
+                                        <MenuItem key={type} value={type}>
+                                            {type}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            ))}
                         </div>
                     </form>
                 </DialogContent>
 
                 <DialogActions className="customer-address-dialog-actions">
-                    <button type="button" className="customer-address-dialog-cancel" onClick={closeForm}>
+                    <button
+                        disabled={saving}
+                        type="button"
+                        className="customer-address-dialog-cancel"
+                        onClick={closeForm}
+                    >
                         Cancel
                     </button>
 
                     <button
+                        disabled={saving || loading || Boolean(error)}
                         type="submit"
                         form="customer-address-form"
                         className="customer-address-dialog-save"
                     >
                         <i className="fa-solid fa-check" aria-hidden="true" />
-
                         {editingId !== null ? "Update Address" : "Save Address"}
                     </button>
                 </DialogActions>
@@ -634,22 +518,28 @@ function Addresses() {
             {/* Delete Confirmation */}
             <Dialog
                 open={Boolean(deleteAddress)}
-                onClose={() => setDeleteAddress(null)}
+                onClose={() => {
+                    if (!saving) setDeleteAddress(null);
+                }}
                 fullWidth
                 maxWidth="xs"
                 className="customer-address-delete-dialog"
                 aria-labelledby="customer-address-delete-title"
             >
-                <DialogTitle id="customer-address-delete-title">Delete Address?</DialogTitle>
+                <DialogTitle id="customer-address-delete-title">
+                    Delete Address?
+                </DialogTitle>
 
                 <DialogContent>
                     <p className="customer-address-delete-message">
-                        Are you sure you want to delete this saved address? This action cannot be undone.
+                        Are you sure you want to delete this saved address?
+                        This action cannot be undone.
                     </p>
                 </DialogContent>
 
                 <DialogActions className="customer-address-dialog-actions">
                     <button
+                        disabled={saving}
                         type="button"
                         className="customer-address-dialog-cancel"
                         onClick={() => setDeleteAddress(null)}
@@ -658,6 +548,7 @@ function Addresses() {
                     </button>
 
                     <button
+                        disabled={saving || loading || Boolean(error)}
                         type="button"
                         className="customer-address-dialog-delete"
                         onClick={handleDeleteAddress}

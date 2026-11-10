@@ -8,7 +8,7 @@ const formatPrice = new Intl.NumberFormat("en-IN", {
     minimumFractionDigits: 2
 }).format;
 
-function CheckoutSummary({ cartItems = [], couponCode, onCouponChange }) {
+function CheckoutSummary({ cartItems = [], couponCode, onCouponChange, serverPricing }) {
     const [couponInput, setCouponInput] = useState("");
     const [localCoupon, setLocalCoupon] = useState("");
     const [couponError, setCouponError] = useState("");
@@ -26,7 +26,7 @@ function CheckoutSummary({ cartItems = [], couponCode, onCouponChange }) {
         }
     };
 
-    const pricing = calculateCheckoutPricing(cartItems, selectedCoupon);
+    const pricing = serverPricing || calculateCheckoutPricing(cartItems, selectedCoupon);
     const invalidCoupon = selectedCoupon && !pricing.appliedCoupon;
     const visibleCouponError =
         couponError || (invalidCoupon ? "Coupon is not eligible for this order value." : "");

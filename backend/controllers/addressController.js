@@ -182,9 +182,9 @@ exports.changeAddress = (action) => async (req, res, next) => {
                 $set: { addresses, selectedId },
                 $inc: { __v: 1 },
             },
-            {
-                new: true,
-                runValidators: true,
+            { 
+                new: true, 
+                runValidators: true 
             }
         ).lean();
 

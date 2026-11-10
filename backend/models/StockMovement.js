@@ -16,7 +16,7 @@ const stockMovementSchema = new mongoose.Schema(
         sku: { type: String, required: true },
         type: {
             type: String,
-            enum: ["Opening", "Restock", "Adjustment", "Damage/Loss"],
+            enum: ["Opening", "Restock", "Adjustment", "Damage/Loss", "Sale"],
             required: true,
         },
         beforeQuantity: { type: Number, required: true },
@@ -27,7 +27,7 @@ const stockMovementSchema = new mongoose.Schema(
         reference: { type: String, default: "", maxlength: 80 },
         source: {
             type: String,
-            enum: ["product_form", "manual", "csv"],
+            enum: ["product_form", "manual", "csv", "order"],
             default: "product_form",
         },
         operationKey: {

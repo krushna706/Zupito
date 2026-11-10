@@ -15,18 +15,38 @@ const adminRoutes = require("./routes/adminRoutes");
 const sellerRoutes = require("./routes/sellerRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
+const checkoutRoutes = require("./routes/checkoutRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const orderRoutes = require("./routes/orderRoutes");
+
+const paymentController = require("./controllers/paymentController");
 
 const app = express();
 
 app.disable("x-powered-by");
 app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 0));
 
+// Security headers.
 app.use(
     helmet({
         contentSecurityPolicy:
             process.env.NODE_ENV === "production"
                 ? {
                       directives: {
+                          "script-src": [
+                              "'self'",
+                              "https://checkout.razorpay.com",
+                          ],
+                          "frame-src": [
+                              "'self'",
+                              "https://api.razorpay.com",
+                              "https://checkout.razorpay.com",
+                          ],
+                          "connect-src": [
+                              "'self'",
+                              "https://api.razorpay.com",
+                              "https://lumberjack.razorpay.com",
+                          ],
                           "img-src": [
                               "'self'",
                               "data:",
@@ -44,6 +64,7 @@ app.use(
     })
 );
 
+// Allow the configured frontend origin.
 app.use(
     cors({
         origin: process.env.CLIENT_ORIGIN,
@@ -52,10 +73,14 @@ app.use(
     })
 );
 
+// Webhook signature verification requires the original request body.
+app.post("/api/payments/webhook", express.raw({ type: "application/json", limit: "100kb" }), paymentController.webhook);
+
 app.use("/api", csrfMiddleware);
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
 
+// API health.
 app.get("/api/health", (req, res) => {
     res.json({
         success: true,
@@ -63,6 +88,7 @@ app.get("/api/health", (req, res) => {
     });
 });
 
+// API routes.
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -70,11 +96,15 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/seller", sellerRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/checkout", checkoutRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/orders", orderRoutes);
 
 app.use("/api", (req, res, next) => {
     next(new ExpressError(404, "API route not found."));
 });
 
+// Serve the frontend when enabled.
 if (process.env.SERVE_FRONTEND === "true") {
     const dist = path.join(__dirname, "../frontend/dist");
 

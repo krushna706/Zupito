@@ -54,7 +54,11 @@ async function startServer() {
         throw new Error("Invalid PORT.");
     }
 
+    require("./config/payment").getPaymentConfig();
+
     await connectDB();
+
+    require("./jobs/paymentReconciliation").startPaymentReconciliation();
 
     const app = require("./app");
 

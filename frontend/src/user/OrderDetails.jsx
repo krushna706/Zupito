@@ -19,7 +19,8 @@ import ParcelTimeline from "../components/OrderTimeline";
 import ParcelDeliveryOtp from "../components/DeliveryOTP";
 import OrderItemImage from "../components/OrderItems";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getCustomerOrder } from "../services/orderService";
 import { Link, useParams } from "react-router-dom";
 import ReviewForm from "../components/ReviewForm";
 import InvoiceDownload from "../components/InvoiceDownload";
@@ -652,7 +653,47 @@ function OrderDetailsContent({
     );
 }
 
-export default function OrderDetails(props) {
+export default function OrderDetails() {
     const { orderId } = useParams();
-    return <OrderDetailsContent key={orderId} {...props} />;
+
+    const [order, setOrder] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [revision, setRevision] = useState(0);
+
+    useEffect(() => {
+        let active = true;
+
+        setLoading(true);
+        setOrder(null);
+
+        getCustomerOrder(orderId)
+            .then((data) => {
+                if (active) {
+                    setOrder(data);
+                    setError("");
+                }
+            })
+            .catch((failure) => {
+                if (active) setError(failure.message);
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [orderId, revision]);
+
+    return (
+        <OrderDetailsContent
+            key={orderId}
+            order={order}
+            orders={[]}
+            loading={loading}
+            error={error}
+            onRetry={() => setRevision((value) => value + 1)}
+        />
+    );
 }

@@ -1,4 +1,5 @@
 
+import api from "./api";
 import { demoAddress, demoOrders, demoParcels } from "../data/orderPreview";
 
 import {
@@ -454,4 +455,26 @@ export function reportSellerIssue(user, orderId, parcelId, reason) {
     });
 
     localStorage.setItem(ORDER_KEY, JSON.stringify(updated));
+}
+
+export async function getCustomerOrders() {
+    const orders = [];
+
+    for (let page = 1; ; page += 1) {
+        const { data } = await api.get("/orders", {
+            params: { page },
+        });
+
+        orders.push(...data.orders);
+
+        if (!data.hasMore) return orders;
+    }
+}
+
+export async function getCustomerOrder(id) {
+    const { data } = await api.get(
+        `/orders/${encodeURIComponent(id)}`
+    );
+
+    return data.order;
 }

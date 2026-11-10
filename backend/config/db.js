@@ -13,6 +13,11 @@ async function connectDB() {
         require("../models/Category").init(),
         require("../models/Product").init(),
         require("../models/StockMovement").init(),
+        require("../models/Cart").init(),
+        require("../models/Address").init(),
+        require("../models/Order").init(),
+        require("../models/Payment").init(),
+        require("../models/SellerOrder").init(),
     ]);
 
     console.log("MongoDB connected");

@@ -2,43 +2,30 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-    Alert, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle,
-    InputAdornment, MenuItem, Table, TableBody, TableCell, TableContainer,
-    TableHead, TablePagination, TableRow, TextField,
+    Alert,
+    Button,
+    Checkbox,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    InputAdornment,
+    MenuItem,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TablePagination,
+    TableRow,
+    TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
+
 import { sortNewestFirst } from "../utils/sortNewestFirst";
+import api from "../services/api";
 
 // ================== DELIVERY CONFIGURATION ==================
-const TASK_KEY = "zupito_admin_delivery_assignments";
-const AGENT_KEY = "zupito_admin_delivery_agents";
-const ORDER_KEY = "zupito_admin_orders";
-
-const previewTasks = [
-    { id: "DT1001", orderId: "DEMO-2001", parcelId: "PKG-D2001", product: "Wireless Headphones", seller: "TechNova Electronics", pickupPincode: "751001", deliveryPincode: "751007" },
-    { id: "DT1002", orderId: "DEMO-2002", parcelId: "PKG-D2002", product: "Everyday Smartphone", seller: "TechNova Electronics", pickupPincode: "751001", deliveryPincode: "751007" },
-    { id: "DT1003", orderId: "DEMO-2003", parcelId: "PKG-D2003", product: "Men's Casual Shirt", seller: "Urban Fashion", pickupPincode: "751024", deliveryPincode: "751013" },
-    { id: "DT1004", orderId: "DEMO-2004", parcelId: "PKG-D2004", product: "Travel Backpack", seller: "TravelMate Store", pickupPincode: "751024", deliveryPincode: "751013" },
-    { id: "DT1005", orderId: "DEMO-2005", parcelId: "PKG-D2005", product: "Women's Everyday Dress", seller: "Urban Fashion", pickupPincode: "751024", deliveryPincode: "751013" },
-    { id: "DT1006", orderId: "DEMO-2006", parcelId: "PKG-D2006", product: "Everyday Laptop", seller: "TechNova Electronics", pickupPincode: "751016", deliveryPincode: "751021" },
-    { id: "DT1007", orderId: "DEMO-2007", parcelId: "PKG-D2007", product: "Daily Essentials", seller: "Fresh Basket", pickupPincode: "751001", deliveryPincode: "751020" },
-    { id: "DT1008", orderId: "DEMO-2008", parcelId: "PKG-D2008", product: "Kitchen Storage Set", seller: "HomeCraft Living", pickupPincode: "751010", deliveryPincode: "751006" },
-    { id: "DT1009", orderId: "DEMO-2009", parcelId: "PKG-D2009", product: "Travel Accessories", seller: "TravelMate Store", pickupPincode: "751017", deliveryPincode: "751020" },
-    { id: "DT1010", orderId: "DEMO-2010", parcelId: "PKG-D2010", product: "Personal Care Kit", seller: "GlowCare Store", pickupPincode: "751003", deliveryPincode: "751002" },
-    { id: "DT1011", orderId: "DEMO-2011", parcelId: "PKG-D2011", product: "Wireless Mouse", seller: "TechNova Electronics", pickupPincode: "751001", deliveryPincode: "751007", stage: "picked_up", agentId: "ZA1002", custody: "Agent", assignmentMode: "Auto" },
-    { id: "DT1012", orderId: "DEMO-2012", parcelId: "PKG-D2012", product: "Fashion Watch", seller: "Urban Fashion", pickupPincode: "751024", deliveryPincode: "751013", stage: "failed", agentId: "ZA1001", custody: "Agent", assignmentMode: "Auto", failureReason: "Customer unavailable", attempts: 2 },
-].map((task) => ({
-    ...task,
-    source: "Demo",
-    stage: task.stage || "ready_for_pickup",
-    agentId: task.agentId || null,
-    custody: task.custody || "Seller",
-    assignmentMode: task.assignmentMode || null,
-    attempts: task.attempts || 0,
-    events: [],
-    createdAt: "2026-11-05T10:00:00+05:30",
-}));
-
 const stageLabels = {
     ready_for_pickup: "Ready for Pickup",
     assigned: "Assigned",
@@ -49,146 +36,34 @@ const stageLabels = {
     cancelled: "Cancelled",
 };
 
-// ================== DATA HELPERS ==================
-function readList(key) {
-    try {
-        const value = JSON.parse(localStorage.getItem(key));
-        return Array.isArray(value) ? value : null;
-    } catch {
-        return null;
-    }
-}
+// ================== HELPERS ==================
+const canCover = (agent, task) =>
+    agent.status === "Active" &&
+    agent.availability === "Available" &&
+    agent.activeTasks < agent.capacity &&
+    agent.pincodes.includes(task.pickupPincode) &&
+    agent.pincodes.includes(task.deliveryPincode);
 
-function normalizeStatus(value) {
-    return String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
-}
+const formatDate = (value) =>
+    value
+        ? new Date(value).toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Asia/Kolkata",
+        })
+        : "—";
 
-function addReadyOrderTasks(tasks, orders) {
-    const existing = new Set(tasks.map((task) => task.parcelId));
-    const added = [...tasks];
-
-    for (const order of orders || []) {
-        if (!Array.isArray(order.parcels)) continue;
-
-        for (const parcel of order.parcels) {
-            const parcelId = String(parcel.id || parcel._id || "");
-
-            if (!parcelId || existing.has(parcelId)) continue;
-            if (normalizeStatus(parcel.status) !== "ready_for_pickup") continue;
-
-            added.push({
-                id: `TASK-${parcelId}`,
-                orderId: order.id || order._id,
-                parcelId,
-                product: (parcel.itemIndexes || [])
-                    .map((index) => order.items?.[index]?.name)
-                    .filter(Boolean)
-                    .join(", ") || "Order Parcel",
-                seller: parcel.sellerName || "Seller Fulfilment",
-                pickupPincode: parcel.pickupPincode || order.pickupPincode || "",
-                deliveryPincode: order.address?.pincode || "",
-                stage: "ready_for_pickup",
-                agentId: null,
-                custody: "Seller",
-                assignmentMode: null,
-                attempts: 0,
-                events: [],
-                source: "Order",
-                createdAt: order.createdAt || new Date().toISOString(),
-            });
-
-            existing.add(parcelId);
-        }
-    }
-
-    return added;
-}
-
-function canCover(agent, task) {
-    const pins = Array.isArray(agent.pincodes) ? agent.pincodes : [];
-
-    return agent.status === "Active" &&
-        agent.availability === "Available" &&
-        Number(agent.activeTasks) < Number(agent.capacity) &&
-        Boolean(task.pickupPincode && task.deliveryPincode) &&
-        pins.includes(task.pickupPincode) &&
-        pins.includes(task.deliveryPincode);
-}
-
-function assignReadyTasks(tasks, agents) {
-    const nextAgents = agents.map((agent) => ({ ...agent }));
-    let assignedCount = 0;
-
-    const nextTasks = tasks.map((task) => {
-        if (task.stage !== "ready_for_pickup" || task.agentId) return task;
-
-        const candidate = nextAgents
-            .filter((agent) => canCover(agent, task))
-            .sort((a, b) =>
-                Number(a.activeTasks) - Number(b.activeTasks) ||
-                a.id.localeCompare(b.id)
-            )[0];
-
-        if (!candidate) return task;
-
-        candidate.activeTasks = Number(candidate.activeTasks) + 1;
-        assignedCount++;
-
-        const now = new Date().toISOString();
-
-        return {
-            ...task,
-            agentId: candidate.id,
-            stage: "assigned",
-            assignmentMode: "Auto",
-            assignedAt: now,
-            events: [
-                ...(task.events || []),
-                {
-                    date: now,
-                    note: `Automatically assigned to ${candidate.name}.`,
-                },
-            ],
-        };
-    });
-
-    return { tasks: nextTasks, agents: nextAgents, assignedCount };
-}
-
-function loadState() {
-    const savedTasks = readList(TASK_KEY);
-
-    const tasks = savedTasks
-        ? [
-            ...previewTasks.filter((preview) =>
-                !savedTasks.some((task) => task.id === preview.id)
-            ),
-            ...savedTasks,
-        ]
-        : previewTasks;
-
-    const agents = readList(AGENT_KEY) || [];
-    const orders = readList(ORDER_KEY) || [];
-
-    return assignReadyTasks(addReadyOrderTasks(tasks, orders), agents);
-}
-
-function formatDate(value) {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    return Number.isNaN(date.getTime())
-        ? "—"
-        : date.toLocaleString("en-IN", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              timeZone: "Asia/Kolkata",
-          });
-}
+const assignable = (task) =>
+    [
+        "ready_for_pickup",
+        "assigned",
+        "picked_up",
+        "out_for_delivery",
+        "failed",
+    ].includes(task?.stage);
 
 function StageBadge({ stage }) {
     const color = {
@@ -221,8 +96,16 @@ function Detail({ label, value }) {
 // ================== DELIVERY ASSIGNMENTS ==================
 function DeliveryAssignments() {
     const navigate = useNavigate();
-    const [state, setState] = useState(loadState);
+
+    const [state, setState] = useState({
+        tasks: [],
+        agents: [],
+    });
+
     const { tasks, agents } = state;
+
+    const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState(false);
 
     // ================== FILTERS ==================
     const [search, setSearch] = useState("");
@@ -238,30 +121,46 @@ function DeliveryAssignments() {
     const [custodyConfirmed, setCustodyConfirmed] = useState(false);
     const [error, setError] = useState("");
 
-    const selectedTask = tasks.find((task) => task.id === selectedId);
-    const assignmentTask = tasks.find((task) => task.id === assignmentId);
+    const selectedTask = tasks.find(
+        (task) => task.id === selectedId
+    );
 
-    const agentById = (id) => agents.find((agent) => agent.id === id);
-    const requiresCustody = assignmentTask?.custody === "Agent";
+    const assignmentTask = tasks.find(
+        (task) => task.id === assignmentId
+    );
+
+    const agentById = (id) =>
+        agents.find((agent) => agent.id === id);
+
+    const requiresCustody =
+        assignmentTask?.custody === "Agent";
 
     const eligibleAgents = assignmentTask
-        ? agents.filter((agent) =>
-              agent.id !== assignmentTask.agentId && canCover(agent, assignmentTask)
-          )
+        ? agents.filter(
+            (agent) =>
+                agent.id !== assignmentTask.agentId &&
+                canCover(agent, assignmentTask)
+        )
         : [];
 
-    // ================== SAVE PREVIEW CHANGES ==================
-    useEffect(() => {
-        try {
-            localStorage.setItem(TASK_KEY, JSON.stringify(tasks));
+    // ================== DATABASE DATA ==================
+    const loadState = async () => {
+        const [parcels, profiles] = await Promise.all([
+            api.get("/delivery/admin/assignments"),
+            api.get("/delivery/admin/agents"),
+        ]);
 
-            if (agents.length) {
-                localStorage.setItem(AGENT_KEY, JSON.stringify(agents));
-            }
-        } catch {
-            // Keep React state available if storage fails.
-        }
-    }, [tasks, agents]);
+        setState({
+            tasks: parcels.data.tasks || [],
+            agents: profiles.data.agents || [],
+        });
+    };
+
+    useEffect(() => {
+        loadState()
+            .catch((error) => toast.error(error.message))
+            .finally(() => setLoading(false));
+    }, []);
 
     // ================== STATISTICS ==================
     const stats = [
@@ -274,15 +173,19 @@ function DeliveryAssignments() {
         },
         {
             label: "Auto Assigned",
-            value: tasks.filter((task) => task.assignmentMode === "Auto").length,
+            value: tasks.filter(
+                (task) => task.assignmentMode === "Auto"
+            ).length,
             icon: "fa-wand-magic-sparkles",
             color: "green",
             detail: "Matched by coverage and workload",
         },
         {
             label: "Awaiting Agent",
-            value: tasks.filter((task) =>
-                task.stage === "ready_for_pickup" && !task.agentId
+            value: tasks.filter(
+                (task) =>
+                    task.stage === "ready_for_pickup" &&
+                    !task.agentId
             ).length,
             icon: "fa-user-clock",
             color: "orange",
@@ -290,7 +193,9 @@ function DeliveryAssignments() {
         },
         {
             label: "Failed Deliveries",
-            value: tasks.filter((task) => task.stage === "failed").length,
+            value: tasks.filter(
+                (task) => task.stage === "failed"
+            ).length,
             icon: "fa-triangle-exclamation",
             color: "red",
             detail: "Requires follow-up or retry",
@@ -298,35 +203,56 @@ function DeliveryAssignments() {
     ];
 
     // ================== TABLE FILTERS ==================
-   const filtered = sortNewestFirst(tasks.filter((task) => {
-        const query = search.trim().toLowerCase();
-        const agentName = agentById(task.agentId)?.name || "";
+    const filtered = sortNewestFirst(
+        tasks.filter((task) => {
+            const query = search.trim().toLowerCase();
 
-        const matchesSearch = [
-            task.id,
-            task.orderId,
-            task.parcelId,
-            task.product,
-            task.seller,
-            task.pickupPincode,
-            task.deliveryPincode,
-            agentName,
-        ].some((value) => String(value || "").toLowerCase().includes(query));
+            const values = [
+                task.id,
+                task.parcelId,
+                task.orderId,
+                task.seller,
+                task.product,
+                task.pickupPincode,
+                task.deliveryPincode,
+                agentById(task.agentId)?.name,
+            ];
 
-        return matchesSearch &&
-            (statusFilter === "All" || task.stage === statusFilter) &&
-            (agentFilter === "All" ||
-                (agentFilter === "Unassigned"
-                    ? !task.agentId
-                    : task.agentId === agentFilter));
-    }));
-
-    const visible = filtered.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
+            return values.some((value) =>
+                String(value || "")
+                    .toLowerCase()
+                    .includes(query)
+            ) &&
+                (
+                    statusFilter === "All" ||
+                    task.stage === statusFilter
+                ) &&
+                (
+                    agentFilter === "All" ||
+                    (
+                        agentFilter === "Unassigned"
+                            ? !task.agentId
+                            : task.agentId === agentFilter
+                    )
+                );
+        })
     );
 
-    const hasFilters = search.trim() ||
+    const safePage = Math.min(
+        page,
+        Math.max(
+            0,
+            Math.ceil(filtered.length / rowsPerPage) - 1
+        )
+    );
+
+    const visible = filtered.slice(
+        safePage * rowsPerPage,
+        (safePage + 1) * rowsPerPage
+    );
+
+    const hasFilters =
+        search.trim() ||
         statusFilter !== "All" ||
         agentFilter !== "All";
 
@@ -337,21 +263,27 @@ function DeliveryAssignments() {
         setPage(0);
     };
 
-    // ================== REFRESH / AUTO-ASSIGN ==================
-    const handleRefresh = () => {
-        const next = loadState();
+    // ================== REFRESH / AUTO ASSIGN ==================
+    const refresh = async () => {
+        setBusy(true);
 
-        setState(next);
-        setPage(0);
+        try {
+            await api.post(
+                "/delivery/admin/assignments/auto"
+            );
 
-        toast.info(
-            next.assignedCount
-                ? `${next.assignedCount} ready parcel(s) automatically assigned.`
-                : "Assignments and agent availability refreshed."
-        );
+            await loadState();
+
+            setPage(0);
+            toast.info("Assignment queue refreshed.");
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setBusy(false);
+        }
     };
 
-    // ================== ADMIN OVERRIDE ==================
+    // ================== MANUAL ASSIGNMENT ==================
     const openAssignment = (task) => {
         setSelectedId(null);
         setAssignmentId(task.id);
@@ -367,75 +299,58 @@ function DeliveryAssignments() {
         setError("");
     };
 
-    const handleAssign = () => {
+    const handleAssign = async () => {
         if (
             !assignmentTask ||
-            !["ready_for_pickup", "assigned", "picked_up", "out_for_delivery", "failed"]
-                .includes(assignmentTask.stage)
+            !assignable(assignmentTask)
         ) {
-            setError("This parcel is not eligible for assignment.");
+            setError("This parcel is not assignable.");
             return;
         }
 
-        const nextAgent = eligibleAgents.find((agent) => agent.id === newAgentId);
-
-        if (!nextAgent) {
-            setError("Choose an available agent with matching pickup and delivery pincodes.");
+        if (
+            !eligibleAgents.some(
+                (agent) => agent.id === newAgentId
+            )
+        ) {
+            setError(
+                "Choose an available agent covering both pincodes with free capacity."
+            );
             return;
         }
 
         if (requiresCustody && !custodyConfirmed) {
-            setError("Confirm physical parcel custody before changing the assigned agent.");
+            setError(
+                "Confirm physical return to seller custody before reassignment."
+            );
             return;
         }
 
-        const now = new Date().toISOString();
-        const oldAgentId = assignmentTask.agentId;
+        setBusy(true);
 
-        setState((previous) => ({
-            ...previous,
-            agents: previous.agents.map((agent) => {
-                if (agent.id === nextAgent.id) {
-                    return { ...agent, activeTasks: Number(agent.activeTasks) + 1 };
+        try {
+            await api.patch(
+                `/delivery/admin/assignments/${assignmentId}`,
+                {
+                    agentId: newAgentId,
+                    custodyConfirmed,
                 }
+            );
 
-                if (oldAgentId && agent.id === oldAgentId) {
-                    return {
-                        ...agent,
-                        activeTasks: Math.max(0, Number(agent.activeTasks) - 1),
-                    };
-                }
+            await loadState();
 
-                return agent;
-            }),
-            tasks: previous.tasks.map((task) =>
-                task.id === assignmentId
-                    ? {
-                          ...task,
-                          agentId: nextAgent.id,
-                          stage: "assigned",
-                          custody: requiresCustody ? "Hub" : task.custody,
-                          assignmentMode: oldAgentId ? "Override" : "Manual",
-                          assignedAt: now,
-                          events: [
-                              ...(task.events || []),
-                              {
-                                  date: now,
-                                  note: `${oldAgentId ? "Reassigned" : "Assigned"} to ${nextAgent.name}${requiresCustody ? " after custody confirmation" : ""}.`,
-                              },
-                          ],
-                      }
-                    : task
-            ),
-        }));
+            toast.success(
+                assignmentTask.agentId
+                    ? "Agent reassigned."
+                    : "Agent assigned."
+            );
 
-        toast.success(
-            oldAgentId
-                ? "Agent reassigned successfully."
-                : "Agent assigned successfully."
-        );
-
-        closeAssignment();
+            closeAssignment();
+        } catch (failure) {
+            setError(failure.message);
+        } finally {
+            setBusy(false);
+        }
     };
 
     return (
@@ -444,7 +359,7 @@ function DeliveryAssignments() {
             <section className="dda-hero">
                 <div>
                     <span className="zs-eyebrow">
-                        <i className="fa-solid fa-truck-fast" aria-hidden="true" />
+                        <i className="fa-solid fa-truck-fast" />
                         DELIVERY ASSIGNMENTS
                     </span>
 
@@ -457,8 +372,11 @@ function DeliveryAssignments() {
                 <Button
                     className="dda-refresh"
                     variant="outlined"
-                    onClick={handleRefresh}
-                    startIcon={<i className="fa-solid fa-arrows-rotate" />}
+                    onClick={refresh}
+                    disabled={busy}
+                    startIcon={
+                        <i className="fa-solid fa-arrows-rotate" />
+                    }
                 >
                     Refresh
                 </Button>
@@ -466,34 +384,44 @@ function DeliveryAssignments() {
 
             {/* ================== SUMMARY ================== */}
             <section className="dda-stats">
-                {stats.map((stat) => (
-                    <article className={`dda-stat is-${stat.color}`} key={stat.label}>
+                {stats.map((item) => (
+                    <article
+                        key={item.label}
+                        className={`dda-stat is-${item.color}`}
+                    >
                         <div className="dda-stat-heading">
-                            <span>{stat.label}</span>
-                            <i className={`fa-solid ${stat.icon}`} />
+                            <span>{item.label}</span>
+
+                            <i
+                                className={`fa-solid ${item.icon}`}
+                            />
                         </div>
 
-                        <strong>{stat.value}</strong>
-                        <p>{stat.detail}</p>
+                        <strong>{item.value}</strong>
+                        <p>{item.detail}</p>
                     </article>
                 ))}
             </section>
 
-            {!agents.length && (
+            {!loading && !agents.length && (
                 <Alert
                     severity="warning"
                     action={
-                        <Button onClick={() => navigate("/manage/delivery-agents")}>
+                        <Button
+                            onClick={() =>
+                                navigate("/manage/delivery-agents")
+                            }
+                        >
                             Manage Agents
                         </Button>
                     }
                 >
-                    No delivery agents found. Add or initialize agents
-                    before automatic assignment can run.
+                    No registered agents. Create an account in
+                    Delivery Agent Management before assigning parcels.
                 </Alert>
             )}
 
-            {/* ================== PARCEL ASSIGNMENTS ================== */}
+            {/* ================== PARCEL LIST ================== */}
             <section className="dda-card">
                 <div className="dda-card-heading">
                     <div className="dda-title-row">
@@ -503,25 +431,28 @@ function DeliveryAssignments() {
 
                         <div>
                             <h2>Parcel Assignments</h2>
+
                             <p>
-                                One task per parcel. Agents must cover
-                                both pickup and delivery pincodes.
+                                One task per parcel. Agent must cover
+                                pickup and delivery pincodes.
                             </p>
                         </div>
                     </div>
 
-                    <span className="dda-records">{filtered.length} Records</span>
+                    <span className="dda-records">
+                        {filtered.length} Records
+                    </span>
                 </div>
 
                 {/* ================== SEARCH AND FILTERS ================== */}
                 <div className="dda-toolbar">
                     <TextField
-                        className="dda-search"
                         size="small"
                         fullWidth
+                        className="dda-search"
                         label="Search Assignments"
-                        placeholder="Order, parcel, seller, agent or pincode"
                         value={search}
+                        placeholder="Order, parcel, seller, agent or pincode"
                         onChange={(event) => {
                             setSearch(event.target.value);
                             setPage(0);
@@ -539,38 +470,55 @@ function DeliveryAssignments() {
 
                     <TextField
                         select
-                        label="Task Status"
-                        className="dda-filter"
                         size="small"
+                        className="dda-filter"
+                        label="Task Status"
                         value={statusFilter}
                         onChange={(event) => {
                             setStatusFilter(event.target.value);
                             setPage(0);
                         }}
                     >
-                        <MenuItem value="All">All Statuses</MenuItem>
+                        <MenuItem value="All">
+                            All Statuses
+                        </MenuItem>
 
-                        {Object.entries(stageLabels).map(([value, label]) => (
-                            <MenuItem key={value} value={value}>{label}</MenuItem>
-                        ))}
+                        {Object.entries(stageLabels).map(
+                            ([key, value]) => (
+                                <MenuItem
+                                    key={key}
+                                    value={key}
+                                >
+                                    {value}
+                                </MenuItem>
+                            )
+                        )}
                     </TextField>
 
                     <TextField
                         select
-                        label="Delivery Agent"
-                        className="dda-filter"
                         size="small"
+                        className="dda-filter"
+                        label="Delivery Agent"
                         value={agentFilter}
                         onChange={(event) => {
                             setAgentFilter(event.target.value);
                             setPage(0);
                         }}
                     >
-                        <MenuItem value="All">All Agents</MenuItem>
-                        <MenuItem value="Unassigned">Unassigned</MenuItem>
+                        <MenuItem value="All">
+                            All Agents
+                        </MenuItem>
+
+                        <MenuItem value="Unassigned">
+                            Unassigned
+                        </MenuItem>
 
                         {agents.map((agent) => (
-                            <MenuItem key={agent.id} value={agent.id}>
+                            <MenuItem
+                                value={agent.id}
+                                key={agent.id}
+                            >
                                 {agent.name}
                             </MenuItem>
                         ))}
@@ -581,7 +529,9 @@ function DeliveryAssignments() {
                         variant="outlined"
                         disabled={!hasFilters}
                         onClick={resetFilters}
-                        startIcon={<i className="fa-solid fa-rotate-left" />}
+                        startIcon={
+                            <i className="fa-solid fa-rotate-left" />
+                        }
                     >
                         Reset
                     </Button>
@@ -589,52 +539,75 @@ function DeliveryAssignments() {
 
                 {/* ================== TABLE ================== */}
                 <TableContainer className="dda-table-scroll">
-                    <Table className="dda-table" aria-label="Delivery assignments">
+                    <Table
+                        className="dda-table"
+                        aria-label="Delivery assignments"
+                    >
                         <TableHead>
                             <TableRow>
-                                <TableCell>Parcel / Order</TableCell>
-                                <TableCell>Seller / Item</TableCell>
-                                <TableCell>Pickup → Delivery</TableCell>
-                                <TableCell>Assigned Agent</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Custody</TableCell>
-                                <TableCell align="right">Actions</TableCell>
+                                {[
+                                    "Parcel / Order",
+                                    "Seller / Item",
+                                    "Pickup → Delivery",
+                                    "Assigned Agent",
+                                    "Status",
+                                    "Custody",
+                                ].map((heading) => (
+                                    <TableCell key={heading}>
+                                        {heading}
+                                    </TableCell>
+                                ))}
+
+                                <TableCell align="right">
+                                    Actions
+                                </TableCell>
                             </TableRow>
                         </TableHead>
 
                         <TableBody>
                             {visible.map((task) => {
                                 const agent = agentById(task.agentId);
-                                const editable = [
-                                    "ready_for_pickup",
-                                    "assigned",
-                                    "picked_up",
-                                    "out_for_delivery",
-                                    "failed",
-                                ].includes(task.stage);
 
                                 return (
-                                    <TableRow key={task.id} hover>
+                                    <TableRow
+                                        key={task.id}
+                                        hover
+                                    >
                                         <TableCell>
                                             <div className="dda-cell">
-                                                <strong className="dda-code">{task.parcelId}</strong>
-                                                <small>{task.orderId}</small>
-                                                {task.source === "Demo" && <small>Demo task</small>}
+                                                <strong className="dda-code">
+                                                    {task.parcelId}
+                                                </strong>
+
+                                                <small>
+                                                    {task.orderId}
+                                                </small>
                                             </div>
                                         </TableCell>
 
                                         <TableCell>
                                             <div className="dda-cell">
-                                                <strong>{task.seller}</strong>
-                                                <small>{task.product}</small>
+                                                <strong>
+                                                    {task.seller}
+                                                </strong>
+
+                                                <small>
+                                                    {task.product}
+                                                </small>
                                             </div>
                                         </TableCell>
 
                                         <TableCell>
                                             <div className="dda-route">
-                                                <span>{task.pickupPincode || "Not provided"}</span>
+                                                <span>
+                                                    {task.pickupPincode}
+                                                </span>
+
                                                 <i className="fa-solid fa-arrow-right-long" />
-                                                <span>{task.deliveryPincode || "Not provided"}</span>
+
+                                                <span>
+                                                    {task.deliveryPincode}
+                                                </span>
                                             </div>
                                         </TableCell>
 
@@ -646,13 +619,18 @@ function DeliveryAssignments() {
                                                             .trim()
                                                             .split(/\s+/)
                                                             .slice(0, 2)
-                                                            .map((part) => part[0])
+                                                            .map((x) => x[0])
                                                             .join("")}
                                                     </span>
 
                                                     <div>
-                                                        <strong>{agent.name}</strong>
-                                                        <small>{agent.id}</small>
+                                                        <strong>
+                                                            {agent.name}
+                                                        </strong>
+
+                                                        <small>
+                                                            {agent.id}
+                                                        </small>
                                                     </div>
                                                 </div>
                                             ) : (
@@ -667,24 +645,32 @@ function DeliveryAssignments() {
                                         </TableCell>
 
                                         <TableCell>
-                                            <span className="dda-custody">{task.custody}</span>
+                                            <span className="dda-custody">
+                                                {task.custody}
+                                            </span>
                                         </TableCell>
 
                                         <TableCell align="right">
                                             <div className="dda-actions">
                                                 <Button
                                                     variant="outlined"
-                                                    onClick={() => setSelectedId(task.id)}
+                                                    onClick={() =>
+                                                        setSelectedId(task.id)
+                                                    }
                                                 >
                                                     Details
                                                 </Button>
 
-                                                {editable && (
+                                                {assignable(task) && (
                                                     <Button
                                                         variant="outlined"
-                                                        onClick={() => openAssignment(task)}
+                                                        onClick={() =>
+                                                            openAssignment(task)
+                                                        }
                                                     >
-                                                        {task.agentId ? "Reassign" : "Assign"}
+                                                        {task.agentId
+                                                            ? "Reassign"
+                                                            : "Assign"}
                                                     </Button>
                                                 )}
                                             </div>
@@ -698,8 +684,18 @@ function DeliveryAssignments() {
                                     <TableCell colSpan={7}>
                                         <div className="dda-empty">
                                             <i className="fa-solid fa-box-open" />
-                                            <h3>No Assignments Found</h3>
-                                            <p>Try clearing your search and filters.</p>
+
+                                            <h3>
+                                                {loading
+                                                    ? "Loading Assignments"
+                                                    : "No Assignments Found"}
+                                            </h3>
+
+                                            <p>
+                                                {hasFilters
+                                                    ? "Try clearing your filters."
+                                                    : "Ready for Pickup parcels will appear here."}
+                                            </p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -708,14 +704,17 @@ function DeliveryAssignments() {
                     </Table>
                 </TableContainer>
 
+                {/* ================== PAGINATION ================== */}
                 <TablePagination
                     className="dda-pagination"
                     component="div"
                     count={filtered.length}
-                    page={page}
+                    page={safePage}
                     rowsPerPage={rowsPerPage}
                     rowsPerPageOptions={[10, 20, 50]}
-                    onPageChange={(_, value) => setPage(value)}
+                    onPageChange={(_, nextPage) =>
+                        setPage(nextPage)
+                    }
                     onRowsPerPageChange={(event) => {
                         setRowsPerPage(Number(event.target.value));
                         setPage(0);
@@ -723,77 +722,141 @@ function DeliveryAssignments() {
                 />
             </section>
 
-            {/* ================== PARCEL DETAILS ================== */}
+            {/* ================== TASK DETAILS ================== */}
             <Dialog
                 open={Boolean(selectedTask)}
                 onClose={() => setSelectedId(null)}
                 maxWidth="sm"
                 fullWidth
-                slotProps={{ paper: { className: "dda-dialog" } }}
+                slotProps={{
+                    paper: { className: "dda-dialog" },
+                }}
             >
                 {selectedTask && (
                     <>
-                        <DialogTitle>Assignment Details</DialogTitle>
+                        <DialogTitle>
+                            Assignment Details
+                        </DialogTitle>
 
                         <DialogContent dividers>
                             <div className="dda-detail-banner">
                                 <div>
-                                    <strong>{selectedTask.parcelId}</strong>
-                                    <p>{selectedTask.orderId}</p>
+                                    <strong>
+                                        {selectedTask.parcelId}
+                                    </strong>
+
+                                    <p>
+                                        {selectedTask.orderId}
+                                    </p>
                                 </div>
 
-                                <StageBadge stage={selectedTask.stage} />
+                                <StageBadge
+                                    stage={selectedTask.stage}
+                                />
                             </div>
 
                             <dl className="dda-detail-grid">
-                                <Detail label="Seller" value={selectedTask.seller} />
-                                <Detail label="Product" value={selectedTask.product} />
-                                <Detail label="Pickup Pincode" value={selectedTask.pickupPincode} />
-                                <Detail label="Delivery Pincode" value={selectedTask.deliveryPincode} />
-                                <Detail label="Assigned Agent" value={agentById(selectedTask.agentId)?.name || "Not Assigned"} />
-                                <Detail label="Assignment Method" value={selectedTask.assignmentMode || "Not Assigned"} />
-                                <Detail label="Parcel Custody" value={selectedTask.custody} />
-                                <Detail label="Created On" value={formatDate(selectedTask.createdAt)} />
+                                <Detail
+                                    label="Seller"
+                                    value={selectedTask.seller}
+                                />
+
+                                <Detail
+                                    label="Product"
+                                    value={selectedTask.product}
+                                />
+
+                                <Detail
+                                    label="Pickup Pincode"
+                                    value={selectedTask.pickupPincode}
+                                />
+
+                                <Detail
+                                    label="Delivery Pincode"
+                                    value={selectedTask.deliveryPincode}
+                                />
+
+                                <Detail
+                                    label="Assigned Agent"
+                                    value={
+                                        agentById(selectedTask.agentId)
+                                            ?.name || "Not Assigned"
+                                    }
+                                />
+
+                                <Detail
+                                    label="Assignment Method"
+                                    value={
+                                        selectedTask.assignmentMode ||
+                                        "Not Assigned"
+                                    }
+                                />
+
+                                <Detail
+                                    label="Parcel Custody"
+                                    value={selectedTask.custody}
+                                />
+
+                                <Detail
+                                    label="Created On"
+                                    value={formatDate(
+                                        selectedTask.createdAt
+                                    )}
+                                />
                             </dl>
 
                             {selectedTask.failureReason && (
-                                <Alert severity="warning" sx={{ mt: 2 }}>
-                                    Delivery attempt failed: {selectedTask.failureReason}.
+                                <Alert severity="warning">
+                                    Delivery failed:{" "}
+                                    {selectedTask.failureReason}.
                                     Attempts: {selectedTask.attempts}.
                                 </Alert>
                             )}
 
-                            {(selectedTask.events || []).length > 0 && (
+                            {selectedTask.events?.length > 0 && (
                                 <div className="dda-history">
                                     <h3>Assignment History</h3>
 
-                                    {selectedTask.events.map((event, index) => (
-                                        <p key={index}>
-                                            <i className="fa-regular fa-clock" />
-                                            {formatDate(event.date)} — {event.note}
-                                        </p>
-                                    ))}
+                                    {selectedTask.events.map(
+                                        (event, index) => (
+                                            <p key={index}>
+                                                <i className="fa-regular fa-clock" />
+                                                {" "}
+                                                {formatDate(event.date)}
+                                                {" — "}
+                                                {event.note}
+                                            </p>
+                                        )
+                                    )}
                                 </div>
                             )}
 
-                            {selectedTask.stage === "ready_for_pickup" && !selectedTask.agentId && (
-                                <Alert severity="info" sx={{ mt: 2 }}>
-                                    Auto-assignment requires an active, available
-                                    agent with remaining capacity and matching
-                                    pickup and delivery pincodes.
+                            {selectedTask.stage === "ready_for_pickup" &&
+                                !selectedTask.agentId && (
+                                <Alert severity="info">
+                                    An available agent must cover both
+                                    pincodes and have free capacity.
                                 </Alert>
                             )}
                         </DialogContent>
 
                         <DialogActions>
-                            <Button onClick={() => setSelectedId(null)}>Close</Button>
+                            <Button
+                                onClick={() => setSelectedId(null)}
+                            >
+                                Close
+                            </Button>
 
-                            {["ready_for_pickup", "assigned", "picked_up", "out_for_delivery", "failed"].includes(selectedTask.stage) && (
+                            {assignable(selectedTask) && (
                                 <Button
                                     variant="contained"
-                                    onClick={() => openAssignment(selectedTask)}
+                                    onClick={() =>
+                                        openAssignment(selectedTask)
+                                    }
                                 >
-                                    {selectedTask.agentId ? "Reassign Agent" : "Assign Agent"}
+                                    {selectedTask.agentId
+                                        ? "Reassign Agent"
+                                        : "Assign Agent"}
                                 </Button>
                             )}
                         </DialogActions>
@@ -801,13 +864,15 @@ function DeliveryAssignments() {
                 )}
             </Dialog>
 
-            {/* ================== MANUAL ASSIGNMENT / OVERRIDE ================== */}
+            {/* ================== ADMIN ASSIGN / OVERRIDE ================== */}
             <Dialog
                 open={Boolean(assignmentTask)}
                 onClose={closeAssignment}
                 maxWidth="sm"
                 fullWidth
-                slotProps={{ paper: { className: "dda-dialog" } }}
+                slotProps={{
+                    paper: { className: "dda-dialog" },
+                }}
             >
                 {assignmentTask && (
                     <>
@@ -819,11 +884,14 @@ function DeliveryAssignments() {
 
                         <DialogContent dividers>
                             <div className="dda-assignment-intro">
-                                <strong>{assignmentTask.parcelId}</strong>
+                                <strong>
+                                    {assignmentTask.parcelId}
+                                </strong>
+
                                 <p>
-                                    Pickup {assignmentTask.pickupPincode || "Unknown"}
+                                    Pickup {assignmentTask.pickupPincode}
                                     {" → "}
-                                    Delivery {assignmentTask.deliveryPincode || "Unknown"}
+                                    Delivery {assignmentTask.deliveryPincode}
                                 </p>
                             </div>
 
@@ -838,20 +906,31 @@ function DeliveryAssignments() {
                                 }}
                                 sx={{ mt: 2 }}
                             >
-                                <MenuItem value="">Select an Agent</MenuItem>
+                                <MenuItem value="">
+                                    Select an Agent
+                                </MenuItem>
 
                                 {eligibleAgents.map((agent) => (
-                                    <MenuItem key={agent.id} value={agent.id}>
-                                        {agent.name} — {agent.activeTasks}/{agent.capacity} tasks
+                                    <MenuItem
+                                        key={agent.id}
+                                        value={agent.id}
+                                    >
+                                        {agent.name}
+                                        {" — "}
+                                        {agent.activeTasks}/{agent.capacity}
+                                        {" tasks"}
                                     </MenuItem>
                                 ))}
                             </TextField>
 
                             {!eligibleAgents.length && (
-                                <Alert severity="warning" sx={{ mt: 2 }}>
-                                    No alternative eligible agent. Check the
-                                    pickup/delivery pincode coverage,
-                                    availability and capacity in Delivery Agents.
+                                <Alert
+                                    severity="warning"
+                                    sx={{ mt: 2 }}
+                                >
+                                    No eligible agent. Check status,
+                                    availability, both pincodes and capacity
+                                    in Delivery Agents.
                                 </Alert>
                             )}
 
@@ -860,31 +939,44 @@ function DeliveryAssignments() {
                                     <Checkbox
                                         checked={custodyConfirmed}
                                         onChange={(event) => {
-                                            setCustodyConfirmed(event.target.checked);
+                                            setCustodyConfirmed(
+                                                event.target.checked
+                                            );
+
                                             setError("");
                                         }}
                                     />
 
                                     <span>
-                                        I confirm the parcel has been physically
-                                        returned to hub custody before reassignment.
+                                        I confirm the parcel has been
+                                        physically returned to the seller
+                                        before reassignment.
                                     </span>
                                 </div>
                             )}
 
                             {error && (
-                                <Alert severity="error" sx={{ mt: 2 }}>
+                                <Alert
+                                    severity="error"
+                                    sx={{ mt: 2 }}
+                                >
                                     {error}
                                 </Alert>
                             )}
                         </DialogContent>
 
                         <DialogActions>
-                            <Button onClick={closeAssignment}>Cancel</Button>
+                            <Button onClick={closeAssignment}>
+                                Cancel
+                            </Button>
 
                             <Button
                                 variant="contained"
-                                disabled={!eligibleAgents.length}
+                                disabled={
+                                    busy ||
+                                    !eligibleAgents.length ||
+                                    !newAgentId
+                                }
                                 onClick={handleAssign}
                             >
                                 Confirm Assignment

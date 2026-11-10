@@ -1,20 +1,20 @@
 
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-
 import {
     Alert,
+    Avatar,
     Button,
     Checkbox,
     FormControlLabel,
     MenuItem,
     TextField,
 } from "@mui/material";
-
 import { toast } from "react-toastify";
 
 import {
     deliveryStageLabel,
+    fetchDeliveryTask,
     formatDeliveryDate,
     getDeliveryTask,
     updateDeliveryTask,
@@ -27,42 +27,22 @@ const failureReasons = [
     "Customer requested reschedule",
     "Pickup location unavailable",
     "Vehicle issue",
+    "Customer refused delivery",
     "Other",
 ];
 
 const steps = [
-    {
-        stage: "assigned",
-        label: "Assigned",
-        icon: "fa-clipboard-check",
-    },
-    {
-        stage: "picked_up",
-        label: "Picked Up",
-        icon: "fa-box",
-    },
-    {
-        stage: "out_for_delivery",
-        label: "In Transit",
-        icon: "fa-truck-fast",
-    },
-    {
-        stage: "delivered",
-        label: "Completed",
-        icon: "fa-circle-check",
-    },
+    ["assigned", "Assigned", "fa-clipboard-check"],
+    ["picked_up", "Picked Up", "fa-box"],
+    ["out_for_delivery", "In Transit", "fa-truck-fast"],
+    ["delivered", "Completed", "fa-circle-check"],
 ];
 
-// ================== DISPLAY HELPERS ==================
-function formatAddress(address, pincode) {
-    if (
-        typeof address === "string" &&
-        address.trim()
-    ) {
-        return address;
-    }
+// ================== HELPERS ==================
+function addressText(address, pincode) {
+    if (typeof address === "string") return address;
 
-    const text = [
+    return [
         address?.house,
         address?.street,
         address?.area,
@@ -70,14 +50,7 @@ function formatAddress(address, pincode) {
         address?.city,
         address?.state,
         address?.pincode || pincode,
-    ].filter(Boolean).join(", ");
-
-    return text ||
-        (
-            pincode
-                ? `Pincode: ${pincode}`
-                : "Address not available"
-        );
+    ].filter(Boolean).join(", ") || "Address not available";
 }
 
 function statusTone(stage) {
@@ -92,16 +65,82 @@ function statusTone(stage) {
 function Info({ label, value, icon }) {
     return (
         <div className="dtd-info">
-            <i
-                className={`fa-solid ${icon}`}
-                aria-hidden="true"
-            />
+            <i className={`fa-solid ${icon}`} />
 
             <div>
                 <span>{label}</span>
-                <strong>{value || "—"}</strong>
+                <strong>{value ?? "—"}</strong>
             </div>
         </div>
+    );
+}
+
+// ================== ORDERED PRODUCTS ==================
+function OrderedItems({ task }) {
+    const items = task.items || [];
+
+    return (
+        <section className="dtd-card">
+            <div className="dtd-card-title">
+                <i className="fa-solid fa-bag-shopping" />
+                <h3>
+                    Ordered Items ({items.length})
+                </h3>
+            </div>
+
+            <p>
+                Total quantity:{" "}
+                <strong>{task.totalQuantity || 0} units</strong>
+            </p>
+
+            <div className="dtd-info-grid">
+                {items.map((item, index) => (
+                    <div
+                        className="dtd-info"
+                        key={`${item.id}-${index}`}
+                    >
+                        {item.image ? (
+                            <Avatar
+                                variant="rounded"
+                                src={item.image}
+                                alt={item.name}
+                            />
+                        ) : (
+                            <i className="fa-solid fa-box" />
+                        )}
+
+                        <div>
+                            <strong>{item.name}</strong>
+
+                            <span>
+                                {item.variantLabel ||
+                                    "Standard Variant"}
+                            </span>
+
+                            {item.brand && (
+                                <span>
+                                    Brand: {item.brand}
+                                </span>
+                            )}
+
+                            {item.sku && (
+                                <span>SKU: {item.sku}</span>
+                            )}
+
+                            <strong>
+                                Quantity: {item.quantity}
+                            </strong>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {!items.length && (
+                <p className="dtd-muted">
+                    Order item snapshot unavailable.
+                </p>
+            )}
+        </section>
     );
 }
 
@@ -113,47 +152,71 @@ function TaskDetails({ user }) {
         getDeliveryTask(user, taskId)
     );
 
+    const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState("");
+
     const [confirmed, setConfirmed] = useState(false);
     const [otp, setOtp] = useState("");
     const [reason, setReason] = useState("");
     const [note, setNote] = useState("");
     const [showFailure, setShowFailure] = useState(false);
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState("");
 
-    // ================== DATA REFRESH ==================
-    const refresh = () => {
-        setTask(getDeliveryTask(user, taskId));
-    };
-
+    // ================== INITIAL FETCH ==================
     useEffect(() => {
-        const sync = () => {
-            setTask(getDeliveryTask(user, taskId));
-        };
+        let active = true;
 
-        sync();
+        setTask(getDeliveryTask(user, taskId));
+        setLoading(true);
+        setError("");
 
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
+        fetchDeliveryTask(user, taskId)
+            .then((result) => {
+                if (active) setTask(result);
+            })
+            .catch((failure) => {
+                if (active) {
+                    setError(failure.message);
+                }
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
 
         return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
+            active = false;
         };
     }, [
+        user?._id,
         user?.id,
-        user?.email,
         user?.role,
         taskId,
     ]);
 
-    // ================== TASK ACTIONS ==================
-    const submit = (action) => {
-        setError("");
+    // ================== MANUAL REFRESH ==================
+    const refresh = async () => {
+        try {
+            const result = await fetchDeliveryTask(
+                user,
+                taskId
+            );
+
+            setTask(result);
+            setError("");
+        } catch (failure) {
+            setError(failure.message);
+        }
+    };
+
+    // ================== ACTIONS ==================
+    const submit = async (action) => {
+        if (busy) return;
+
         setBusy(true);
+        setError("");
 
         try {
-            const updated = updateDeliveryTask(
+            const updated = await updateDeliveryTask(
                 user,
                 taskId,
                 action,
@@ -165,36 +228,39 @@ function TaskDetails({ user }) {
                 }
             );
 
-            setTask(getDeliveryTask(user, taskId));
-
+            setTask(updated);
             setConfirmed(false);
             setOtp("");
             setReason("");
             setNote("");
             setShowFailure(false);
 
+            const messages = {
+                pickup: "Pickup OTP verified. Parcel collected.",
+                start_delivery: "Out for Delivery started.",
+                regenerate_otp: "New delivery OTP generated.",
+                deliver: "Parcel delivered successfully.",
+                failed: "Failed delivery recorded.",
+                retry: "Delivery retry started.",
+            };
+
             toast.success(
-                action === "failed"
-                    ? "Delivery failure recorded."
-                    : action === "retry"
-                        ? "Another attempt started."
-                        : updated.stage === "delivered"
-                            ? "Parcel handover completed."
-                            : "Task status updated successfully."
+                messages[action] || "Task updated."
             );
         } catch (failure) {
+            // Wrong OTP attempts are persisted on the backend.
+            await refresh();
+
             setError(
                 failure.message ||
-                "Unable to update the task."
+                "Unable to update this task."
             );
-
-            refresh();
         } finally {
             setBusy(false);
         }
     };
 
-    // ================== ACCESS / EMPTY STATE ==================
+    // ================== LOADING / NOT FOUND ==================
     if (!task) {
         return (
             <main className="delivery-task-detail">
@@ -207,26 +273,30 @@ function TaskDetails({ user }) {
                 </Link>
 
                 <section className="dtd-empty">
-                    <i
-                        className="fa-solid fa-shield-halved"
-                        aria-hidden="true"
-                    />
+                    <i className="fa-solid fa-shield-halved" />
 
-                    <h1>Task not available</h1>
+                    <h1>
+                        {loading
+                            ? "Loading task..."
+                            : "Task not available"}
+                    </h1>
 
                     <p>
-                        This task is not assigned to your active
-                        delivery account, or its record no longer
-                        exists.
+                        {loading
+                            ? "Loading your assigned parcel."
+                            : error ||
+                                "This task is not assigned to your account."}
                     </p>
 
-                    <Button
-                        component={Link}
-                        to="/manage/tasks"
-                        variant="contained"
-                    >
-                        Back to Assigned Tasks
-                    </Button>
+                    {!loading && (
+                        <Button
+                            component={Link}
+                            to="/manage/tasks"
+                            variant="contained"
+                        >
+                            Back to Assigned Tasks
+                        </Button>
+                    )}
                 </section>
             </main>
         );
@@ -235,15 +305,12 @@ function TaskDetails({ user }) {
     // ================== TASK DETAILS ==================
     const reverse = task.kind === "replacement_pickup";
 
-    const replacementDelivery =
-        task.kind === "replacement_delivery";
-
     const closed = [
         "delivered",
         "cancelled",
     ].includes(task.stage);
 
-    const allowedFailure = [
+    const canFail = [
         "assigned",
         "out_for_delivery",
     ].includes(task.stage);
@@ -254,47 +321,43 @@ function TaskDetails({ user }) {
         !task.escalatedToAdmin;
 
     const origin = {
-        title: reverse
-            ? "Customer Pickup"
-            : "Seller Pickup",
-
         name: reverse
             ? task.customerName
             : task.sellerName,
-
-        pincode: task.pickupPincode,
-
         address: reverse
             ? task.customerAddress
             : task.pickupAddress,
-
+        pincode: reverse
+            ? task.deliveryPincode
+            : task.pickupPincode,
+        label: reverse
+            ? "Customer Pickup"
+            : "Seller Pickup",
         icon: reverse
             ? "fa-user"
             : "fa-store",
     };
 
     const destination = {
-        title: reverse
-            ? "Return to Seller"
-            : "Deliver to Customer",
-
         name: reverse
             ? task.sellerName
             : task.customerName,
-
-        pincode: task.deliveryPincode,
-
         address: reverse
             ? task.sellerAddress
             : task.customerAddress,
-
+        pincode: reverse
+            ? task.pickupPincode
+            : task.deliveryPincode,
+        label: reverse
+            ? "Return to Seller"
+            : "Deliver to Customer",
         icon: reverse
             ? "fa-store"
             : "fa-house",
     };
 
-    const activeIndex = steps.findIndex((step) =>
-        step.stage === task.stage
+    const activeIndex = steps.findIndex(
+        ([stage]) => stage === task.stage
     );
 
     return (
@@ -304,31 +367,26 @@ function TaskDetails({ user }) {
                 className="dtd-back"
                 to="/manage/tasks"
             >
-                <i
-                    className="fa-solid fa-arrow-left"
-                    aria-hidden="true"
-                />
+                <i className="fa-solid fa-arrow-left" />
                 Assigned Tasks
             </Link>
 
             <header className="dtd-hero">
                 <div>
                     <h1>
-                        <i
-                            className="fa-solid fa-route"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-route" />
                         TASK DETAILS
                     </h1>
 
                     <p>
-                        Track parcel custody, confirm handover
-                        and record delivery attempts.
+                        Review parcel items, confirm handovers
+                        and track delivery activity.
                     </p>
                 </div>
 
                 <Button
                     variant="outlined"
+                    disabled={busy}
                     onClick={refresh}
                     startIcon={
                         <i className="fa-solid fa-arrows-rotate" />
@@ -342,15 +400,7 @@ function TaskDetails({ user }) {
             <section className="dtd-summary">
                 <div className="dtd-summary-main">
                     <span className="dtd-summary-icon">
-                        <i
-                            className={`fa-solid ${
-                                reverse
-                                    ? "fa-arrow-rotate-left"
-                                    : replacementDelivery
-                                        ? "fa-box-open"
-                                        : "fa-truck-fast"
-                            }`}
-                        />
+                        <i className="fa-solid fa-truck-fast" />
                     </span>
 
                     <div>
@@ -359,18 +409,13 @@ function TaskDetails({ user }) {
                         </span>
 
                         <h2>{task.id}</h2>
-
-                        <p>
-                            Parcel: {task.parcelId || "—"}
-                        </p>
+                        <p>Parcel: {task.parcelId}</p>
                     </div>
                 </div>
 
-                <span
-                    className={`dtd-badge is-${
-                        statusTone(task.stage)
-                    }`}
-                >
+                <span className={`dtd-badge is-${
+                    statusTone(task.stage)
+                }`}>
                     <i className="fa-solid fa-circle" />
                     {deliveryStageLabel(task.stage)}
                 </span>
@@ -379,18 +424,14 @@ function TaskDetails({ user }) {
             {/* ================== DELIVERY PROGRESS ================== */}
             <section className="dtd-card">
                 <div className="dtd-card-title">
-                    <i
-                        className="fa-solid fa-list-check"
-                        aria-hidden="true"
-                    />
-
+                    <i className="fa-solid fa-list-check" />
                     <h3>Delivery Progress</h3>
                 </div>
 
                 <div className="dtd-steps">
-                    {steps.map((step, index) => (
+                    {steps.map(([stage, label, icon], index) => (
                         <div
-                            key={step.stage}
+                            key={stage}
                             className={`dtd-step ${
                                 activeIndex >= index
                                     ? "is-done"
@@ -398,132 +439,109 @@ function TaskDetails({ user }) {
                             }`}
                         >
                             <span>
-                                <i
-                                    className={`fa-solid ${step.icon}`}
-                                    aria-hidden="true"
-                                />
+                                <i className={`fa-solid ${icon}`} />
                             </span>
-
-                            <small>{step.label}</small>
+                            <small>{label}</small>
                         </div>
                     ))}
                 </div>
 
                 {task.stage === "failed" && (
                     <Alert severity="warning">
-                        Attempt {task.attempts || 0} of 3 failed.
-
-                        {task.escalatedToAdmin
-                            ? " Escalated for Admin review."
-                            : " You can retry after reviewing the reason."}
+                        Failed attempt {task.attempts || 0} of 3.
+                        {task.escalatedToAdmin &&
+                            " Admin review required."}
                     </Alert>
                 )}
             </section>
 
             <div className="dtd-columns">
                 <div className="dtd-primary">
-                    {/* ================== PICKUP AND DESTINATION ================== */}
+                    {/* ================== ADDRESS ================== */}
                     <section className="dtd-card">
                         <div className="dtd-card-title">
-                            <i
-                                className="fa-solid fa-location-dot"
-                                aria-hidden="true"
-                            />
-
+                            <i className="fa-solid fa-location-dot" />
                             <h3>Pickup & Destination</h3>
                         </div>
 
                         <div className="dtd-route">
-                            {[origin, destination].map((point, index) => (
-                                <div
-                                    className="dtd-place"
-                                    key={point.title}
-                                >
-                                    <span
-                                        className={`dtd-place-icon ${
-                                            index ? "is-end" : ""
-                                        }`}
+                            {[origin, destination].map(
+                                (point, index) => (
+                                    <div
+                                        className="dtd-place"
+                                        key={point.label}
                                     >
-                                        <i
-                                            className={`fa-solid ${point.icon}`}
-                                            aria-hidden="true"
-                                        />
-                                    </span>
+                                        <span className={`dtd-place-icon ${
+                                            index ? "is-end" : ""
+                                        }`}>
+                                            <i className={`fa-solid ${
+                                                point.icon
+                                            }`} />
+                                        </span>
 
-                                    <div>
-                                        <small>{point.title}</small>
-
-                                        <strong>
-                                            {point.name ||
-                                                "Location unavailable"}
-                                        </strong>
-
-                                        <p>
-                                            {formatAddress(
-                                                point.address,
-                                                point.pincode
-                                            )}
-                                        </p>
+                                        <div>
+                                            <small>{point.label}</small>
+                                            <strong>{point.name}</strong>
+                                            <p>
+                                                {addressText(
+                                                    point.address,
+                                                    point.pincode
+                                                )}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                )
+                            )}
                         </div>
                     </section>
+
+                    {/* ================== PRODUCTS ================== */}
+                    <OrderedItems task={task} />
 
                     {/* ================== PARCEL INFORMATION ================== */}
                     <section className="dtd-card">
                         <div className="dtd-card-title">
-                            <i
-                                className="fa-solid fa-box"
-                                aria-hidden="true"
-                            />
-
+                            <i className="fa-solid fa-box" />
                             <h3>Parcel Information</h3>
                         </div>
 
                         <div className="dtd-info-grid">
                             <Info
-                                icon="fa-hashtag"
                                 label="Order ID"
                                 value={task.orderId}
+                                icon="fa-hashtag"
                             />
-
                             <Info
-                                icon="fa-box-open"
-                                label="Product"
-                                value={
-                                    task.product ||
-                                    "Order Parcel"
-                                }
+                                label="Total Product Types"
+                                value={task.productCount || 0}
+                                icon="fa-bag-shopping"
                             />
-
                             <Info
-                                icon="fa-phone"
+                                label="Total Units"
+                                value={task.totalQuantity || 0}
+                                icon="fa-boxes-stacked"
+                            />
+                            <Info
                                 label="Customer Phone"
                                 value={task.customerPhone}
+                                icon="fa-phone"
                             />
-
                             <Info
-                                icon="fa-hand-holding"
                                 label="Current Custody"
                                 value={task.custody}
+                                icon="fa-hand-holding"
                             />
-
                             <Info
-                                icon="fa-calendar"
                                 label="Assigned On"
                                 value={formatDeliveryDate(
-                                    task.assignedAt ||
-                                    task.createdAt
+                                    task.assignedAt
                                 )}
+                                icon="fa-calendar"
                             />
-
                             <Info
-                                icon="fa-rotate"
                                 label="Failed Attempts"
-                                value={String(
-                                    task.attempts || 0
-                                )}
+                                value={task.attempts || 0}
+                                icon="fa-rotate"
                             />
                         </div>
                     </section>
@@ -531,11 +549,7 @@ function TaskDetails({ user }) {
                     {/* ================== ACTIVITY HISTORY ================== */}
                     <section className="dtd-card">
                         <div className="dtd-card-title">
-                            <i
-                                className="fa-solid fa-clock-rotate-left"
-                                aria-hidden="true"
-                            />
-
+                            <i className="fa-solid fa-clock-rotate-left" />
                             <h3>Activity History</h3>
                         </div>
 
@@ -550,10 +564,7 @@ function TaskDetails({ user }) {
                                         <span className="dtd-event-dot" />
 
                                         <div>
-                                            <strong>
-                                                {event.note}
-                                            </strong>
-
+                                            <strong>{event.note}</strong>
                                             <small>
                                                 {formatDeliveryDate(
                                                     event.date
@@ -572,14 +583,10 @@ function TaskDetails({ user }) {
                     </section>
                 </div>
 
-                {/* ================== DELIVERY ACTIONS ================== */}
+                {/* ================== ACTIONS ================== */}
                 <aside className="dtd-card dtd-actions">
                     <div className="dtd-card-title">
-                        <i
-                            className="fa-solid fa-bolt"
-                            aria-hidden="true"
-                        />
-
+                        <i className="fa-solid fa-bolt" />
                         <h3>Next Action</h3>
                     </div>
 
@@ -592,12 +599,12 @@ function TaskDetails({ user }) {
                         </Alert>
                     )}
 
-                    {/* ================== CONFIRM PICKUP ================== */}
+                    {/* ================== SELLER PICKUP OTP ================== */}
                     {task.stage === "assigned" && (
                         <div className="dtd-action-form">
                             <p>
-                                Collect the parcel from the pickup
-                                location before updating custody.
+                                Collect the parcel from the seller
+                                and verify their Pickup OTP.
                             </p>
 
                             <FormControlLabel
@@ -611,33 +618,59 @@ function TaskDetails({ user }) {
                                         }
                                     />
                                 }
-                                label={
-                                    reverse
-                                        ? "I collected the original item from the customer"
-                                        : "I received the parcel from the seller"
-                                }
+                                label="I physically received the parcel from the seller"
                             />
+
+                            <TextField
+                                fullWidth
+                                label="Seller Pickup OTP"
+                                value={otp}
+                                disabled={busy || task.otpLocked}
+                                onChange={(event) =>
+                                    setOtp(
+                                        event.target.value
+                                            .replace(/\D/g, "")
+                                            .slice(0, 6)
+                                    )
+                                }
+                                slotProps={{
+                                    htmlInput: {
+                                        maxLength: 6,
+                                        inputMode: "numeric",
+                                        autoComplete: "off",
+                                    },
+                                }}
+                            />
+
+                            <small>
+                                {Math.max(
+                                    0,
+                                    5 - Number(task.otpAttempts || 0)
+                                )} OTP attempts remaining
+                            </small>
 
                             <Button
                                 variant="contained"
-                                disabled={busy || !confirmed}
-                                onClick={() => submit("pickup")}
-                                startIcon={
-                                    <i className="fa-solid fa-box" />
+                                disabled={
+                                    busy ||
+                                    !confirmed ||
+                                    otp.length !== 6 ||
+                                    task.otpLocked
                                 }
+                                onClick={() => submit("pickup")}
                             >
-                                Confirm Pickup
+                                Verify OTP & Confirm Pickup
                             </Button>
                         </div>
                     )}
 
-                    {/* ================== START DELIVERY ================== */}
+                    {/* ================== OUT FOR DELIVERY ================== */}
                     {task.stage === "picked_up" && (
                         <div className="dtd-action-form">
                             <p>
-                                Parcel custody is with you. Start
-                                the route when leaving for the
-                                destination.
+                                Parcel custody is with you.
+                                Start delivery when leaving
+                                for the destination.
                             </p>
 
                             <Button
@@ -646,177 +679,101 @@ function TaskDetails({ user }) {
                                 onClick={() =>
                                     submit("start_delivery")
                                 }
-                                startIcon={
-                                    <i className="fa-solid fa-truck-fast" />
-                                }
                             >
-                                {reverse
-                                    ? "Start Return to Seller"
-                                    : "Out for Delivery"}
+                                Out for Delivery
                             </Button>
                         </div>
                     )}
 
-                    {/* ================== COMPLETE DELIVERY ================== */}
+                    {/* ================== CUSTOMER OTP ================== */}
                     {task.stage === "out_for_delivery" && (
                         <div className="dtd-action-form">
-                            {reverse ? (
-                                <>
-                                    <p>
-                                        Hand the returned item to the
-                                        seller. Confirm only after
-                                        physical receipt.
-                                    </p>
+                            <p>
+                                Ask the customer for their
+                                delivery OTP at the doorstep.
+                            </p>
 
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={confirmed}
-                                                onChange={(event) =>
-                                                    setConfirmed(
-                                                        event.target.checked
-                                                    )
-                                                }
-                                            />
-                                        }
-                                        label="Seller has physically received the returned item"
-                                    />
+                            <TextField
+                                fullWidth
+                                label="Customer Delivery OTP"
+                                value={otp}
+                                disabled={busy || task.otpLocked}
+                                onChange={(event) =>
+                                    setOtp(
+                                        event.target.value
+                                            .replace(/\D/g, "")
+                                            .slice(0, 6)
+                                    )
+                                }
+                                slotProps={{
+                                    htmlInput: {
+                                        maxLength: 6,
+                                        inputMode: "numeric",
+                                        autoComplete: "one-time-code",
+                                    },
+                                }}
+                            />
 
-                                    <Button
-                                        variant="contained"
-                                        disabled={busy || !confirmed}
-                                        onClick={() =>
-                                            submit("deliver")
-                                        }
-                                        startIcon={
-                                            <i className="fa-solid fa-circle-check" />
-                                        }
-                                    >
-                                        Confirm Seller Handover
-                                    </Button>
-                                </>
-                            ) : (
-                                <>
-                                    <p>
-                                        Ask the customer for the OTP
-                                        shown in their order details.
-                                        Never request it before
-                                        reaching the doorstep.
-                                    </p>
+                            <small>
+                                {Math.max(
+                                    0,
+                                    5 - Number(task.otpAttempts || 0)
+                                )} OTP attempts remaining
+                            </small>
 
-                                    <TextField
-                                        fullWidth
-                                        label="Customer Delivery OTP"
-                                        value={otp}
-                                        onChange={(event) =>
-                                            setOtp(
-                                                event.target.value
-                                                    .replace(/\D/g, "")
-                                                    .slice(0, 6)
-                                            )
-                                        }
-                                        slotProps={{
-                                            htmlInput: {
-                                                inputMode: "numeric",
-                                                maxLength: 6,
-                                                autoComplete: "one-time-code",
-                                            },
-                                        }}
-                                        disabled={
-                                            busy ||
-                                            task.otpLocked
-                                        }
-                                    />
+                            <Button
+                                variant="contained"
+                                disabled={
+                                    busy ||
+                                    otp.length !== 6 ||
+                                    task.otpLocked
+                                }
+                                onClick={() => submit("deliver")}
+                            >
+                                Verify OTP & Deliver
+                            </Button>
 
-                                    <small>
-                                        {Math.max(
-                                            0,
-                                            5 - Number(
-                                                task.otpAttempts || 0
-                                            )
-                                        )} OTP attempt(s) remaining
-                                    </small>
-
-                                    <Button
-                                        variant="contained"
-                                        disabled={
-                                            busy ||
-                                            otp.length !== 6 ||
-                                            task.otpLocked
-                                        }
-                                        onClick={() =>
-                                            submit("deliver")
-                                        }
-                                        startIcon={
-                                            <i className="fa-solid fa-shield-halved" />
-                                        }
-                                    >
-                                        Verify OTP & Deliver
-                                    </Button>
-
-                                    {(
-                                        !task.hasLinkedOrder &&
-                                        !task.hasLinkedReplacement
-                                    ) && (
-                                        <Alert severity="warning">
-                                            This preview task has no
-                                            linked customer order.
-                                            OTP completion is unavailable
-                                            until order data is connected.
-                                        </Alert>
-                                    )}
-                                </>
-                            )}
+                            <Button
+                                variant="outlined"
+                                disabled={busy}
+                                onClick={() =>
+                                    submit("regenerate_otp")
+                                }
+                            >
+                                Regenerate Delivery OTP
+                            </Button>
                         </div>
                     )}
 
-                    {/* ================== FAILED TASK RETRY ================== */}
+                    {/* ================== FAILED DELIVERY ================== */}
                     {task.stage === "failed" && (
                         <div className="dtd-action-form">
-                            <Alert
-                                severity={
-                                    canRetry
-                                        ? "warning"
-                                        : "error"
-                                }
-                            >
+                            <Alert severity="warning">
                                 {task.failureReason ||
                                     "Delivery failed"}
-
-                                {task.failureNote
-                                    ? `: ${task.failureNote}`
-                                    : ""}
                             </Alert>
 
                             {canRetry ? (
                                 <Button
                                     variant="contained"
                                     disabled={busy}
-                                    onClick={() =>
-                                        submit("retry")
-                                    }
-                                    startIcon={
-                                        <i className="fa-solid fa-arrow-rotate-right" />
-                                    }
+                                    onClick={() => submit("retry")}
                                 >
                                     Retry Task
                                 </Button>
                             ) : (
                                 <p>
-                                    Retry limit reached. Admin must
-                                    review the assignment and
-                                    parcel custody.
+                                    Contact Admin for review.
                                 </p>
                             )}
                         </div>
                     )}
 
-                    {/* ================== CLOSED TASK ================== */}
+                    {/* ================== COMPLETED ================== */}
                     {closed && (
                         <div className="dtd-action-form">
                             <Alert severity="success">
-                                This task is closed. No further
-                                agent actions are available.
+                                This task is closed.
                             </Alert>
 
                             <Button
@@ -829,31 +786,20 @@ function TaskDetails({ user }) {
                         </div>
                     )}
 
-                    {task.stage === "ready_for_pickup" && (
-                        <Alert severity="info">
-                            Await Admin assignment confirmation
-                            before pickup.
-                        </Alert>
-                    )}
-
-                    {/* ================== REPORT FAILED ATTEMPT ================== */}
-                    {allowedFailure && !showFailure && (
+                    {/* ================== REPORT FAILURE ================== */}
+                    {canFail && !showFailure && (
                         <Button
                             className="dtd-failure-toggle"
                             variant="outlined"
                             color="error"
-                            onClick={() =>
-                                setShowFailure(true)
-                            }
-                            startIcon={
-                                <i className="fa-solid fa-triangle-exclamation" />
-                            }
+                            disabled={busy}
+                            onClick={() => setShowFailure(true)}
                         >
                             Report Failed Attempt
                         </Button>
                     )}
 
-                    {allowedFailure && showFailure && (
+                    {canFail && showFailure && (
                         <div className="dtd-failure-form">
                             <h4>Record Failed Attempt</h4>
 
@@ -863,9 +809,7 @@ function TaskDetails({ user }) {
                                 label="Failure Reason"
                                 value={reason}
                                 onChange={(event) =>
-                                    setReason(
-                                        event.target.value
-                                    )
+                                    setReason(event.target.value)
                                 }
                             >
                                 {failureReasons.map((value) => (
@@ -886,10 +830,7 @@ function TaskDetails({ user }) {
                                 value={note}
                                 onChange={(event) =>
                                     setNote(
-                                        event.target.value.slice(
-                                            0,
-                                            200
-                                        )
+                                        event.target.value.slice(0, 200)
                                     )
                                 }
                             />
@@ -905,12 +846,10 @@ function TaskDetails({ user }) {
                                 </Button>
 
                                 <Button
-                                    color="error"
                                     variant="contained"
+                                    color="error"
                                     disabled={busy || !reason}
-                                    onClick={() =>
-                                        submit("failed")
-                                    }
+                                    onClick={() => submit("failed")}
                                 >
                                     Save Failure
                                 </Button>
@@ -919,14 +858,8 @@ function TaskDetails({ user }) {
                     )}
 
                     <p className="dtd-demo-note">
-                        <i
-                            className="fa-solid fa-circle-info"
-                            aria-hidden="true"
-                        />
-
-                        Preview workflow. Real OTP validation,
-                        authorization and retry automation must
-                        run on the backend.
+                        <i className="fa-solid fa-circle-info" />
+                        OTP verification is handled by the backend.
                     </p>
                 </aside>
             </div>

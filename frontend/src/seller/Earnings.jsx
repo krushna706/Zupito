@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Button,
     Collapse,
@@ -16,7 +16,7 @@ import {
 import { toast } from "react-toastify";
 
 import { getStoreName } from "../services/sellerService";
-import { getSellerOrders } from "../services/orderService";
+import { getManagedOrders } from "../services/orderService";
 
 // ================== CONFIGURATION ==================
 const SETTLEMENT_KEY = "zupito_admin_settlements";
@@ -164,7 +164,7 @@ function belongsToSeller(record, user, names) {
 }
 
 // ================== EARNINGS DATA ==================
-function loadEarnings(user) {
+function loadEarnings(user, sellerOrders = []) {
     const data = readStorage(SETTLEMENT_KEY);
     const names = sellerNames(user);
 
@@ -212,11 +212,11 @@ function loadEarnings(user) {
         lines.map((line) => String(line.orderId))
     );
 
-    const unallocatedOrders = getSellerOrders(user)
-        .filter((order) =>
+    const unallocatedOrders = sellerOrders.filter(
+        (order) =>
             order.status === "delivered" &&
-            !allocatedOrders.has(order.orderId)
-        );
+            !allocatedOrders.has(String(order.orderId))
+    );
 
     return {
         lines,
@@ -306,6 +306,8 @@ function SectionHeading({ icon, title, description, action }) {
 
 // ================== SELLER EARNINGS ==================
 function Earnings({ user }) {
+    const ordersRef = useRef([]);
+
     const [data, setData] = useState(() =>
         loadEarnings(user)
     );
@@ -323,25 +325,61 @@ function Earnings({ user }) {
     const [batchRows, setBatchRows] = useState(10);
 
     // ================== DATA REFRESH ==================
-    const refresh = () => {
-        setData(loadEarnings(user));
+    const refresh = async () => {
+        try {
+            const sellerOrders = await getManagedOrders();
+
+            ordersRef.current = sellerOrders;
+            setData(loadEarnings(user, sellerOrders));
+        } catch (error) {
+            toast.error(
+                error.response?.data?.message ||
+                "Unable to refresh seller orders."
+            );
+        }
     };
 
     useEffect(() => {
-        const sync = () => {
-            setData(loadEarnings(user));
+        let active = true;
+
+        // Fetch seller orders from the existing backend API.
+        const syncOrders = async () => {
+            try {
+                const sellerOrders = await getManagedOrders();
+
+                if (!active) return;
+
+                ordersRef.current = sellerOrders;
+                setData(loadEarnings(user, sellerOrders));
+            } catch {
+                if (active) {
+                    setData(loadEarnings(user, ordersRef.current));
+                }
+            }
         };
 
-        sync();
+        // Preserve existing settlement preview records.
+        const syncStorage = () => {
+            setData(loadEarnings(user, ordersRef.current));
+        };
 
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
+        ordersRef.current = [];
+
+        syncStorage();
+        syncOrders();
+
+        window.addEventListener("focus", syncOrders);
+        window.addEventListener("storage", syncStorage);
+        window.addEventListener("zupito:orders-updated", syncOrders);
 
         return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
+            active = false;
+
+            window.removeEventListener("focus", syncOrders);
+            window.removeEventListener("storage", syncStorage);
+            window.removeEventListener("zupito:orders-updated", syncOrders);
         };
-    }, [user?.id, user?.email, user?.storeName]);
+    }, [user?._id, user?.id, user?.email, user?.storeName]);
 
     const {
         lines,

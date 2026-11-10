@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 async function connectDB() {
@@ -18,6 +19,8 @@ async function connectDB() {
         require("../models/Order").init(),
         require("../models/Payment").init(),
         require("../models/SellerOrder").init(),
+        require("../models/DeliveryAgentProfile").init(),
+        require("../models/DeliveryTask").init(),
     ]);
 
     console.log("MongoDB connected");

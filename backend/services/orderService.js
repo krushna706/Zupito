@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const Order = require("../models/Order");
@@ -6,23 +7,35 @@ const Product = require("../models/Product");
 const Cart = require("../models/Cart");
 const SellerOrder = require("../models/SellerOrder");
 const StockMovement = require("../models/StockMovement");
+const SellerProfile = require("../models/SellerProfile");
+const DeliveryTask = require("../models/DeliveryTask");
+const DeliveryAgentProfile = require("../models/DeliveryAgentProfile");
 
 const ExpressError = require("../utils/ExpressError");
 const { displayPricing } = require("../config/orderRules");
-const SellerProfile = require("../models/SellerProfile");
 
-// Confirmation and expiry update the same order transactionally.
+const deliveryService = require("./deliveryService");
+const otpService = require("./deliveryOtpService");
+
+// ================== PAYMENT SETTLEMENT ==================
+// Payment confirmation and inventory share one transaction.
 exports.settleOrder = (orderId, capturedPayment = null) =>
     mongoose.connection.transaction(async (session) => {
-        const order = await Order.findById(orderId).session(session);
+        const order = await Order.findById(orderId)
+            .session(session);
 
         if (!order) {
             throw new ExpressError(404, "Order not found.");
         }
 
-        if (order.status !== "AwaitingPayment") return order;
+        if (order.status !== "AwaitingPayment") {
+            return order;
+        }
 
-        if (!capturedPayment && order.expiresAt > new Date()) {
+        if (
+            !capturedPayment &&
+            order.expiresAt > new Date()
+        ) {
             return order;
         }
 
@@ -32,7 +45,8 @@ exports.settleOrder = (orderId, capturedPayment = null) =>
             ).session(session);
 
             const variant = product?.variants.find(
-                (entry) => entry.variantId === item.variantId
+                (entry) =>
+                    entry.variantId === item.variantId
             );
 
             if (
@@ -47,21 +61,30 @@ exports.settleOrder = (orderId, capturedPayment = null) =>
             }
 
             const changed = await Product.updateOne(
-                { _id: product._id, __v: product.__v },
+                {
+                    _id: product._id,
+                    __v: product.__v,
+                },
                 {
                     $inc: {
-                        "variants.$[item].reservedQuantity": -item.quantity,
+                        "variants.$[item].reservedQuantity":
+                            -item.quantity,
+
                         ...(capturedPayment
-                            ? { "variants.$[item].stock": -item.quantity }
+                            ? {
+                                "variants.$[item].stock":
+                                    -item.quantity,
+                            }
                             : {}),
+
                         __v: 1,
                     },
                 },
                 {
                     session,
-                    arrayFilters: [
-                        { "item.variantId": item.variantId },
-                    ],
+                    arrayFilters: [{
+                        "item.variantId": item.variantId,
+                    }],
                 }
             );
 
@@ -73,27 +96,23 @@ exports.settleOrder = (orderId, capturedPayment = null) =>
             }
 
             if (capturedPayment) {
-                await StockMovement.create(
-                    [
-                        {
-                            sellerProfileId: item.sellerProfileId,
-                            productId: item.productId,
-                            variantId: item.variantId,
-                            sku: item.sku,
-                            type: "Sale",
-                            source: "order",
-                            beforeQuantity: variant.stock,
-                            quantityChange: -item.quantity,
-                            afterQuantity: variant.stock - item.quantity,
-                            reason: "Paid customer order",
-                            reference: String(order._id),
-                            operationKey:
-                                `sale:${order._id}:${item.productId}:${item.variantId}`,
-                            actorUserId: order.userId,
-                        },
-                    ],
-                    { session }
-                );
+                await StockMovement.create([{
+                    sellerProfileId: item.sellerProfileId,
+                    productId: item.productId,
+                    variantId: item.variantId,
+                    sku: item.sku,
+                    type: "Sale",
+                    source: "order",
+                    beforeQuantity: variant.stock,
+                    quantityChange: -item.quantity,
+                    afterQuantity:
+                        variant.stock - item.quantity,
+                    reason: "Paid customer order",
+                    reference: String(order._id),
+                    operationKey:
+                        `sale:${order._id}:${item.productId}:${item.variantId}`,
+                    actorUserId: order.userId,
+                }], { session });
             }
         }
 
@@ -101,25 +120,37 @@ exports.settleOrder = (orderId, capturedPayment = null) =>
             const groups = new Map();
 
             order.items.forEach((item, index) => {
-                const indexes = groups.get(item.sellerProfileId) || [];
+                const indexes = groups.get(
+                    item.sellerProfileId
+                ) || [];
+
                 indexes.push(index);
-                groups.set(item.sellerProfileId, indexes);
+
+                groups.set(
+                    item.sellerProfileId,
+                    indexes
+                );
             });
 
             for (const [sellerProfileId, itemIndexes] of groups) {
-                await SellerOrder.create(
-                    [{ orderId, sellerProfileId, itemIndexes }],
-                    { session }
-                );
+                await SellerOrder.create([{
+                    orderId,
+                    sellerProfileId,
+                    itemIndexes,
+                }], { session });
             }
 
             await Payment.updateOne(
                 { orderId },
-                { $set: { providerPaymentId: capturedPayment.id } },
+                {
+                    $set: {
+                        providerPaymentId: capturedPayment.id,
+                    },
+                },
                 { session }
             );
 
-            // Preserve a cart edited while payment was in progress.
+            // Preserve a cart edited while payment was processing.
             const cart = await Cart.updateOne(
                 {
                     userId: order.userId,
@@ -132,11 +163,17 @@ exports.settleOrder = (orderId, capturedPayment = null) =>
                 { session }
             );
 
-            order.cartCleared = Boolean(cart.matchedCount);
+            order.cartCleared = Boolean(
+                cart.matchedCount
+            );
+
             order.confirmedAt = new Date();
         }
 
-        order.status = capturedPayment ? "Confirmed" : "Expired";
+        order.status = capturedPayment
+            ? "Confirmed"
+            : "Expired";
+
         order.active = false;
         order.reserved = false;
 
@@ -145,71 +182,189 @@ exports.settleOrder = (orderId, capturedPayment = null) =>
         return order;
     });
 
-// Payment state stays on Order; fulfilment belongs to each seller parcel.
-function fulfillmentStatus(parcels, fallback = "Confirmed") {
-    const statuses = parcels.map((parcel) => parcel.status);
+// ================== ORDER STATUS ==================
+function fulfillmentStatus(
+    parcels,
+    fallback = "Confirmed"
+) {
+    const statuses = parcels.map(
+        (parcel) => parcel.status
+    );
 
-    if (!statuses.length) return fallback;
+    if (!statuses.length) {
+        return fallback;
+    }
 
-    return statuses.every((status) => status === statuses[0])
+    return statuses.every(
+        (status) => status === statuses[0]
+    )
         ? statuses[0]
         : "in_progress";
 }
 
+// ================== CUSTOMER ORDER ==================
 exports.readOrder = async (userId, id) => {
-    const order = await Order.findOne({ _id: id, userId }).lean();
+    const order = await Order.findOne({
+        _id: id,
+        userId,
+    }).lean();
 
     if (!order) {
         throw new ExpressError(404, "Order not found.");
     }
 
-    const payment = await Payment.findOne({ orderId: id }).lean();
-    const records = await SellerOrder.find({ orderId: id }).lean();
+    const [payment, records, deliveryTasks] =
+        await Promise.all([
+            Payment.findOne({
+                orderId: id,
+            }).lean(),
+
+            SellerOrder.find({
+                orderId: id,
+            }).lean(),
+
+            DeliveryTask.find({
+                orderId: id,
+                kind: "original",
+            })
+                .select("+otpCiphertext")
+                .lean(),
+        ]);
 
     const profiles = await SellerProfile.find({
-        _id: { $in: records.map((parcel) => parcel.sellerProfileId) },
+        _id: {
+            $in: records.map(
+                (parcel) => parcel.sellerProfileId
+            ),
+        },
     })
         .select("storeName pickupAddress.pincode")
         .lean();
 
     const stores = new Map(
-        profiles.map((profile) => [String(profile._id), profile])
+        profiles.map((profile) => [
+            String(profile._id),
+            profile,
+        ])
     );
 
-    const parcels = records.map((parcel) => ({
-        id: String(parcel._id),
-        sellerProfileId: String(parcel.sellerProfileId),
-        sellerName:
-            stores.get(String(parcel.sellerProfileId))?.storeName ||
-            "Seller",
-        pickupPincode:
-            stores.get(String(parcel.sellerProfileId))
-                ?.pickupAddress?.pincode || "",
-        status: parcel.status,
-        itemIndexes: parcel.itemIndexes,
-        confirmedAt: parcel.confirmedAt,
-        packingAt: parcel.packingAt,
-        packedAt: parcel.readyForPickupAt,
-        readyForPickupAt: parcel.readyForPickupAt,
-        eventTimestamps: {
+    const taskByParcel = new Map(
+        deliveryTasks.map((task) => [
+            String(task.sellerOrderId),
+            task,
+        ])
+    );
+
+    const agentProfiles = await DeliveryAgentProfile.find({
+        _id: {
+            $in: deliveryTasks
+                .map((task) => task.agentProfileId)
+                .filter(Boolean),
+        },
+    })
+        .populate("userId", "name phone")
+        .lean();
+
+    const agentByProfile = new Map(
+        agentProfiles.map((profile) => [
+            String(profile._id),
+            {
+                id: String(profile._id),
+                name:
+                    profile.userId?.name ||
+                    "Assigned Agent",
+                phone: profile.userId?.phone || "",
+            },
+        ])
+    );
+
+    const parcels = records.map((parcel) => {
+        const task = taskByParcel.get(
+            String(parcel._id)
+        );
+
+        const store = stores.get(
+            String(parcel.sellerProfileId)
+        );
+
+        return {
+            id: String(parcel._id),
+            sellerProfileId:
+                String(parcel.sellerProfileId),
+
+            sellerName:
+                store?.storeName || "Seller",
+
+            pickupPincode:
+                store?.pickupAddress?.pincode || "",
+
+            status: task?.stage === "out_for_delivery"
+                ? "Out for Delivery"
+                : task?.stage === "failed"
+                    ? "Delivery Failed"
+                    : parcel.status,
+
+            deliveryOtp: otpService.customerCode(task),
+
+            agent: agentByProfile.get(
+                String(task?.agentProfileId)
+            ) || null,
+
+            task: task
+                ? {
+                    stage: task.stage,
+                    custody: task.custody,
+                    assignedAt: task.assignedAt,
+                    pickedUpAt: task.pickedUpAt,
+                    outForDeliveryAt: task.outForDeliveryAt,
+                    deliveredAt: task.deliveredAt,
+                }
+                : null,
+
+            deliveredAt: task?.deliveredAt,
+
+            otpVerified:
+                task?.stage === "delivered",
+
+            delivery: {
+                assignedAt: task?.assignedAt,
+                pickedUpAt: task?.pickedUpAt,
+                outForDeliveryAt: task?.outForDeliveryAt,
+                deliveredAt: task?.deliveredAt,
+            },
+
+            itemIndexes: parcel.itemIndexes,
             confirmedAt: parcel.confirmedAt,
             packingAt: parcel.packingAt,
             packedAt: parcel.readyForPickupAt,
             readyForPickupAt: parcel.readyForPickupAt,
-        },
-    }));
+
+            eventTimestamps: {
+                confirmedAt: parcel.confirmedAt,
+                packingAt: parcel.packingAt,
+                packedAt: parcel.readyForPickupAt,
+                readyForPickupAt: parcel.readyForPickupAt,
+                pickedUpAt: task?.pickedUpAt,
+                shippedAt: task?.pickedUpAt,
+                outForDeliveryAt: task?.outForDeliveryAt,
+                deliveredAt: task?.deliveredAt,
+            },
+        };
+    });
 
     const items = order.items.map((item, index) => ({
         ...item,
         _id: `${order._id}-${index}`,
         price: item.pricePaise / 100,
         mrp: item.mrpPaise / 100,
+
         productSnapshot: {
             name: item.name,
             image: item.image,
             variantId: item.variantId,
             variantLabel: item.variantLabel,
         },
+
         product: {
             _id: item.productId,
             name: item.name,
@@ -225,20 +380,36 @@ exports.readOrder = async (userId, id) => {
         orderId: String(order._id),
         items,
         parcels,
-        orderStatus: fulfillmentStatus(parcels, order.status),
+
+        orderStatus: fulfillmentStatus(
+            parcels,
+            order.status
+        ),
+
         customerName: order.address.name,
         address: order.address,
         shippingAddress: order.address,
+
         pricing: {
-            subtotal: order.pricing.originalPrice / 100,
-            shippingFee: order.pricing.deliveryCharge / 100,
-            discount: order.pricing.totalSavings / 100,
+            subtotal:
+                order.pricing.originalPrice / 100,
+
+            shippingFee:
+                order.pricing.deliveryCharge / 100,
+
+            discount:
+                order.pricing.totalSavings / 100,
         },
+
         summary: displayPricing(order.pricing),
         totalAmount: order.pricing.total / 100,
         status: order.status,
+
         paymentStatus:
-            order.status === "Confirmed" ? "Paid" : order.status,
+            order.status === "Confirmed"
+                ? "Paid"
+                : order.status,
+
         paymentMethod: "Razorpay",
         paymentId: payment?.providerPaymentId || "",
         createdAt: order.createdAt,
@@ -248,6 +419,7 @@ exports.readOrder = async (userId, id) => {
     };
 };
 
+// ================== STAFF ORDER DETAILS ==================
 exports.readManagedOrder = async (
     orderId,
     sellerProfileId = null,
@@ -261,49 +433,75 @@ exports.readManagedOrder = async (
         .lean();
 
     if (!order) {
-        throw new ExpressError(404, "Order not found.");
+        throw new ExpressError(
+            404, "Order not found."
+        );
     }
 
     const filter = {
         orderId,
-        ...(sellerProfileId ? { sellerProfileId } : {}),
-        ...(parcelId ? { _id: parcelId } : {}),
+        ...(sellerProfileId
+            ? { sellerProfileId }
+            : {}),
+        ...(parcelId
+            ? { _id: parcelId }
+            : {}),
     };
 
-    const records = await SellerOrder.find(filter).lean();
+    const records = await SellerOrder.find(
+        filter
+    ).lean();
 
     if (sellerProfileId && !records.length) {
-        throw new ExpressError(404, "Seller parcel not found.");
+        throw new ExpressError(
+            404, "Seller parcel not found."
+        );
     }
 
-    const full = await exports.readOrder(order.userId, orderId);
+    const full = await exports.readOrder(
+        order.userId,
+        orderId
+    );
 
-    // Admin can inspect every parcel in the customer order.
+    // Staff never receive the customer's delivery OTP.
+    full.parcels.forEach((parcel) => {
+        delete parcel.deliveryOtp;
+    });
+
+    // ================== ADMIN ORDER ==================
     if (!sellerProfileId) {
-        full.items = full.items.map((item, index) => ({
-            ...item,
-            sellerName:
-                full.parcels.find((parcel) =>
-                    parcel.itemIndexes.includes(index)
-                )?.sellerName || "Seller",
-        }));
+        full.items = full.items.map(
+            (item, index) => ({
+                ...item,
 
-        full.activity = records.flatMap((parcel) =>
-            (parcel.history || []).map((event) => ({
-                type: event.status,
-                date: event.date,
-                note: event.note,
-                parcelId: String(parcel._id),
-            }))
+                sellerName:
+                    full.parcels.find(
+                        (parcel) =>
+                            parcel.itemIndexes.includes(index)
+                    )?.sellerName || "Seller",
+            })
+        );
+
+        full.activity = records.flatMap(
+            (parcel) =>
+                (parcel.history || []).map(
+                    (event) => ({
+                        type: event.status,
+                        date: event.date,
+                        note: event.note,
+                        parcelId: String(parcel._id),
+                    })
+                )
         );
 
         return full;
     }
 
-    // Sellers receive only their items and parcel information.
+    // ================== SELLER ORDER ==================
     return records.map((record) => {
         const parcel = full.parcels.find(
-            (item) => item.id === String(record._id)
+            (item) =>
+                item.id === String(record._id)
         );
 
         const items = record.itemIndexes
@@ -315,16 +513,26 @@ exports.readManagedOrder = async (
             parcelId: parcel.id,
             parcel,
             items,
+            agent: parcel.agent,
+            task: parcel.task,
             customerName: full.customerName,
             address: full.address,
             createdAt: full.createdAt,
-            status: record.status.toLowerCase().replace(/\s+/g, "_"),
+
+            status: parcel.status
+                .toLowerCase()
+                .replace(/\s+/g, "_"),
+
             paymentStatus: "Paid",
             paymentMethod: "Razorpay",
+
             amount: items.reduce(
-                (sum, item) => sum + item.pricePaise * item.quantity,
+                (sum, item) =>
+                    sum +
+                    item.pricePaise * item.quantity,
                 0
             ) / 100,
+
             activity: [
                 {
                     type: "confirmed",
@@ -332,17 +540,21 @@ exports.readManagedOrder = async (
                     note: "Paid order confirmed.",
                     parcelId: parcel.id,
                 },
-                ...(record.history || []).map((event) => ({
-                    type: event.status,
-                    date: event.date,
-                    note: event.note,
-                    parcelId: parcel.id,
-                })),
+
+                ...(record.history || []).map(
+                    (event) => ({
+                        type: event.status,
+                        date: event.date,
+                        note: event.note,
+                        parcelId: parcel.id,
+                    })
+                ),
             ],
         };
     });
 };
 
+// ================== SELLER FULFILMENT ==================
 exports.advanceParcel = async (
     sellerProfileId,
     actorUserId,
@@ -357,75 +569,104 @@ exports.advanceParcel = async (
     }[status];
 
     if (!previous) {
-        throw new ExpressError(400, "Invalid fulfilment status.");
+        throw new ExpressError(
+            400, "Invalid fulfilment status."
+        );
     }
 
-    await mongoose.connection.transaction(async (session) => {
-        const order = await Order.findOne({
-            _id: orderId,
-            status: "Confirmed",
-        })
-            .session(session)
-            .lean();
+    await mongoose.connection.transaction(
+        async (session) => {
+            const order = await Order.findOne({
+                _id: orderId,
+                status: "Confirmed",
+            })
+                .session(session)
+                .lean();
 
-        if (!order) {
-            throw new ExpressError(404, "Paid order not found.");
-        }
+            if (!order) {
+                throw new ExpressError(
+                    404, "Paid order not found."
+                );
+            }
 
-        const filter = {
-            _id: parcelId,
-            orderId,
-            sellerProfileId,
-        };
+            const filter = {
+                _id: parcelId,
+                orderId,
+                sellerProfileId,
+            };
 
-        const parcel = await SellerOrder.findOne(filter)
-            .session(session)
-            .lean();
+            const parcel = await SellerOrder.findOne(
+                filter
+            )
+                .session(session)
+                .lean();
 
-        if (!parcel) {
-            throw new ExpressError(404, "Seller parcel not found.");
-        }
+            if (!parcel) {
+                throw new ExpressError(
+                    404, "Seller parcel not found."
+                );
+            }
 
-        // Repeated requests do not append duplicate history.
-        if (parcel.status === status) return;
+            // Ignore repeated status changes.
+            if (parcel.status === status) {
+                return;
+            }
 
-        if (parcel.status !== previous) {
-            throw new ExpressError(
-                409,
-                "Parcel status changed. Refresh and try again."
-            );
-        }
+            if (parcel.status !== previous) {
+                throw new ExpressError(
+                    409,
+                    "Parcel status changed. Refresh and try again."
+                );
+            }
 
-        const now = new Date();
+            const now = new Date();
 
-        const result = await SellerOrder.updateOne(
-            { ...filter, status: previous },
-            {
-                $set: {
-                    status,
-                    [status === "Packing"
-                        ? "packingAt"
-                        : "readyForPickupAt"]: now,
+            const result = await SellerOrder.updateOne(
+                {
+                    ...filter,
+                    status: previous,
                 },
-                $push: {
-                    history: {
+                {
+                    $set: {
                         status,
-                        note,
-                        actorUserId,
-                        date: now,
+
+                        [status === "Packing"
+                            ? "packingAt"
+                            : "readyForPickupAt"]: now,
+                    },
+
+                    $push: {
+                        history: {
+                            status,
+                            note,
+                            actorUserId,
+                            date: now,
+                        },
                     },
                 },
-            },
-            { session, runValidators: true }
-        );
-
-        if (!result.matchedCount) {
-            throw new ExpressError(
-                409,
-                "Parcel status changed. Refresh and try again."
+                {
+                    session,
+                    runValidators: true,
+                }
             );
+
+            if (!result.matchedCount) {
+                throw new ExpressError(
+                    409,
+                    "Parcel status changed. Refresh and try again."
+                );
+            }
+
+            // Create one delivery task when seller is ready.
+            if (status === "Ready for Pickup") {
+                await deliveryService.queueSellerParcel(
+                    order,
+                    parcel,
+                    session
+                );
+            }
         }
-    });
+    );
 
     return (
         await exports.readManagedOrder(

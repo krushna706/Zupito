@@ -1,9 +1,11 @@
+
 const Joi = require("joi");
 
 const Order = require("../models/Order");
 const SellerProfile = require("../models/SellerProfile");
 const SellerOrder = require("../models/SellerOrder");
 const ExpressError = require("../utils/ExpressError");
+const deliveryService = require("../services/deliveryService");
 
 const {
     readOrder,
@@ -79,11 +81,17 @@ async function sellerScope(req) {
 }
 
 function checkIds(req) {
-    const ids = [req.params.id, req.params.parcelId].filter(Boolean);
+    const ids = [
+        req.params.id,
+        req.params.parcelId,
+    ].filter(Boolean);
 
     for (const id of ids) {
         if (!/^[a-f0-9]{24}$/i.test(id)) {
-            throw new ExpressError(404, "Order not found.");
+            throw new ExpressError(
+                404,
+                "Order not found."
+            );
         }
     }
 }
@@ -114,25 +122,36 @@ exports.managedList = async (req, res, next) => {
         const orders = [];
 
         // Keep concurrent database work bounded.
-        for (let offset = 0; offset < rows.length; offset += 5) {
+        for (
+            let offset = 0;
+            offset < rows.length;
+            offset += 5
+        ) {
             const batch = await Promise.all(
                 rows.slice(offset, offset + 5).map((row) =>
                     readManagedOrder(
-                        sellerProfileId ? row.orderId : row._id,
+                        sellerProfileId
+                            ? row.orderId
+                            : row._id,
                         sellerProfileId,
-                        sellerProfileId ? row._id : null
+                        sellerProfileId
+                            ? row._id
+                            : null
                     )
                 )
             );
 
             for (const data of batch) {
-                orders.push(...(Array.isArray(data) ? data : [data]));
+                orders.push(
+                    ...(Array.isArray(data) ? data : [data])
+                );
             }
         }
 
         res.json({
             orders,
-            hasMore: page * 50 < await model.countDocuments(filter),
+            hasMore:
+                page * 50 < await model.countDocuments(filter),
         });
     } catch (error) {
         next(error);
@@ -144,6 +163,7 @@ exports.managedDetail = async (req, res, next) => {
         checkIds(req);
 
         const sellerProfileId = await sellerScope(req);
+
         const data = await readManagedOrder(
             req.params.id,
             sellerProfileId,
@@ -167,15 +187,21 @@ exports.advance = async (req, res, next) => {
             status: Joi.string()
                 .valid("Packing", "Ready for Pickup")
                 .required(),
+
             note: Joi.string()
                 .trim()
                 .max(200)
                 .allow("")
                 .default(""),
-        }).validate(req.body, { allowUnknown: false });
+        }).validate(req.body, {
+            allowUnknown: false,
+        });
 
         if (error) {
-            throw new ExpressError(400, error.details[0].message);
+            throw new ExpressError(
+                400,
+                error.details[0].message
+            );
         }
 
         const sellerProfileId = await sellerScope(req);
@@ -194,3 +220,30 @@ exports.advance = async (req, res, next) => {
         next(error);
     }
 };
+
+// ================== SELLER PICKUP OTP ==================
+// Code is visible only to the seller owning the parcel.
+async function pickupCode(req, res, next, regenerate = false) {
+    try {
+        checkIds(req);
+
+        const sellerId = await sellerScope(req);
+
+        const data = await deliveryService.sellerPickupCode(
+            sellerId,
+            req.params.id,
+            req.params.parcelId,
+            regenerate
+        );
+
+        res.json(data);
+    } catch (error) {
+        next(error);
+    }
+}
+
+exports.pickupOtp = (req, res, next) =>
+    pickupCode(req, res, next);
+
+exports.regeneratePickupOtp = (req, res, next) =>
+    pickupCode(req, res, next, true);

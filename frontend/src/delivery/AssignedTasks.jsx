@@ -1,5 +1,4 @@
 
-
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -28,38 +27,37 @@ import {
     formatDeliveryDate,
     getDeliveryAgent,
     getDeliveryTasks,
+    refreshDeliveryData,
 } from "../services/deliveryService";
 
-// ================== FILTER CONFIGURATION ==================
-const statusOptions = [
-    { value: "All", label: "All Statuses" },
-    { value: "ready_for_pickup", label: "Ready for Pickup" },
-    { value: "assigned", label: "Assigned" },
-    { value: "picked_up", label: "Picked Up" },
-    { value: "out_for_delivery", label: "Out for Delivery" },
-    { value: "failed", label: "Delivery Failed" },
+// ================== FILTERS ==================
+const statuses = [
+    ["All", "All Statuses"],
+    ["ready_for_pickup", "Ready for Pickup"],
+    ["assigned", "Assigned"],
+    ["picked_up", "Picked Up"],
+    ["out_for_delivery", "Out for Delivery"],
+    ["failed", "Delivery Failed"],
 ];
 
-const typeOptions = [
+const types = [
     "All",
     "Customer Delivery",
     "Return Pickup",
     "Replacement Delivery",
 ];
 
-const taskIcons = {
+const icons = {
     "Customer Delivery": "fa-truck-fast",
     "Return Pickup": "fa-arrow-rotate-left",
     "Replacement Delivery": "fa-box-open",
 };
 
-// ================== DISPLAY HELPERS ==================
-function formatAddress(address, pincode = "") {
-    if (typeof address === "string" && address.trim()) {
-        return address;
-    }
+// ================== HELPERS ==================
+function addressText(address, pincode = "") {
+    if (typeof address === "string") return address;
 
-    const parts = [
+    return [
         address?.house,
         address?.street,
         address?.area,
@@ -67,27 +65,55 @@ function formatAddress(address, pincode = "") {
         address?.city,
         address?.state,
         address?.pincode || pincode,
-    ].filter(Boolean);
-
-    return parts.length ? parts.join(", ") : "Address not provided";
+    ].filter(Boolean).join(", ") || "Address not available";
 }
 
-function getTaskRoute(task) {
-    const reverse = task.taskType === "Return Pickup";
+function routeOf(task) {
+    const reverse = task.kind === "replacement_pickup";
 
     return {
-        fromName: reverse ? task.customerName : task.sellerName,
-        fromIcon: reverse ? "fa-user" : "fa-store",
-        fromLabel: reverse ? "Customer Pickup" : "Seller Pickup",
-        fromPincode: reverse ? task.deliveryPincode : task.pickupPincode,
-        fromAddress: reverse ? task.customerAddress : task.pickupAddress,
-
-        toName: reverse ? task.sellerName : task.customerName,
-        toIcon: reverse ? "fa-store" : "fa-house",
-        toLabel: reverse ? "Seller Return" : "Customer Delivery",
-        toPincode: reverse ? task.pickupPincode : task.deliveryPincode,
-        toAddress: reverse ? task.pickupAddress : task.customerAddress,
+        from: reverse
+            ? task.customerName
+            : task.sellerName,
+        to: reverse
+            ? task.sellerName
+            : task.customerName,
+        fromPin: reverse
+            ? task.deliveryPincode
+            : task.pickupPincode,
+        toPin: reverse
+            ? task.pickupPincode
+            : task.deliveryPincode,
+        fromAddress: reverse
+            ? task.customerAddress
+            : task.pickupAddress,
+        toAddress: reverse
+            ? task.sellerAddress
+            : task.customerAddress,
+        fromLabel: reverse
+            ? "Customer Pickup"
+            : "Seller Pickup",
+        toLabel: reverse
+            ? "Seller Return"
+            : "Customer Delivery",
     };
+}
+
+function summaryText(task) {
+    const items = task.items || [];
+    const first = items[0];
+
+    if (!first) {
+        return task.product || "Order Parcel";
+    }
+
+    return [
+        first.name,
+        items.length > 1
+            ? `+${items.length - 1} more`
+            : null,
+        `Qty ${task.totalQuantity || 0}`,
+    ].filter(Boolean).join(" · ");
 }
 
 function StatusBadge({ stage }) {
@@ -100,8 +126,10 @@ function StatusBadge({ stage }) {
     };
 
     return (
-        <span className={`dta-status is-${colors[stage] || "neutral"}`}>
-            <i className="fa-solid fa-circle" aria-hidden="true" />
+        <span className={`dta-status is-${
+            colors[stage] || "neutral"
+        }`}>
+            <i className="fa-solid fa-circle" />
             {deliveryStageLabel(stage)}
         </span>
     );
@@ -116,82 +144,137 @@ function Detail({ label, value }) {
     );
 }
 
+// ================== ORDERED ITEMS ==================
+function OrderedItems({ task }) {
+    const items = task.items || [];
+
+    return (
+        <div className="dta-detail-section">
+            <h3>
+                <i className="fa-solid fa-bag-shopping" />
+                {" "}Ordered Items ({items.length})
+            </h3>
+
+            <p>
+                Total ordered quantity:{" "}
+                <strong>{task.totalQuantity || 0}</strong>
+            </p>
+
+            {items.map((item, index) => (
+                <div
+                    className="dta-detail"
+                    key={`${item.id}-${index}`}
+                >
+                    <dt>
+                        {item.image ? (
+                            <img
+                                src={item.image}
+                                alt={item.name}
+                                width="52"
+                                height="52"
+                                loading="lazy"
+                            />
+                        ) : (
+                            <i className="fa-solid fa-box" />
+                        )}
+                    </dt>
+
+                    <dd>
+                        <strong>{item.name}</strong>
+
+                        <p>
+                            {item.variantLabel ||
+                                "Standard Variant"}
+                        </p>
+
+                        {item.brand && (
+                            <small>Brand: {item.brand}</small>
+                        )}
+
+                        {item.sku && (
+                            <small> SKU: {item.sku}</small>
+                        )}
+
+                        <strong> Qty: {item.quantity}</strong>
+                    </dd>
+                </div>
+            ))}
+
+            {!items.length && (
+                <p>Order item details are unavailable.</p>
+            )}
+        </div>
+    );
+}
+
 // ================== MOBILE TASK CARD ==================
 function MobileTaskCard({ task, onView }) {
-    const route = getTaskRoute(task);
+    const route = routeOf(task);
 
     return (
         <article className="dta-mobile-card">
             <div className="dta-mobile-card-top">
                 <span className="dta-task-icon">
-                    <i
-                        className={`fa-solid ${taskIcons[task.taskType] || "fa-box"}`}
-                        aria-hidden="true"
-                    />
+                    <i className={`fa-solid ${
+                        icons[task.taskType] || "fa-box"
+                    }`} />
                 </span>
 
                 <div className="dta-mobile-identity">
                     <strong>{task.id}</strong>
-                    <small>{task.parcelId || task.orderId || "Parcel"}</small>
+                    <small>{task.parcelId}</small>
                 </div>
 
                 <StatusBadge stage={task.stage} />
             </div>
 
             <div className="dta-mobile-type">
-                <i className="fa-solid fa-layer-group" aria-hidden="true" />
+                <i className="fa-solid fa-layer-group" />
                 {task.taskType}
             </div>
 
             <div className="dta-mobile-route">
                 <div className="dta-route-point">
                     <span className="dta-route-marker is-origin">
-                        <i
-                            className={`fa-solid ${route.fromIcon}`}
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-store" />
                     </span>
 
                     <div>
                         <small>{route.fromLabel}</small>
-                        <strong>{route.fromName || "Pickup Point"}</strong>
-                        <span>PIN: {route.fromPincode || "—"}</span>
+                        <strong>{route.from}</strong>
+                        <span>PIN: {route.fromPin}</span>
                     </div>
                 </div>
 
                 <div className="dta-route-point">
                     <span className="dta-route-marker is-destination">
-                        <i
-                            className={`fa-solid ${route.toIcon}`}
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-house" />
                     </span>
 
                     <div>
                         <small>{route.toLabel}</small>
-                        <strong>{route.toName || "Delivery Point"}</strong>
-                        <span>PIN: {route.toPincode || "—"}</span>
+                        <strong>{route.to}</strong>
+                        <span>PIN: {route.toPin}</span>
                     </div>
                 </div>
             </div>
 
             <div className="dta-mobile-product">
-                <i className="fa-solid fa-box" aria-hidden="true" />
-                <span>{task.product || "Order Parcel"}</span>
+                <i className="fa-solid fa-bag-shopping" />
+                {summaryText(task)}
             </div>
 
             <div className="dta-mobile-footer">
                 <span>
-                    <i className="fa-regular fa-clock" aria-hidden="true" />
-                    {formatDeliveryDate(task.assignedAt || task.createdAt)}
+                    <i className="fa-regular fa-clock" />
+                    {formatDeliveryDate(
+                        task.assignedAt || task.createdAt
+                    )}
                 </span>
 
                 <Button
                     variant="contained"
                     onClick={() => onView(task.id)}
-                    endIcon={
-                        <i className="fa-solid fa-arrow-right" />
-                    }
                 >
                     View Task
                 </Button>
@@ -213,89 +296,118 @@ function AssignedTasks({ user }) {
         getDeliveryTasks(user)
     );
 
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("All");
-    const [taskType, setTaskType] = useState("All");
-
+    const [type, setType] = useState("All");
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [selectedId, setSelectedId] = useState(null);
 
-    // ================== DATA REFRESH ==================
-    const refresh = () => {
-        setAgent(getDeliveryAgent(user));
-        setTasks(getDeliveryTasks(user));
-    };
-
+    // ================== INITIAL DATA ==================
     useEffect(() => {
+        let active = true;
+
         const sync = () => {
+            if (!active) return;
+
             setAgent(getDeliveryAgent(user));
             setTasks(getDeliveryTasks(user));
         };
 
-        sync();
+        const load = async () => {
+            try {
+                await refreshDeliveryData(user);
+                sync();
+            } catch (failure) {
+                if (active) setError(failure.message);
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
 
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
+        load();
+
+        window.addEventListener(
+            "zupito:delivery-updated",
+            sync
+        );
 
         return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
+            active = false;
+
+            window.removeEventListener(
+                "zupito:delivery-updated",
+                sync
+            );
         };
-    }, [
-        user?.id,
-        user?.email,
-        user?.agentId,
-        user?.role,
-    ]);
+    }, [user?._id, user?.id, user?.role]);
 
-    const selected = tasks.find((task) =>
-        task.id === selectedId
-    );
+    // ================== MANUAL REFRESH ==================
+    const refresh = async () => {
+        setLoading(true);
+        setError("");
 
-    const selectedRoute = selected
-        ? getTaskRoute(selected)
-        : null;
+        try {
+            await refreshDeliveryData(user);
 
-    // ================== SUMMARY CARDS ==================
-    const statistics = [
+            setAgent(getDeliveryAgent(user));
+            setTasks(getDeliveryTasks(user));
+
+            toast.success("Tasks refreshed.");
+        } catch (failure) {
+            setError(failure.message);
+            toast.error(failure.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ================== STATISTICS ==================
+    const stats = [
         {
-            label: "Active Tasks",
+            title: "Active Tasks",
             value: tasks.length,
-            detail: "Assigned to your account",
+            note: "Assigned to your account",
             icon: "fa-clipboard-list",
             color: "blue",
         },
         {
-            label: "Pickup Pending",
+            title: "Pickup Pending",
             value: tasks.filter((task) =>
-                ["ready_for_pickup", "assigned"].includes(task.stage)
+                ["ready_for_pickup", "assigned"].includes(
+                    task.stage
+                )
             ).length,
-            detail: "Parcels to collect",
+            note: "Parcels to collect",
             icon: "fa-box-open",
             color: "orange",
         },
         {
-            label: "In Delivery",
+            title: "In Delivery",
             value: tasks.filter((task) =>
-                ["picked_up", "out_for_delivery"].includes(task.stage)
+                ["picked_up", "out_for_delivery"].includes(
+                    task.stage
+                )
             ).length,
-            detail: "Parcels in your custody",
+            note: "Parcels in your custody",
             icon: "fa-truck-fast",
             color: "green",
         },
         {
-            label: "Failed Tasks",
-            value: tasks.filter((task) =>
-                task.stage === "failed"
+            title: "Failed Tasks",
+            value: tasks.filter(
+                (task) => task.stage === "failed"
             ).length,
-            detail: "Need retry or escalation",
+            note: "Need retry or escalation",
             icon: "fa-triangle-exclamation",
             color: "red",
         },
     ];
 
-    // ================== SEARCH AND FILTERS ==================
+    // ================== FILTERED TASKS ==================
     const filtered = useMemo(() => {
         const query = search.trim().toLowerCase();
 
@@ -304,39 +416,55 @@ function AssignedTasks({ user }) {
                 task.id,
                 task.orderId,
                 task.parcelId,
-                task.product,
-                task.sellerName,
+                task.seller,
                 task.customerName,
-                task.pickupPincode,
-                task.deliveryPincode,
+                task.product,
+                ...(task.items || []).flatMap((item) => [
+                    item.name,
+                    item.variantLabel,
+                    item.sku,
+                ]),
             ].some((value) =>
                 String(value || "")
                     .toLowerCase()
                     .includes(query)
             );
 
-            return matchesSearch &&
+            return (
+                matchesSearch &&
                 (status === "All" || task.stage === status) &&
-                (taskType === "All" || task.taskType === taskType);
+                (type === "All" || task.taskType === type)
+            );
         });
-    }, [tasks, search, status, taskType]);
+    }, [tasks, search, status, type]);
 
-    const totalPages = Math.max(
+    const pages = Math.max(
         1,
         Math.ceil(filtered.length / rowsPerPage)
     );
 
-    const currentPage = Math.min(page, totalPages - 1);
+    const currentPage = Math.min(
+        page,
+        pages - 1
+    );
 
     const visible = filtered.slice(
         currentPage * rowsPerPage,
         (currentPage + 1) * rowsPerPage
     );
 
+    const selected = tasks.find(
+        (task) => task.id === selectedId
+    );
+
+    const route = selected
+        ? routeOf(selected)
+        : null;
+
     const resetFilters = () => {
         setSearch("");
         setStatus("All");
-        setTaskType("All");
+        setType("All");
         setPage(0);
     };
 
@@ -346,26 +474,22 @@ function AssignedTasks({ user }) {
             <header className="dta-hero">
                 <div className="dta-hero-content">
                     <h1>
-                        <i
-                            className="fa-solid fa-clipboard-list"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-clipboard-list" />
                         ASSIGNED TASKS
                     </h1>
 
                     <p>
-                        Manage your assigned pickups, customer deliveries
-                        and replacement parcels in one place.
+                        Manage your assigned pickups, customer
+                        deliveries and replacement parcels in one
+                        place.
                     </p>
                 </div>
 
                 <Button
                     className="dta-refresh"
                     variant="outlined"
-                    onClick={() => {
-                        refresh();
-                        toast.info("Assigned tasks refreshed.");
-                    }}
+                    onClick={refresh}
+                    disabled={loading}
                     startIcon={
                         <i className="fa-solid fa-arrows-rotate" />
                     }
@@ -374,64 +498,54 @@ function AssignedTasks({ user }) {
                 </Button>
             </header>
 
-            {/* ================== ACCOUNT ALERTS ================== */}
-            {!agent && (
-                <Alert severity="warning" className="dta-alert">
-                    Your login is not linked to a delivery agent record.
-                    Ask Admin to register your email in Delivery Agents.
-                </Alert>
-            )}
-
-            {agent && agent.status !== "Active" && (
+            {/* ================== ERRORS ================== */}
+            {error && (
                 <Alert severity="error" className="dta-alert">
-                    Your account is {String(agent.status).toLowerCase()}.
-                    Tasks are unavailable until Admin reactivates it.
+                    {error}
                 </Alert>
             )}
 
-            {/* ================== KPI CARDS ================== */}
-            <section
-                className="dta-stats"
-                aria-label="Delivery task summary"
-            >
-                {statistics.map((item) => (
+            {!loading && !error && !agent && (
+                <Alert severity="warning" className="dta-alert">
+                    Your login is not linked to a delivery
+                    agent record. Contact Admin.
+                </Alert>
+            )}
+
+            {/* ================== SUMMARY CARDS ================== */}
+            <section className="dta-stats">
+                {stats.map((item) => (
                     <article
+                        key={item.title}
                         className={`dta-stat is-${item.color}`}
-                        key={item.label}
                     >
                         <div className="dta-stat-heading">
-                            <span>{item.label}</span>
+                            <span>{item.title}</span>
 
                             <span className="dta-stat-icon">
-                                <i
-                                    className={`fa-solid ${item.icon}`}
-                                    aria-hidden="true"
-                                />
+                                <i className={`fa-solid ${item.icon}`} />
                             </span>
                         </div>
 
-                        <strong>
-                            {item.value.toLocaleString("en-IN")}
-                        </strong>
-
-                        <p>{item.detail}</p>
+                        <strong>{item.value}</strong>
+                        <p>{item.note}</p>
                     </article>
                 ))}
             </section>
 
-            {/* ================== TASK LIST ================== */}
+            {/* ================== TASK TABLE ================== */}
             <section className="dta-card">
                 <div className="dta-card-heading">
                     <span className="dta-heading-icon">
-                        <i
-                            className="fa-solid fa-route"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-route" />
                     </span>
 
                     <div>
                         <h2>My Assigned Parcels</h2>
-                        <p>Active deliveries and pickups assigned to you.</p>
+                        <p>
+                            Active deliveries and pickups assigned
+                            to you.
+                        </p>
                     </div>
 
                     <span className="dta-record-count">
@@ -439,7 +553,7 @@ function AssignedTasks({ user }) {
                     </span>
                 </div>
 
-                {/* ================== SEARCH AND FILTERS ================== */}
+                {/* ================== FILTERS ================== */}
                 <div className="dta-toolbar">
                     <TextField
                         className="dta-search"
@@ -463,16 +577,16 @@ function AssignedTasks({ user }) {
 
                     <TextField
                         select
-                        className="dta-filter"
                         size="small"
+                        className="dta-filter"
                         label="Task Type"
-                        value={taskType}
+                        value={type}
                         onChange={(event) => {
-                            setTaskType(event.target.value);
+                            setType(event.target.value);
                             setPage(0);
                         }}
                     >
-                        {typeOptions.map((value) => (
+                        {types.map((value) => (
                             <MenuItem key={value} value={value}>
                                 {value === "All"
                                     ? "All Task Types"
@@ -483,8 +597,8 @@ function AssignedTasks({ user }) {
 
                     <TextField
                         select
-                        className="dta-filter"
                         size="small"
+                        className="dta-filter"
                         label="Status"
                         value={status}
                         onChange={(event) => {
@@ -492,12 +606,9 @@ function AssignedTasks({ user }) {
                             setPage(0);
                         }}
                     >
-                        {statusOptions.map((option) => (
-                            <MenuItem
-                                key={option.value}
-                                value={option.value}
-                            >
-                                {option.label}
+                        {statuses.map(([value, label]) => (
+                            <MenuItem key={value} value={value}>
+                                {label}
                             </MenuItem>
                         ))}
                     </TextField>
@@ -514,12 +625,9 @@ function AssignedTasks({ user }) {
                     </Button>
                 </div>
 
-                {/* ================== DESKTOP TABLE ================== */}
+                {/* ================== DESKTOP ================== */}
                 <TableContainer className="dta-table-scroll">
-                    <Table
-                        className="dta-table"
-                        aria-label="Assigned delivery tasks"
-                    >
+                    <Table className="dta-table">
                         <TableHead>
                             <TableRow>
                                 <TableCell>Task / Parcel</TableCell>
@@ -536,7 +644,7 @@ function AssignedTasks({ user }) {
 
                         <TableBody>
                             {visible.map((task) => {
-                                const route = getTaskRoute(task);
+                                const path = routeOf(task);
 
                                 return (
                                     <TableRow key={task.id} hover>
@@ -546,9 +654,7 @@ function AssignedTasks({ user }) {
                                                     {task.id}
                                                 </strong>
 
-                                                <small>
-                                                    {task.parcelId || "—"}
-                                                </small>
+                                                <small>{task.parcelId}</small>
 
                                                 <small>
                                                     {formatDeliveryDate(
@@ -561,48 +667,37 @@ function AssignedTasks({ user }) {
 
                                         <TableCell>
                                             <span className="dta-type">
-                                                <i
-                                                    className={`fa-solid ${
-                                                        taskIcons[task.taskType] ||
-                                                        "fa-box"
-                                                    }`}
-                                                    aria-hidden="true"
-                                                />
+                                                <i className={`fa-solid ${
+                                                    icons[task.taskType] ||
+                                                    "fa-box"
+                                                }`} />
                                                 {task.taskType}
                                             </span>
                                         </TableCell>
 
                                         <TableCell>
                                             <div className="dta-cell dta-location">
-                                                <strong>
-                                                    {route.fromName ||
-                                                        "Pickup Point"}
-                                                </strong>
-
+                                                <strong>{path.from}</strong>
                                                 <small>
                                                     <i className="fa-solid fa-location-dot" />
-                                                    {route.fromPincode || "—"}
+                                                    {path.fromPin}
                                                 </small>
                                             </div>
                                         </TableCell>
 
                                         <TableCell>
                                             <div className="dta-cell dta-location">
-                                                <strong>
-                                                    {route.toName ||
-                                                        "Delivery Point"}
-                                                </strong>
-
+                                                <strong>{path.to}</strong>
                                                 <small>
                                                     <i className="fa-solid fa-location-dot" />
-                                                    {route.toPincode || "—"}
+                                                    {path.toPin}
                                                 </small>
                                             </div>
                                         </TableCell>
 
                                         <TableCell>
                                             <span className="dta-product">
-                                                {task.product || "Order Parcel"}
+                                                {summaryText(task)}
                                             </span>
                                         </TableCell>
 
@@ -618,9 +713,6 @@ function AssignedTasks({ user }) {
                                                 onClick={() =>
                                                     setSelectedId(task.id)
                                                 }
-                                                endIcon={
-                                                    <i className="fa-solid fa-arrow-right" />
-                                                }
                                             >
                                                 View Details
                                             </Button>
@@ -633,16 +725,16 @@ function AssignedTasks({ user }) {
                                 <TableRow>
                                     <TableCell colSpan={7}>
                                         <div className="dta-empty">
-                                            <span>
-                                                <i className="fa-solid fa-box-open" />
-                                            </span>
-
-                                            <h3>No assigned tasks found</h3>
-
+                                            <i className="fa-solid fa-box-open" />
+                                            <h3>
+                                                {loading
+                                                    ? "Loading assigned tasks..."
+                                                    : "No assigned tasks found"}
+                                            </h3>
                                             <p>
                                                 {tasks.length
-                                                    ? "Try changing your search or filters."
-                                                    : "Tasks will appear after Admin assigns a parcel to you."}
+                                                    ? "Try changing your filters."
+                                                    : "Tasks will appear after assignment."}
                                             </p>
                                         </div>
                                     </TableCell>
@@ -652,7 +744,7 @@ function AssignedTasks({ user }) {
                     </Table>
                 </TableContainer>
 
-                {/* ================== MOBILE TASK CARDS ================== */}
+                {/* ================== MOBILE ================== */}
                 <div className="dta-mobile-list">
                     {visible.map((task) => (
                         <MobileTaskCard
@@ -664,22 +756,11 @@ function AssignedTasks({ user }) {
 
                     {!visible.length && (
                         <div className="dta-empty">
-                            <span>
-                                <i className="fa-solid fa-box-open" />
-                            </span>
-
                             <h3>No assigned tasks found</h3>
-
-                            <p>
-                                {tasks.length
-                                    ? "Try changing your search or filters."
-                                    : "Your assigned parcels will appear here."}
-                            </p>
                         </div>
                     )}
                 </div>
 
-                {/* ================== PAGINATION ================== */}
                 <TablePagination
                     className="dta-pagination"
                     component="div"
@@ -687,9 +768,7 @@ function AssignedTasks({ user }) {
                     page={currentPage}
                     rowsPerPage={rowsPerPage}
                     rowsPerPageOptions={[5, 10, 20]}
-                    onPageChange={(_, value) =>
-                        setPage(value)
-                    }
+                    onPageChange={(_, next) => setPage(next)}
                     onRowsPerPageChange={(event) => {
                         setRowsPerPage(Number(event.target.value));
                         setPage(0);
@@ -698,28 +777,22 @@ function AssignedTasks({ user }) {
 
                 <div className="dta-mobile-pagination">
                     <span>
-                        Page {currentPage + 1} of {totalPages}
+                        Page {currentPage + 1} of {pages}
                     </span>
 
                     <div>
                         <Button
                             variant="outlined"
                             disabled={currentPage === 0}
-                            onClick={() =>
-                                setPage(currentPage - 1)
-                            }
+                            onClick={() => setPage(currentPage - 1)}
                         >
                             Previous
                         </Button>
 
                         <Button
                             variant="outlined"
-                            disabled={
-                                currentPage >= totalPages - 1
-                            }
-                            onClick={() =>
-                                setPage(currentPage + 1)
-                            }
+                            disabled={currentPage === pages - 1}
+                            onClick={() => setPage(currentPage + 1)}
                         >
                             Next
                         </Button>
@@ -727,7 +800,7 @@ function AssignedTasks({ user }) {
                 </div>
             </section>
 
-            {/* ================== TASK DETAILS ================== */}
+            {/* ================== TASK DIALOG ================== */}
             <Dialog
                 open={Boolean(selected)}
                 onClose={() => setSelectedId(null)}
@@ -738,82 +811,70 @@ function AssignedTasks({ user }) {
             >
                 <DialogTitle className="dta-dialog-title">
                     <span>
-                        <i
-                            className="fa-solid fa-clipboard-list"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-clipboard-list" />
                         Task Details
                     </span>
 
                     <button
                         type="button"
                         className="dta-close"
-                        aria-label="Close task details"
+                        aria-label="Close details"
                         onClick={() => setSelectedId(null)}
                     >
-                        <i
-                            className="fa-solid fa-xmark"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-xmark" />
                     </button>
                 </DialogTitle>
 
                 <DialogContent dividers>
-                    {selected && (
+                    {selected && route && (
                         <div className="dta-dialog-body">
                             <div className="dta-detail-banner">
                                 <div>
                                     <small>{selected.taskType}</small>
                                     <strong>{selected.id}</strong>
-                                    <span>{selected.parcelId || "—"}</span>
+                                    <span>{selected.parcelId}</span>
                                 </div>
 
                                 <StatusBadge stage={selected.stage} />
                             </div>
 
+                            <OrderedItems task={selected} />
+
                             <div className="dta-detail-section">
                                 <h3>
-                                    <i
-                                        className="fa-solid fa-route"
-                                        aria-hidden="true"
-                                    />
+                                    <i className="fa-solid fa-route" />
                                     Pickup & Destination
                                 </h3>
 
                                 <dl className="dta-details-grid">
                                     <Detail
                                         label="Pickup From"
-                                        value={selectedRoute.fromName}
+                                        value={route.from}
                                     />
-
                                     <Detail
                                         label="Pickup Pincode"
-                                        value={selectedRoute.fromPincode}
+                                        value={route.fromPin}
                                     />
-
                                     <Detail
                                         label="Pickup Address"
-                                        value={formatAddress(
-                                            selectedRoute.fromAddress,
-                                            selectedRoute.fromPincode
+                                        value={addressText(
+                                            route.fromAddress,
+                                            route.fromPin
                                         )}
                                     />
-
                                     <Detail
                                         label="Deliver To"
-                                        value={selectedRoute.toName}
+                                        value={route.to}
                                     />
-
                                     <Detail
                                         label="Destination Pincode"
-                                        value={selectedRoute.toPincode}
+                                        value={route.toPin}
                                     />
-
                                     <Detail
-                                        label="Destination Address"
-                                        value={formatAddress(
-                                            selectedRoute.toAddress,
-                                            selectedRoute.toPincode
+                                        label="Delivery Address"
+                                        value={addressText(
+                                            route.toAddress,
+                                            route.toPin
                                         )}
                                     />
                                 </dl>
@@ -821,10 +882,7 @@ function AssignedTasks({ user }) {
 
                             <div className="dta-detail-section">
                                 <h3>
-                                    <i
-                                        className="fa-solid fa-box"
-                                        aria-hidden="true"
-                                    />
+                                    <i className="fa-solid fa-box" />
                                     Parcel Information
                                 </h3>
 
@@ -833,86 +891,55 @@ function AssignedTasks({ user }) {
                                         label="Order ID"
                                         value={selected.orderId}
                                     />
-
                                     <Detail
                                         label="Parcel ID"
                                         value={selected.parcelId}
                                     />
-
                                     <Detail
-                                        label="Product"
-                                        value={selected.product || "Parcel"}
+                                        label="Total Units"
+                                        value={selected.totalQuantity || 0}
                                     />
-
                                     <Detail
                                         label="Customer Contact"
-                                        value={selected.customerPhone || "—"}
+                                        value={selected.customerPhone}
                                     />
-
                                     <Detail
-                                        label="Current Custody"
-                                        value={selected.custody || "—"}
+                                        label="Parcel Custody"
+                                        value={selected.custody}
                                     />
-
-                                    <Detail
-                                        label="Failed Attempts"
-                                        value={selected.attempts ?? 0}
-                                    />
-
                                     <Detail
                                         label="Assigned At"
                                         value={formatDeliveryDate(
-                                            selected.assignedAt ||
-                                            selected.createdAt
+                                            selected.assignedAt
                                         )}
                                     />
                                 </dl>
-                            </div>
-
-                            {selected.failureReason && (
-                                <Alert severity="warning">
-                                    Last failure: {selected.failureReason}
-                                </Alert>
-                            )}
-
-                            <div className="dta-dialog-note">
-                                <i
-                                    className="fa-solid fa-circle-info"
-                                    aria-hidden="true"
-                                />
-                                Pickup confirmation, delivery OTP and
-                                failed-attempt actions will be added
-                                to the Task Details workflow.
                             </div>
                         </div>
                     )}
                 </DialogContent>
 
-            <DialogActions>
-                <Button
-                    onClick={() => setSelectedId(null)}
-                >
-                    Close
-                </Button>
+                <DialogActions>
+                    <Button onClick={() => setSelectedId(null)}>
+                        Close
+                    </Button>
 
-                <Button
-                    variant="contained"
-                    disabled={!selected}
-                    onClick={() => {
-                        navigate(
-                            `/manage/tasks/${encodeURIComponent(selected.id)}`
-                        );
+                    <Button
+                        variant="contained"
+                        disabled={!selected}
+                        onClick={() => {
+                            navigate(
+                                `/manage/tasks/${encodeURIComponent(
+                                    selected.id
+                                )}`
+                            );
 
-                        setSelectedId(null);
-                    }}
-                    endIcon={
-                        <i className="fa-solid fa-arrow-right" />
-                    }
-                >
-                    Open Task Workflow
-                </Button>
-            </DialogActions>
-
+                            setSelectedId(null);
+                        }}
+                    >
+                        Open Task Workflow
+                    </Button>
+                </DialogActions>
             </Dialog>
         </main>
     );

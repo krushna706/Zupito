@@ -26,81 +26,70 @@ import {
     formatDeliveryDate,
     getDeliveryAgent,
     getDeliveryTasks,
+    refreshDeliveryData,
 } from "../services/deliveryService";
 
-// ================== FILTER OPTIONS ==================
-const typeOptions = [
+// ================== FILTERS ==================
+const types = [
     "All",
     "Customer Delivery",
     "Return Pickup",
     "Replacement Delivery",
 ];
 
-const statusOptions = [
-    { value: "All", label: "All History" },
-    { value: "delivered", label: "Completed" },
-    { value: "cancelled", label: "Cancelled" },
-    { value: "failed", label: "Currently Failed" },
-    { value: "attempted", label: "Has Failed Attempts" },
+const statuses = [
+    ["All", "All History"],
+    ["delivered", "Completed"],
+    ["cancelled", "Cancelled"],
+    ["failed", "Currently Failed"],
+    ["attempted", "Has Failed Attempts"],
 ];
 
-const periodOptions = [
-    { value: "All", label: "All Time" },
-    { value: "7", label: "Last 7 Days" },
-    { value: "30", label: "Last 30 Days" },
-    { value: "90", label: "Last 90 Days" },
+const periods = [
+    ["All", "All Time"],
+    ["7", "Last 7 Days"],
+    ["30", "Last 30 Days"],
+    ["90", "Last 90 Days"],
 ];
 
-const typeIcons = {
+const icons = {
     "Customer Delivery": "fa-truck-fast",
     "Return Pickup": "fa-arrow-rotate-left",
     "Replacement Delivery": "fa-box-open",
 };
 
-// ================== HISTORY HELPERS ==================
-function failedAttempts(task) {
-    const value = Number(task.attempts || 0);
-
-    return Number.isFinite(value)
-        ? Math.max(0, value)
-        : 0;
+// ================== HELPERS ==================
+function attempts(task) {
+    return Math.max(
+        0,
+        Number(task.attempts || 0)
+    );
 }
 
-function isHistoryTask(task) {
-    return ["delivered", "cancelled", "failed"].includes(task.stage) ||
-        failedAttempts(task) > 0;
+function isHistory(task) {
+    return (
+        ["delivered", "cancelled", "failed"].includes(
+            task.stage
+        ) ||
+        attempts(task) > 0
+    );
 }
 
-function taskDate(task) {
-    const events = Array.isArray(task.events)
-        ? task.events
-        : [];
+function lastActivity(task) {
+    const events = task.events || [];
 
-    if (task.stage === "delivered") {
-        return task.deliveredAt ||
-            task.updatedAt ||
-            events.at(-1)?.date ||
-            task.assignedAt ||
-            task.createdAt;
-    }
-
-    if (task.stage === "cancelled") {
-        return task.cancelledAt ||
-            task.updatedAt ||
-            events.at(-1)?.date ||
-            task.assignedAt ||
-            task.createdAt;
-    }
-
-    return task.lastFailedAt ||
+    return (
+        task.deliveredAt ||
+        task.lastFailedAt ||
         task.updatedAt ||
         events.at(-1)?.date ||
         task.assignedAt ||
-        task.createdAt;
+        task.createdAt
+    );
 }
 
-function withinPeriod(value, period) {
-    if (period === "All") return true;
+function withinPeriod(value, days) {
+    if (days === "All") return true;
 
     const date = new Date(value);
 
@@ -109,90 +98,73 @@ function withinPeriod(value, period) {
     }
 
     const start = new Date();
-
     start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - Number(period) + 1);
+    start.setDate(
+        start.getDate() - Number(days) + 1
+    );
 
     return date >= start && date <= new Date();
 }
 
-function getRoute(task) {
-    const reverse = task.taskType === "Return Pickup";
+function routeOf(task) {
+    const reverse =
+        task.kind === "replacement_pickup";
 
     return {
         from: reverse
             ? task.customerName
             : task.sellerName,
-
         to: reverse
             ? task.sellerName
             : task.customerName,
-
-        fromLabel: reverse
-            ? "Customer Pickup"
-            : "Seller Pickup",
-
-        toLabel: reverse
-            ? "Return to Seller"
-            : "Customer Delivery",
-
         fromPin: reverse
             ? task.deliveryPincode
             : task.pickupPincode,
-
         toPin: reverse
             ? task.pickupPincode
             : task.deliveryPincode,
     };
 }
 
-function getStatus(task) {
+function taskStatus(task) {
     if (task.stage === "delivered") {
         return {
-            label: task.taskType === "Return Pickup"
-                ? "Handover Completed"
-                : "Delivered",
-            tone: "success",
+            text: "Delivered",
+            color: "success",
         };
     }
 
     if (task.stage === "cancelled") {
         return {
-            label: "Cancelled",
-            tone: "neutral",
+            text: "Cancelled",
+            color: "neutral",
         };
     }
 
     if (task.stage === "failed") {
         return {
-            label: "Failed · Action Needed",
-            tone: "danger",
+            text: "Failed · Action Needed",
+            color: "danger",
         };
     }
 
     return {
-        label: `${deliveryStageLabel(task.stage)} · Retried`,
-        tone: "warning",
+        text: `${deliveryStageLabel(task.stage)} · Retried`,
+        color: "warning",
     };
 }
 
-// ================== STATUS BADGE ==================
 function StatusBadge({ task }) {
-    const status = getStatus(task);
+    const status = taskStatus(task);
 
     return (
-        <span className={`dta-status is-${status.tone}`}>
-            <i
-                className="fa-solid fa-circle"
-                aria-hidden="true"
-            />
-
-            {status.label}
+        <span className={`dta-status is-${status.color}`}>
+            <i className="fa-solid fa-circle" />
+            {status.text}
         </span>
     );
 }
 
-// ================== DETAIL ITEM ==================
 function Detail({ label, value }) {
     return (
         <div className="dta-detail">
@@ -202,28 +174,85 @@ function Detail({ label, value }) {
     );
 }
 
-// ================== MOBILE HISTORY CARD ==================
+// ================== ORDERED ITEMS ==================
+function OrderedItems({ task }) {
+    const items = task.items || [];
+
+    return (
+        <div className="dta-detail-section">
+            <h3>
+                <i className="fa-solid fa-bag-shopping" />
+                {" "}Ordered Items ({items.length})
+            </h3>
+
+            <p>
+                Total ordered quantity:{" "}
+                <strong>{task.totalQuantity || 0}</strong>
+            </p>
+
+            {items.map((item, index) => (
+                <div
+                    className="dta-detail"
+                    key={`${item.id}-${index}`}
+                >
+                    <dt>
+                        {item.image ? (
+                            <img
+                                src={item.image}
+                                alt={item.name}
+                                width="52"
+                                height="52"
+                                loading="lazy"
+                            />
+                        ) : (
+                            <i className="fa-solid fa-box" />
+                        )}
+                    </dt>
+
+                    <dd>
+                        <strong>{item.name}</strong>
+
+                        <p>
+                            {item.variantLabel ||
+                                "Standard Variant"}
+                        </p>
+
+                        {item.brand && (
+                            <small>Brand: {item.brand}</small>
+                        )}
+
+                        {item.sku && (
+                            <small> SKU: {item.sku}</small>
+                        )}
+
+                        <strong> Qty: {item.quantity}</strong>
+                    </dd>
+                </div>
+            ))}
+
+            {!items.length && (
+                <p>Order item snapshot unavailable.</p>
+            )}
+        </div>
+    );
+}
+
+// ================== MOBILE CARD ==================
 function HistoryCard({ task, onView }) {
-    const route = getRoute(task);
+    const route = routeOf(task);
 
     return (
         <article className="dta-mobile-card dh-mobile-card">
             <div className="dta-mobile-card-top">
                 <span className="dta-task-icon">
-                    <i
-                        className={`fa-solid ${
-                            typeIcons[task.taskType] || "fa-box"
-                        }`}
-                        aria-hidden="true"
-                    />
+                    <i className={`fa-solid ${
+                        icons[task.taskType] || "fa-box"
+                    }`} />
                 </span>
 
                 <div className="dta-mobile-identity">
                     <strong>{task.id}</strong>
-
-                    <small>
-                        {task.parcelId || task.orderId || "Parcel"}
-                    </small>
+                    <small>{task.parcelId}</small>
                 </div>
             </div>
 
@@ -232,63 +261,55 @@ function HistoryCard({ task, onView }) {
             </div>
 
             <div className="dta-mobile-type">
-                <i
-                    className="fa-solid fa-layer-group"
-                    aria-hidden="true"
-                />
-
+                <i className="fa-solid fa-layer-group" />
                 {task.taskType}
             </div>
 
             <div className="dta-mobile-route">
                 <div className="dta-route-point">
                     <span className="dta-route-marker is-origin">
-                        <i
-                            className="fa-solid fa-location-dot"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-location-dot" />
                     </span>
 
                     <div>
-                        <small>{route.fromLabel}</small>
-                        <strong>{route.from || "Pickup Point"}</strong>
-                        <span>PIN: {route.fromPin || "—"}</span>
+                        <small>Pickup</small>
+                        <strong>{route.from}</strong>
+                        <span>PIN: {route.fromPin}</span>
                     </div>
                 </div>
 
                 <div className="dta-route-point">
                     <span className="dta-route-marker is-destination">
-                        <i
-                            className="fa-solid fa-flag-checkered"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-flag-checkered" />
                     </span>
 
                     <div>
-                        <small>{route.toLabel}</small>
-                        <strong>{route.to || "Destination"}</strong>
-                        <span>PIN: {route.toPin || "—"}</span>
+                        <small>Destination</small>
+                        <strong>{route.to}</strong>
+                        <span>PIN: {route.toPin}</span>
                     </div>
                 </div>
             </div>
 
+            <div className="dta-mobile-product">
+                <i className="fa-solid fa-bag-shopping" />
+                {task.items?.[0]?.name ||
+                    task.product ||
+                    "Order Parcel"}
+                {(task.items?.length || 0) > 1 &&
+                    ` +${task.items.length - 1} more`}
+                {` · Qty ${task.totalQuantity || 0}`}
+            </div>
+
             <div className="dh-mobile-meta">
                 <span>
-                    <i
-                        className="fa-regular fa-calendar"
-                        aria-hidden="true"
-                    />
-
-                    {formatDeliveryDate(taskDate(task))}
+                    <i className="fa-regular fa-calendar" />
+                    {formatDeliveryDate(lastActivity(task))}
                 </span>
 
                 <span>
-                    <i
-                        className="fa-solid fa-rotate"
-                        aria-hidden="true"
-                    />
-
-                    {failedAttempts(task)} failed attempt(s)
+                    <i className="fa-solid fa-rotate" />
+                    {attempts(task)} failed attempt(s)
                 </span>
             </div>
 
@@ -296,9 +317,6 @@ function HistoryCard({ task, onView }) {
                 className="dh-mobile-view"
                 variant="contained"
                 onClick={() => onView(task.id)}
-                endIcon={
-                    <i className="fa-solid fa-arrow-right" />
-                }
             >
                 View History
             </Button>
@@ -318,187 +336,226 @@ function DeliveryHistory({ user }) {
         getDeliveryTasks(user, true)
     );
 
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("All");
-    const [taskType, setTaskType] = useState("All");
+    const [type, setType] = useState("All");
     const [period, setPeriod] = useState("All");
+
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [selectedId, setSelectedId] = useState(null);
 
-    // ================== DATA REFRESH ==================
-    const refresh = () => {
-        setAgent(getDeliveryAgent(user));
-        setTasks(getDeliveryTasks(user, true));
-    };
-
+    // ================== INITIAL DATA ==================
     useEffect(() => {
+        let active = true;
+
         const sync = () => {
+            if (!active) return;
+
             setAgent(getDeliveryAgent(user));
             setTasks(getDeliveryTasks(user, true));
         };
 
-        sync();
+        const load = async () => {
+            try {
+                await refreshDeliveryData(user);
+                sync();
+            } catch (failure) {
+                if (active) setError(failure.message);
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
 
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
+        load();
+
+        window.addEventListener(
+            "zupito:delivery-updated",
+            sync
+        );
 
         return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
+            active = false;
+
+            window.removeEventListener(
+                "zupito:delivery-updated",
+                sync
+            );
         };
-    }, [
-        user?.id,
-        user?.email,
-        user?.agentId,
-        user?.role,
-    ]);
+    }, [user?._id, user?.id, user?.role]);
+
+    // ================== MANUAL REFRESH ==================
+    const refresh = async () => {
+        setLoading(true);
+        setError("");
+
+        try {
+            await refreshDeliveryData(user);
+
+            setAgent(getDeliveryAgent(user));
+            setTasks(getDeliveryTasks(user, true));
+        } catch (failure) {
+            setError(failure.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // ================== HISTORY RECORDS ==================
     const history = useMemo(() => {
         return tasks
-            .filter(isHistoryTask)
+            .filter(isHistory)
             .sort((first, second) =>
-                new Date(taskDate(second) || 0) -
-                new Date(taskDate(first) || 0)
+                new Date(lastActivity(second) || 0) -
+                new Date(lastActivity(first) || 0)
             );
     }, [tasks]);
 
-    // ================== STATISTICS ==================
+    // ================== SUMMARY ==================
     const stats = [
         {
-            label: "Completed Tasks",
-            value: history.filter((task) =>
-                task.stage === "delivered"
+            title: "Completed Tasks",
+            value: history.filter(
+                (task) => task.stage === "delivered"
             ).length,
-            note: "All completed handovers",
             icon: "fa-circle-check",
-            tone: "green",
+            color: "green",
+            note: "All completed handovers",
         },
         {
-            label: "Customer Deliveries",
-            value: history.filter((task) =>
-                task.stage === "delivered" &&
-                task.taskType === "Customer Delivery"
+            title: "Customer Deliveries",
+            value: history.filter(
+                (task) =>
+                    task.stage === "delivered" &&
+                    task.kind === "original"
             ).length,
-            note: "Delivered to customers",
             icon: "fa-truck-fast",
-            tone: "blue",
+            color: "blue",
+            note: "Delivered to customers",
         },
         {
-            label: "Replacement Tasks",
-            value: history.filter((task) =>
-                task.stage === "delivered" &&
-                task.taskType !== "Customer Delivery"
+            title: "Replacement Tasks",
+            value: history.filter(
+                (task) =>
+                    task.stage === "delivered" &&
+                    task.kind !== "original"
             ).length,
-            note: "Completed return / replacement",
             icon: "fa-arrow-right-arrow-left",
-            tone: "orange",
+            color: "orange",
+            note: "Completed replacements",
         },
         {
-            label: "Failed Attempts",
-            value: history.reduce((total, task) =>
-                total + failedAttempts(task),
+            title: "Failed Attempts",
+            value: history.reduce(
+                (sum, task) =>
+                    sum + attempts(task),
                 0
             ),
-            note: "Recorded attempts, including retries",
             icon: "fa-triangle-exclamation",
-            tone: "red",
+            color: "red",
+            note: "Recorded failed attempts",
         },
     ];
 
-    // ================== SEARCH AND FILTERS ==================
+    // ================== FILTERS ==================
     const filtered = useMemo(() => {
         const query = search.trim().toLowerCase();
 
         return history.filter((task) => {
-            const matchesSearch = [
+            const matches = [
                 task.id,
-                task.orderId,
                 task.parcelId,
+                task.orderId,
                 task.product,
-                task.sellerName,
                 task.customerName,
+                ...(task.items || []).flatMap((item) => [
+                    item.name,
+                    item.variantLabel,
+                    item.sku,
+                ]),
             ].some((value) =>
                 String(value || "")
                     .toLowerCase()
                     .includes(query)
             );
 
-            const matchesStatus = status === "All" ||
+            const matchesStatus =
+                status === "All" ||
                 (
                     status === "attempted"
-                        ? failedAttempts(task) > 0
+                        ? attempts(task) > 0
                         : task.stage === status
                 );
 
-            const matchesType = taskType === "All" ||
-                task.taskType === taskType;
-
-            return matchesSearch &&
+            return (
+                matches &&
                 matchesStatus &&
-                matchesType &&
-                withinPeriod(taskDate(task), period);
+                (type === "All" || task.taskType === type) &&
+                withinPeriod(lastActivity(task), period)
+            );
         });
     }, [
         history,
         search,
         status,
-        taskType,
+        type,
         period,
     ]);
 
-    // ================== PAGINATION ==================
     const pages = Math.max(
         1,
         Math.ceil(filtered.length / rowsPerPage)
     );
 
-    const currentPage = Math.min(page, pages - 1);
+    const currentPage = Math.min(
+        page,
+        pages - 1
+    );
 
     const visible = filtered.slice(
         currentPage * rowsPerPage,
         (currentPage + 1) * rowsPerPage
     );
 
-    const selected = history.find((task) =>
-        task.id === selectedId
+    const selected = history.find(
+        (task) => task.id === selectedId
     );
 
-    const selectedRoute = selected
-        ? getRoute(selected)
+    const route = selected
+        ? routeOf(selected)
         : null;
 
     const resetFilters = () => {
         setSearch("");
         setStatus("All");
-        setTaskType("All");
+        setType("All");
         setPeriod("All");
         setPage(0);
     };
 
     return (
         <main className="delivery-tasks delivery-history">
-            {/* ================== PAGE HEADER ================== */}
+            {/* ================== HEADER ================== */}
             <header className="dta-hero">
                 <div className="dta-hero-content">
                     <h1>
-                        <i
-                            className="fa-solid fa-clock-rotate-left"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-clock-rotate-left" />
                         DELIVERY HISTORY
                     </h1>
 
                     <p>
-                        Review completed deliveries, replacement handovers,
-                        cancellations and recorded failed attempts.
+                        Review completed deliveries, handovers
+                        and recorded failed attempts.
                     </p>
                 </div>
 
                 <Button
                     className="dta-refresh"
                     variant="outlined"
+                    disabled={loading}
                     onClick={refresh}
                     startIcon={
                         <i className="fa-solid fa-arrows-rotate" />
@@ -508,65 +565,51 @@ function DeliveryHistory({ user }) {
                 </Button>
             </header>
 
-            {/* ================== ACCOUNT ALERTS ================== */}
-            {!agent && (
-                <Alert severity="warning" className="dta-alert">
-                    No delivery-agent account is linked to this login.
-                    History is shown only for the signed-in agent.
+            {error && (
+                <Alert severity="error" className="dta-alert">
+                    {error}
                 </Alert>
             )}
 
-            {agent && agent.status !== "Active" && (
+            {!loading && !error && !agent && (
                 <Alert severity="warning" className="dta-alert">
-                    Your delivery account is inactive. History is
-                    unavailable under the current frontend account-access rules.
+                    No delivery account is linked to this login.
                 </Alert>
             )}
 
-            {/* ================== HISTORY METRICS ================== */}
-            <section
-                className="dta-stats"
-                aria-label="Delivery history summary"
-            >
+            {/* ================== STATISTICS ================== */}
+            <section className="dta-stats">
                 {stats.map((item) => (
                     <article
-                        className={`dta-stat is-${item.tone}`}
-                        key={item.label}
+                        key={item.title}
+                        className={`dta-stat is-${item.color}`}
                     >
                         <div className="dta-stat-heading">
-                            <span>{item.label}</span>
+                            <span>{item.title}</span>
 
                             <span className="dta-stat-icon">
-                                <i
-                                    className={`fa-solid ${item.icon}`}
-                                    aria-hidden="true"
-                                />
+                                <i className={`fa-solid ${item.icon}`} />
                             </span>
                         </div>
 
-                        <strong>
-                            {item.value.toLocaleString("en-IN")}
-                        </strong>
-
+                        <strong>{item.value}</strong>
                         <p>{item.note}</p>
                     </article>
                 ))}
             </section>
 
-            {/* ================== HISTORY LIST ================== */}
+            {/* ================== HISTORY TABLE ================== */}
             <section className="dta-card">
                 <div className="dta-card-heading">
                     <span className="dta-heading-icon">
-                        <i
-                            className="fa-solid fa-box-archive"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-box-archive" />
                     </span>
 
                     <div>
                         <h2>My Delivery Records</h2>
                         <p>
-                            Completed tasks and documented delivery issues.
+                            Completed tasks and documented
+                            delivery issues.
                         </p>
                     </div>
 
@@ -575,12 +618,12 @@ function DeliveryHistory({ user }) {
                     </span>
                 </div>
 
-                {/* ================== SEARCH AND FILTERS ================== */}
+                {/* ================== FILTER BAR ================== */}
                 <div className="dta-toolbar">
                     <TextField
                         className="dta-search"
                         size="small"
-                        label="Search Task / Order / Parcel"
+                        label="Search Task / Order / Product"
                         value={search}
                         onChange={(event) => {
                             setSearch(event.target.value);
@@ -590,10 +633,7 @@ function DeliveryHistory({ user }) {
                             input: {
                                 startAdornment: (
                                     <InputAdornment position="start">
-                                        <i
-                                            className="fa-solid fa-magnifying-glass"
-                                            aria-hidden="true"
-                                        />
+                                        <i className="fa-solid fa-magnifying-glass" />
                                     </InputAdornment>
                                 ),
                             },
@@ -601,21 +641,18 @@ function DeliveryHistory({ user }) {
                     />
 
                     <TextField
-                        className="dta-filter"
                         select
+                        className="dta-filter"
                         size="small"
                         label="Task Type"
-                        value={taskType}
+                        value={type}
                         onChange={(event) => {
-                            setTaskType(event.target.value);
+                            setType(event.target.value);
                             setPage(0);
                         }}
                     >
-                        {typeOptions.map((value) => (
-                            <MenuItem
-                                key={value}
-                                value={value}
-                            >
+                        {types.map((value) => (
+                            <MenuItem key={value} value={value}>
                                 {value === "All"
                                     ? "All Task Types"
                                     : value}
@@ -624,8 +661,8 @@ function DeliveryHistory({ user }) {
                     </TextField>
 
                     <TextField
-                        className="dta-filter"
                         select
+                        className="dta-filter"
                         size="small"
                         label="Status"
                         value={status}
@@ -634,19 +671,16 @@ function DeliveryHistory({ user }) {
                             setPage(0);
                         }}
                     >
-                        {statusOptions.map((item) => (
-                            <MenuItem
-                                key={item.value}
-                                value={item.value}
-                            >
-                                {item.label}
+                        {statuses.map(([value, label]) => (
+                            <MenuItem key={value} value={value}>
+                                {label}
                             </MenuItem>
                         ))}
                     </TextField>
 
                     <TextField
-                        className="dta-filter"
                         select
+                        className="dta-filter"
                         size="small"
                         label="Period"
                         value={period}
@@ -655,12 +689,9 @@ function DeliveryHistory({ user }) {
                             setPage(0);
                         }}
                     >
-                        {periodOptions.map((item) => (
-                            <MenuItem
-                                key={item.value}
-                                value={item.value}
-                            >
-                                {item.label}
+                        {periods.map(([value, label]) => (
+                            <MenuItem key={value} value={value}>
+                                {label}
                             </MenuItem>
                         ))}
                     </TextField>
@@ -679,10 +710,7 @@ function DeliveryHistory({ user }) {
 
                 {/* ================== DESKTOP TABLE ================== */}
                 <TableContainer className="dta-table-scroll">
-                    <Table
-                        className="dta-table"
-                        aria-label="Delivery history records"
-                    >
+                    <Table className="dta-table">
                         <TableHead>
                             <TableRow>
                                 <TableCell>Task / Parcel</TableCell>
@@ -699,13 +727,10 @@ function DeliveryHistory({ user }) {
 
                         <TableBody>
                             {visible.map((task) => {
-                                const route = getRoute(task);
+                                const path = routeOf(task);
 
                                 return (
-                                    <TableRow
-                                        key={task.id}
-                                        hover
-                                    >
+                                    <TableRow key={task.id} hover>
                                         <TableCell>
                                             <div className="dta-cell">
                                                 <strong className="dta-task-code">
@@ -713,54 +738,46 @@ function DeliveryHistory({ user }) {
                                                 </strong>
 
                                                 <small>
-                                                    {task.parcelId || "—"}
+                                                    {task.parcelId}
                                                 </small>
 
                                                 <small>
-                                                    {task.orderId || "—"}
+                                                    {task.items?.[0]?.name ||
+                                                        task.product}
+                                                    {" · "}
+                                                    Qty {task.totalQuantity || 0}
                                                 </small>
                                             </div>
                                         </TableCell>
 
                                         <TableCell>
                                             <span className="dta-type">
-                                                <i
-                                                    className={`fa-solid ${
-                                                        typeIcons[task.taskType] ||
-                                                        "fa-box"
-                                                    }`}
-                                                    aria-hidden="true"
-                                                />
-
+                                                <i className={`fa-solid ${
+                                                    icons[task.taskType] ||
+                                                    "fa-box"
+                                                }`} />
                                                 {task.taskType}
                                             </span>
                                         </TableCell>
 
                                         <TableCell>
                                             <div className="dta-cell dta-location">
-                                                <strong>
-                                                    {route.to || "Destination"}
-                                                </strong>
-
+                                                <strong>{path.to}</strong>
                                                 <small>
-                                                    <i
-                                                        className="fa-solid fa-location-dot"
-                                                        aria-hidden="true"
-                                                    />
-
-                                                    {route.toPin || "—"}
+                                                    <i className="fa-solid fa-location-dot" />
+                                                    {path.toPin}
                                                 </small>
                                             </div>
                                         </TableCell>
 
                                         <TableCell>
                                             {formatDeliveryDate(
-                                                taskDate(task)
+                                                lastActivity(task)
                                             )}
                                         </TableCell>
 
                                         <TableCell>
-                                            {failedAttempts(task)}
+                                            {attempts(task)}
                                         </TableCell>
 
                                         <TableCell>
@@ -769,8 +786,8 @@ function DeliveryHistory({ user }) {
 
                                         <TableCell align="right">
                                             <Button
-                                                variant="outlined"
                                                 size="small"
+                                                variant="outlined"
                                                 onClick={() =>
                                                     setSelectedId(task.id)
                                                 }
@@ -786,16 +803,11 @@ function DeliveryHistory({ user }) {
                                 <TableRow>
                                     <TableCell colSpan={7}>
                                         <div className="dta-empty">
-                                            <span>
-                                                <i className="fa-solid fa-box-open" />
-                                            </span>
-
+                                            <i className="fa-solid fa-box-open" />
                                             <h3>No history records found</h3>
-
                                             <p>
-                                                {history.length
-                                                    ? "Try changing the filters or search."
-                                                    : "Completed and failed task records will appear here."}
+                                                Completed and failed
+                                                deliveries appear here.
                                             </p>
                                         </div>
                                     </TableCell>
@@ -817,17 +829,7 @@ function DeliveryHistory({ user }) {
 
                     {!visible.length && (
                         <div className="dta-empty">
-                            <span>
-                                <i className="fa-solid fa-box-open" />
-                            </span>
-
                             <h3>No history records found</h3>
-
-                            <p>
-                                {history.length
-                                    ? "Try changing the search or filters."
-                                    : "Your completed and failed deliveries will appear here."}
-                            </p>
                         </div>
                     )}
                 </div>
@@ -840,9 +842,7 @@ function DeliveryHistory({ user }) {
                     page={currentPage}
                     rowsPerPage={rowsPerPage}
                     rowsPerPageOptions={[5, 10, 20]}
-                    onPageChange={(_, value) =>
-                        setPage(value)
-                    }
+                    onPageChange={(_, next) => setPage(next)}
                     onRowsPerPageChange={(event) => {
                         setRowsPerPage(Number(event.target.value));
                         setPage(0);
@@ -858,21 +858,15 @@ function DeliveryHistory({ user }) {
                         <Button
                             variant="outlined"
                             disabled={currentPage === 0}
-                            onClick={() =>
-                                setPage(currentPage - 1)
-                            }
+                            onClick={() => setPage(currentPage - 1)}
                         >
                             Previous
                         </Button>
 
                         <Button
                             variant="outlined"
-                            disabled={
-                                currentPage === pages - 1
-                            }
-                            onClick={() =>
-                                setPage(currentPage + 1)
-                            }
+                            disabled={currentPage === pages - 1}
+                            onClick={() => setPage(currentPage + 1)}
                         >
                             Next
                         </Button>
@@ -880,7 +874,7 @@ function DeliveryHistory({ user }) {
                 </div>
             </section>
 
-            {/* ================== HISTORY DETAILS ================== */}
+            {/* ================== HISTORY DIALOG ================== */}
             <Dialog
                 open={Boolean(selected)}
                 onClose={() => setSelectedId(null)}
@@ -891,39 +885,37 @@ function DeliveryHistory({ user }) {
             >
                 <DialogTitle className="dta-dialog-title">
                     <span>
-                        <i
-                            className="fa-solid fa-clock-rotate-left"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-clock-rotate-left" />
                         Delivery Activity
                     </span>
 
                     <button
                         type="button"
                         className="dta-close"
-                        aria-label="Close delivery activity"
                         onClick={() => setSelectedId(null)}
+                        aria-label="Close history"
                     >
                         <i className="fa-solid fa-xmark" />
                     </button>
                 </DialogTitle>
 
                 <DialogContent dividers>
-                    {selected && (
+                    {selected && route && (
                         <div className="dta-dialog-body">
                             <div className="dta-detail-banner">
                                 <div>
                                     <small>{selected.taskType}</small>
                                     <strong>{selected.id}</strong>
-                                    <span>
-                                        {selected.parcelId || "—"}
-                                    </span>
+                                    <span>{selected.parcelId}</span>
                                 </div>
 
                                 <StatusBadge task={selected} />
                             </div>
 
-                            {/* ================== TASK SUMMARY ================== */}
+                            {/* ================== ORDER ITEMS ================== */}
+                            <OrderedItems task={selected} />
+
+                            {/* ================== RECORD DETAILS ================== */}
                             <div className="dta-detail-section">
                                 <h3>
                                     <i className="fa-solid fa-box" />
@@ -935,53 +927,41 @@ function DeliveryHistory({ user }) {
                                         label="Order ID"
                                         value={selected.orderId}
                                     />
-
-                                    <Detail
-                                        label="Product"
-                                        value={selected.product}
-                                    />
-
                                     <Detail
                                         label="Pickup From"
-                                        value={selectedRoute?.from}
+                                        value={route.from}
                                     />
-
                                     <Detail
-                                        label="Deliver To"
-                                        value={selectedRoute?.to}
+                                        label="Destination"
+                                        value={route.to}
                                     />
-
                                     <Detail
-                                        label="Pickup PIN"
-                                        value={selectedRoute?.fromPin}
+                                        label="Pickup Pincode"
+                                        value={route.fromPin}
                                     />
-
                                     <Detail
-                                        label="Destination PIN"
-                                        value={selectedRoute?.toPin}
+                                        label="Delivery Pincode"
+                                        value={route.toPin}
                                     />
-
                                     <Detail
                                         label="Current Custody"
                                         value={selected.custody}
                                     />
-
                                     <Detail
                                         label="Failed Attempts"
-                                        value={failedAttempts(selected)}
+                                        value={attempts(selected)}
                                     />
-
                                     <Detail
                                         label="Last Activity"
                                         value={formatDeliveryDate(
-                                            taskDate(selected)
+                                            lastActivity(selected)
                                         )}
                                     />
-
                                     <Detail
                                         label="Failure Reason"
                                         value={
-                                            selected.failureReason || "—"
+                                            selected.failureReason ||
+                                            "—"
                                         }
                                     />
                                 </dl>
@@ -995,36 +975,32 @@ function DeliveryHistory({ user }) {
                                 </h3>
 
                                 <div className="dh-timeline">
-                                    {(
-                                        Array.isArray(selected.events)
-                                            ? [...selected.events].reverse()
-                                            : []
-                                    ).map((event, index) => (
-                                        <div
-                                            className="dh-timeline-item"
-                                            key={`${event.date}-${index}`}
-                                        >
-                                            <span className="dh-timeline-dot" />
+                                    {[...(selected.events || [])]
+                                        .reverse()
+                                        .map((event, index) => (
+                                            <div
+                                                key={`${event.date}-${index}`}
+                                                className="dh-timeline-item"
+                                            >
+                                                <span className="dh-timeline-dot" />
 
-                                            <div>
-                                                <strong>
-                                                    {event.note ||
-                                                        "Task updated"}
-                                                </strong>
-
-                                                <small>
-                                                    {formatDeliveryDate(
-                                                        event.date
-                                                    )}
-                                                </small>
+                                                <div>
+                                                    <strong>
+                                                        {event.note}
+                                                    </strong>
+                                                    <small>
+                                                        {formatDeliveryDate(
+                                                            event.date
+                                                        )}
+                                                    </small>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
 
                                     {!selected.events?.length && (
                                         <p className="dh-timeline-empty">
-                                            No detailed activity events are
-                                            stored for this record.
+                                            No detailed activity
+                                            recorded yet.
                                         </p>
                                     )}
                                 </div>
@@ -1032,9 +1008,8 @@ function DeliveryHistory({ user }) {
 
                             {selected.stage === "failed" && (
                                 <Alert severity="warning">
-                                    This task still needs action. Open
-                                    Task Details to retry, or contact
-                                    Admin if escalated.
+                                    This task needs another attempt
+                                    or Admin review.
                                 </Alert>
                             )}
                         </div>
@@ -1052,16 +1027,16 @@ function DeliveryHistory({ user }) {
                         !["delivered", "cancelled"].includes(
                             selected.stage
                         ) && (
-                            <Button
-                                component={Link}
-                                to={`/manage/tasks/${
-                                    encodeURIComponent(selected.id)
-                                }`}
-                                variant="contained"
-                            >
-                                Open Task
-                            </Button>
-                        )}
+                        <Button
+                            component={Link}
+                            to={`/manage/tasks/${encodeURIComponent(
+                                selected.id
+                            )}`}
+                            variant="contained"
+                        >
+                            Open Task
+                        </Button>
+                    )}
                 </DialogActions>
             </Dialog>
         </main>

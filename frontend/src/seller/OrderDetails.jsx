@@ -1,8 +1,10 @@
-import { useRef, useState } from "react";
+
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Button, TextField } from "@mui/material";
+import { Alert, Button, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
+import api from "../services/api";
 import { formatMoney } from "../services/sellerService";
 import {
     advanceSellerParcel,
@@ -36,7 +38,9 @@ function progressIndex(status) {
 
     const exact = steps.findIndex(([value]) => value === status);
 
-    return exact >= 0 ? exact : (aliases[status] ?? 0);
+    return exact >= 0
+        ? exact
+        : (aliases[status] ?? 0);
 }
 
 function DetailField({ label, value }) {
@@ -62,6 +66,55 @@ function OrderDetails() {
     const [note, setNote] = useState("");
     const [saving, setSaving] = useState(false);
     const actionBusy = useRef(false);
+
+    const [pickup, setPickup] = useState(null);
+    const [pickupError, setPickupError] = useState("");
+    const [pickupBusy, setPickupBusy] = useState(false);
+
+    // ================== SELLER PICKUP OTP ==================
+    useEffect(() => {
+        let active = true;
+
+        setPickup(null);
+        setPickupError("");
+
+        if (order?.status === "ready_for_pickup") {
+            api.get(
+                `/orders/manage/${orderId}/parcels/${parcelId}/pickup-otp`
+            )
+                .then(({ data }) => {
+                    if (active) setPickup(data);
+                })
+                .catch((failure) => {
+                    if (active) {
+                        setPickupError(failure.message);
+                    }
+                });
+        }
+
+        return () => {
+            active = false;
+        };
+    }, [order?.status, orderId, parcelId]);
+
+    const regeneratePickup = async () => {
+        setPickupBusy(true);
+        setPickupError("");
+
+        try {
+            const { data } = await api.post(
+                `/orders/manage/${orderId}/parcels/${parcelId}/pickup-otp`
+            );
+
+            setPickup(data);
+
+            toast.success("New seller pickup OTP generated.");
+        } catch (failure) {
+            setPickupError(failure.message);
+        } finally {
+            setPickupBusy(false);
+        }
+    };
 
     // ================== SELLER ACTIONS ==================
     const handleStage = async (stage) => {
@@ -95,7 +148,7 @@ function OrderDetails() {
         }
     };
 
-    // ================== LOADING AND ERROR ==================
+    // ================== LOADING / ERROR ==================
     if (loading) {
         return (
             <main className="seller-order-details">
@@ -108,25 +161,20 @@ function OrderDetails() {
         return (
             <main className="seller-order-details">
                 <p role="alert">{error}</p>
-
-                <Button onClick={refresh}>
-                    Retry
-                </Button>
+                <Button onClick={refresh}>Retry</Button>
             </main>
         );
     }
 
-    // ================== NOT FOUND ==================
     if (!order) {
         return (
             <main className="seller-order-details">
                 <section className="sod-card sod-not-found">
                     <h2>Order not available</h2>
-
                     <p>
-                        This parcel is not available under your seller account.
+                        This parcel is not available under your
+                        seller account.
                     </p>
-
                     <Button
                         component={Link}
                         to="/manage/orders"
@@ -162,19 +210,16 @@ function OrderDetails() {
 
     return (
         <main className="seller-order-details">
-            {/* ================== PAGE HEADER ================== */}
+            {/* ================== HEADER ================== */}
             <header className="sod-hero">
                 <div>
                     <h1>
-                        <i
-                            className="fa-solid fa-receipt"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-receipt" />
                         ORDER DETAILS
                     </h1>
-
                     <p>
-                        Review items, pack the parcel and monitor delivery updates.
+                        Review items, pack the parcel and monitor
+                        delivery updates.
                     </p>
                 </div>
 
@@ -218,15 +263,12 @@ function OrderDetails() {
                         {getStatusLabel(order.status)}
                     </span>
 
-                    <strong>
-                        {formatMoney(order.amount)}
-                    </strong>
-
+                    <strong>{formatMoney(order.amount)}</strong>
                     <small>{order.paymentStatus}</small>
                 </div>
             </section>
 
-            {/* ================== FULFILMENT AND ACTIONS ================== */}
+            {/* ================== PROGRESS AND ACTIONS ================== */}
             <div className="sod-grid">
                 <section className="sod-card">
                     <div className="sod-card-heading">
@@ -248,19 +290,19 @@ function OrderDetails() {
                         <ol className="sod-timeline">
                             {steps.map(([key, label, icon], index) => (
                                 <li
-                                    className={index <= progress ? "is-complete" : ""}
                                     key={key}
+                                    className={
+                                        index <= progress
+                                            ? "is-complete"
+                                            : ""
+                                    }
                                 >
                                     <span>
-                                        <i
-                                            className={`fa-solid ${icon}`}
-                                            aria-hidden="true"
-                                        />
+                                        <i className={`fa-solid ${icon}`} />
                                     </span>
 
                                     <div>
                                         <strong>{label}</strong>
-
                                         <small>
                                             {index === progress
                                                 ? "Current stage"
@@ -284,7 +326,8 @@ function OrderDetails() {
                         <div>
                             <h2>Seller Actions</h2>
                             <p>
-                                Prepare the parcel for assigned delivery pickup.
+                                Prepare the parcel for assigned
+                                delivery pickup.
                             </p>
                         </div>
                     </div>
@@ -297,8 +340,12 @@ function OrderDetails() {
                             size="small"
                             label="Packing Note (Optional)"
                             value={note}
-                            onChange={(event) => setNote(event.target.value)}
-                            disabled={saving || (!canPack && !canReady)}
+                            onChange={(event) =>
+                                setNote(event.target.value)
+                            }
+                            disabled={
+                                saving || (!canPack && !canReady)
+                            }
                             slotProps={{
                                 htmlInput: { maxLength: 200 },
                             }}
@@ -309,7 +356,9 @@ function OrderDetails() {
                                 variant="contained"
                                 disabled={saving}
                                 onClick={() => handleStage("packing")}
-                                startIcon={<i className="fa-solid fa-box" />}
+                                startIcon={
+                                    <i className="fa-solid fa-box" />
+                                }
                             >
                                 Start Packing
                             </Button>
@@ -319,18 +368,76 @@ function OrderDetails() {
                             <Button
                                 variant="contained"
                                 disabled={saving}
-                                onClick={() => handleStage("ready_for_pickup")}
-                                startIcon={<i className="fa-solid fa-box-open" />}
+                                onClick={() =>
+                                    handleStage("ready_for_pickup")
+                                }
+                                startIcon={
+                                    <i className="fa-solid fa-box-open" />
+                                }
                             >
                                 Mark Ready for Pickup
                             </Button>
                         )}
 
-                        {!canPack && !canReady && (
+                        {/* ================== PICKUP OTP ================== */}
+                        {order.status === "ready_for_pickup" && (
+                            <>
+                                <div className="sod-info">
+                                    <i className="fa-solid fa-shield-halved" />
+                                    Share this pickup OTP only with
+                                    the agent physically collecting
+                                    your parcel.
+                                </div>
+
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Seller Pickup OTP"
+                                    value={
+                                        pickup?.otp ||
+                                        "Loading OTP..."
+                                    }
+                                    slotProps={{
+                                        input: {
+                                            readOnly: true,
+                                        },
+                                    }}
+                                />
+
+                                {pickup?.expiresAt && (
+                                    <small>
+                                        Valid until{" "}
+                                        {formatDateTime(pickup.expiresAt)}.
+                                        Generate a new code if expired.
+                                    </small>
+                                )}
+
+                                {pickupError && (
+                                    <Alert severity="error">
+                                        {pickupError}
+                                    </Alert>
+                                )}
+
+                                <Button
+                                    variant="outlined"
+                                    disabled={pickupBusy}
+                                    onClick={regeneratePickup}
+                                    startIcon={
+                                        <i className="fa-solid fa-arrows-rotate" />
+                                    }
+                                >
+                                    Regenerate Pickup OTP
+                                </Button>
+                            </>
+                        )}
+
+                        {!canPack &&
+                            !canReady &&
+                            order.status !== "ready_for_pickup" && (
                             <div className="sod-info">
                                 <i className="fa-solid fa-circle-info" />
-                                Delivery stages are updated by the assigned
-                                delivery agent.
+                                Delivery stages are updated by
+                                the assigned delivery agent.
                             </div>
                         )}
                     </div>
@@ -347,7 +454,8 @@ function OrderDetails() {
                     <div>
                         <h2>Parcel Items</h2>
                         <p>
-                            Purchased product snapshots for your seller parcel.
+                            Purchased product snapshots for your
+                            seller parcel.
                         </p>
                     </div>
                 </div>
@@ -359,7 +467,10 @@ function OrderDetails() {
                             key={`${item.sku || item.name}-${index}`}
                         >
                             {item.image ? (
-                                <img src={item.image} alt={item.name || ""} />
+                                <img
+                                    src={item.image}
+                                    alt={item.name || ""}
+                                />
                             ) : (
                                 <span className="sod-image-placeholder">
                                     <i className="fa-solid fa-image" />
@@ -368,7 +479,6 @@ function OrderDetails() {
 
                             <div className="sod-item-name">
                                 <strong>{item.name}</strong>
-
                                 <small>
                                     {[
                                         item.variantLabel || item.variant,
@@ -383,7 +493,11 @@ function OrderDetails() {
 
                             <strong>
                                 {formatMoney(
-                                    Number(item.price ?? item.unitPrice ?? 0) *
+                                    Number(
+                                        item.price ??
+                                        item.unitPrice ??
+                                        0
+                                    ) *
                                     Number(item.quantity || 1)
                                 )}
                             </strong>
@@ -392,18 +506,18 @@ function OrderDetails() {
                 </div>
             </section>
 
-            {/* ================== CUSTOMER AND DELIVERY ================== */}
+            {/* ================== DELIVERY ADDRESS ================== */}
             <div className="sod-grid">
                 <section className="sod-card">
                     <div className="sod-card-heading">
                         <span className="sod-heading-icon">
                             <i className="fa-solid fa-location-dot" />
                         </span>
-
                         <div>
                             <h2>Delivery Address</h2>
                             <p>
-                                Address snapshot captured with the order.
+                                Address snapshot captured
+                                with the order.
                             </p>
                         </div>
                     </div>
@@ -413,12 +527,10 @@ function OrderDetails() {
                             label="Recipient"
                             value={address.name || order.customerName}
                         />
-
                         <DetailField
                             label="Mobile Number"
                             value={address.phone}
                         />
-
                         <DetailField
                             label="City / State"
                             value={[
@@ -426,7 +538,6 @@ function OrderDetails() {
                                 address.state,
                             ].filter(Boolean).join(", ")}
                         />
-
                         <DetailField
                             label="Pincode"
                             value={address.pincode}
@@ -443,12 +554,12 @@ function OrderDetails() {
                     </p>
                 </section>
 
+                {/* ================== DELIVERY ASSIGNMENT ================== */}
                 <section className="sod-card">
                     <div className="sod-card-heading">
                         <span className="sod-heading-icon">
                             <i className="fa-solid fa-truck-fast" />
                         </span>
-
                         <div>
                             <h2>Delivery Assignment</h2>
                             <p>
@@ -460,9 +571,11 @@ function OrderDetails() {
                     <dl className="sod-details-grid">
                         <DetailField
                             label="Assigned Agent"
-                            value={agent?.name || "Awaiting assignment"}
+                            value={
+                                agent?.name ||
+                                "Awaiting assignment"
+                            }
                         />
-
                         <DetailField
                             label="Delivery Stage"
                             value={
@@ -471,12 +584,10 @@ function OrderDetails() {
                                     : "Awaiting pickup workflow"
                             }
                         />
-
                         <DetailField
                             label="Parcel Custody"
                             value={delivery?.custody || "Seller"}
                         />
-
                         <DetailField
                             label="Pickup Pincode"
                             value={
@@ -488,7 +599,8 @@ function OrderDetails() {
 
                     <div className="sod-info">
                         <i className="fa-solid fa-circle-info" />
-                        The parcel remains with the seller until delivery pickup.
+                        The parcel remains with the seller until
+                        delivery pickup.
                     </div>
                 </section>
             </div>
@@ -499,11 +611,11 @@ function OrderDetails() {
                     <span className="sod-heading-icon">
                         <i className="fa-solid fa-clock-rotate-left" />
                     </span>
-
                     <div>
                         <h2>Order Activity</h2>
                         <p>
-                            Recorded seller updates and operational events.
+                            Recorded seller updates and
+                            operational events.
                         </p>
                     </div>
                 </div>
@@ -515,14 +627,11 @@ function OrderDetails() {
                                 <span>
                                     <i className="fa-solid fa-check" />
                                 </span>
-
                                 <div>
                                     <strong>
                                         {getStatusLabel(item.type)}
                                     </strong>
-
                                     <p>{item.note}</p>
-
                                     <small>
                                         {formatDateTime(item.date)}
                                     </small>

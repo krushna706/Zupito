@@ -9,10 +9,11 @@ import {
     formatDeliveryDate,
     getDeliveryAgent,
     getDeliveryTasks,
+    refreshDeliveryData,
+    setDeliveryAvailability,
 } from "../services/deliveryService";
 
 // ================== CONFIGURATION ==================
-const AGENTS_KEY = "zupito_admin_delivery_agents";
 const PERIODS = [7, 30];
 
 const STATUS_GROUPS = [
@@ -88,7 +89,6 @@ function isWithin(date, days, now) {
     if (!date) return false;
 
     const start = new Date(now);
-
     start.setHours(0, 0, 0, 0);
     start.setDate(start.getDate() - days + 1);
 
@@ -115,7 +115,6 @@ function buildTrend(tasks, days, now) {
                 day: "numeric",
                 month: "short",
             }),
-
             value: tasks.filter((task) => {
                 const date = completedDate(task);
 
@@ -139,10 +138,10 @@ function getAvailability(agent) {
         return "Unavailable";
     }
 
-    const capacity = Number(agent.capacity || 0);
-    const activeTasks = Number(agent.activeTasks || 0);
-
-    if (capacity > 0 && activeTasks >= capacity) {
+    if (
+        Number(agent.capacity || 0) > 0 &&
+        Number(agent.activeTasks || 0) >= Number(agent.capacity)
+    ) {
         return "At Capacity";
     }
 
@@ -153,13 +152,15 @@ function getRoute(task) {
     const reverse = task.taskType === "Return Pickup";
 
     return {
-        from: reverse ? task.customerName : task.sellerName,
-        to: reverse ? task.sellerName : task.customerName,
-
+        from: reverse
+            ? task.customerName
+            : task.sellerName,
+        to: reverse
+            ? task.sellerName
+            : task.customerName,
         fromPin: reverse
             ? task.deliveryPincode
             : task.pickupPincode,
-
         toPin: reverse
             ? task.pickupPincode
             : task.deliveryPincode,
@@ -181,14 +182,10 @@ function Heading({ icon, title, subtitle, action }) {
         <div className="zd-heading">
             <div className="zd-heading-text">
                 <h2>
-                    <Icon name={icon} />
-                    {" "}
-                    {title}
+                    <Icon name={icon} /> {title}
                 </h2>
-
                 <p>{subtitle}</p>
             </div>
-
             {action}
         </div>
     );
@@ -243,16 +240,13 @@ function CompletionChart({ points }) {
                                 y2={y}
                                 className="dd-grid-line"
                             />
-
                             <text
                                 x="45"
                                 y={y + 4}
                                 textAnchor="end"
                                 className="dd-axis"
                             >
-                                {count(
-                                    Math.round(ceiling * tick)
-                                )}
+                                {count(Math.round(ceiling * tick))}
                             </text>
                         </g>
                     );
@@ -356,13 +350,9 @@ function DistributionChart({ groups, total }) {
                             <i
                                 className={`dd-legend-dot is-${group.key}`}
                             />
-
                             {group.label}
                         </span>
-
-                        <strong>
-                            {count(group.value)}
-                        </strong>
+                        <strong>{count(group.value)}</strong>
                     </div>
                 ))}
             </div>
@@ -380,91 +370,84 @@ function Dashboard({ user }) {
     const [updating, setUpdating] = useState(false);
 
     // ================== DATA REFRESH ==================
-    const refresh = () => {
-        setData(readDashboard(user));
+    const refresh = async () => {
+        try {
+            await refreshDeliveryData(user);
+            setData(readDashboard(user));
+        } catch (error) {
+            toast.error(
+                error.message ||
+                "Unable to refresh delivery dashboard."
+            );
+        }
     };
 
     useEffect(() => {
+        let active = true;
+
         const sync = () => {
-            setData(readDashboard(user));
+            if (active) setData(readDashboard(user));
         };
 
-        sync();
+        const load = async () => {
+            try {
+                await refreshDeliveryData(user);
+                sync();
+            } catch (error) {
+                if (active) {
+                    toast.error(error.message);
+                }
+            }
+        };
 
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
+        load();
+
+        window.addEventListener("focus", load);
+        window.addEventListener(
+            "zupito:delivery-updated",
+            sync
+        );
 
         return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
+            active = false;
+
+            window.removeEventListener("focus", load);
+            window.removeEventListener(
+                "zupito:delivery-updated",
+                sync
+            );
         };
     }, [
+        user?._id,
         user?.id,
-        user?.email,
-        user?.agentId,
         user?.role,
     ]);
 
     // ================== AGENT AVAILABILITY ==================
-    const changeAvailability = (nextStatus) => {
-        if (!["Available", "Unavailable"].includes(nextStatus)) {
+    const changeAvailability = async (nextStatus) => {
+        if (
+            !["Available", "Unavailable"].includes(nextStatus)
+        ) {
             return;
         }
 
         setUpdating(true);
 
         try {
-            const ownAgent = getDeliveryAgent(user);
+            const agent = getDeliveryAgent(user);
 
-            if (!ownAgent || ownAgent.status !== "Active") {
+            if (!agent || agent.status !== "Active") {
                 throw new Error(
-                    "Your delivery account is not active or linked."
+                    "Your delivery agent account is not active."
                 );
             }
 
-            const agents = JSON.parse(
-                localStorage.getItem(AGENTS_KEY) || "[]"
-            );
-
-            if (!Array.isArray(agents)) {
-                throw new Error(
-                    "Delivery agent records are unavailable."
-                );
-            }
-
-            const index = agents.findIndex((agent) =>
-                String(agent.id) === String(ownAgent.id)
-            );
-
-            if (
-                index < 0 ||
-                agents[index].status !== "Active"
-            ) {
-                throw new Error(
-                    "Your Admin agent record could not be verified."
-                );
-            }
-
-            const currentStatus =
-                agents[index].availability === "Unavailable"
-                    ? "Unavailable"
-                    : "Available";
-
-            if (currentStatus === nextStatus) {
+            if (agent.availability === nextStatus) {
                 return;
             }
 
-            agents[index] = {
-                ...agents[index],
-                availability: nextStatus,
-            };
-
-            localStorage.setItem(
-                AGENTS_KEY,
-                JSON.stringify(agents)
-            );
-
-            refresh();
+            await setDeliveryAvailability(user, nextStatus);
+            setData(readDashboard(user));
 
             toast.success(
                 `You are now ${nextStatus.toLowerCase()}.`
@@ -484,9 +467,7 @@ function Dashboard({ user }) {
         const { tasks, refreshedAt } = data;
 
         const active = tasks.filter((task) =>
-            !["delivered", "cancelled"].includes(
-                task.stage
-            )
+            !["delivered", "cancelled"].includes(task.stage)
         );
 
         const pickup = active.filter((task) =>
@@ -528,17 +509,17 @@ function Dashboard({ user }) {
             ].includes(task.taskType)
         );
 
-        const attempts = tasks.reduce((total, task) =>
-            total + Math.max(
-                0,
-                Number(task.attempts || 0)
-            ),
+        const attempts = tasks.reduce(
+            (total, task) =>
+                total + Math.max(
+                    0,
+                    Number(task.attempts || 0)
+                ),
             0
         );
 
         const groups = STATUS_GROUPS.map((group) => ({
             ...group,
-
             value: tasks.filter((task) =>
                 getGroup(task.stage) === group.key
             ).length,
@@ -584,7 +565,6 @@ function Dashboard({ user }) {
             groups,
             priority,
             recent,
-
             trend: buildTrend(
                 completed,
                 period,
@@ -607,10 +587,10 @@ function Dashboard({ user }) {
     );
 
     const firstName = String(
-        agent?.name ||
-        user?.name ||
-        "Agent"
-    ).trim().split(/\s+/)[0];
+        agent?.name || user?.name || "Agent"
+    )
+        .trim()
+        .split(/\s+/)[0];
 
     const capacity = Number(agent?.capacity || 0);
     const allocated = Number(agent?.activeTasks || 0);
@@ -622,91 +602,35 @@ function Dashboard({ user }) {
 
     // ================== KPI CONFIGURATION ==================
     const cards = [
-        [
-            "Active Tasks",
-            summary.active.length,
-            "Tasks currently assigned",
-            "fa-clipboard-list",
-            "tasks",
-        ],
-        [
-            "Pickup Pending",
-            summary.pickup.length,
-            "Ready for collection",
-            "fa-box-open",
-            "tasks",
-        ],
-        [
-            "In Transit",
-            summary.transit.length,
-            "Parcels in your custody",
-            "fa-truck-fast",
-            "tasks",
-        ],
-        [
-            "Completed",
-            summary.completedInPeriod.length,
-            `Last ${period} days`,
-            "fa-circle-check",
-            "history",
-        ],
-        [
-            "Delivery Issues",
-            summary.issues.length,
-            "Currently failed tasks",
-            "fa-triangle-exclamation",
-            "tasks",
-        ],
-        [
-            "Failed Attempts",
-            summary.attempts,
-            "All recorded attempts",
-            "fa-rotate",
-            "history",
-        ],
-        [
-            "Replacement Tasks",
-            summary.replacements.length,
-            "Active return and replacement",
-            "fa-arrow-right-arrow-left",
-            "tasks",
-        ],
-        [
-            "Completed Today",
-            summary.today.length,
-            "Successful handovers today",
-            "fa-calendar-check",
-            "history",
-        ],
+        ["Active Tasks", summary.active.length,
+            "Tasks currently assigned", "fa-clipboard-list", "tasks"],
+        ["Pickup Pending", summary.pickup.length,
+            "Ready for collection", "fa-box-open", "tasks"],
+        ["In Transit", summary.transit.length,
+            "Parcels in your custody", "fa-truck-fast", "tasks"],
+        ["Completed", summary.completedInPeriod.length,
+            `Last ${period} days`, "fa-circle-check", "history"],
+        ["Delivery Issues", summary.issues.length,
+            "Currently failed tasks", "fa-triangle-exclamation", "tasks"],
+        ["Failed Attempts", summary.attempts,
+            "All recorded attempts", "fa-rotate", "history"],
+        ["Replacement Tasks", summary.replacements.length,
+            "Active return and replacement", "fa-arrow-right-arrow-left", "tasks"],
+        ["Completed Today", summary.today.length,
+            "Successful handovers today", "fa-calendar-check", "history"],
     ];
 
-    // ================== PANEL MODULES ==================
     const modules = [
-        [
-            "Assigned Tasks",
-            "fa-clipboard-list",
-            summary.active.length,
-            "tasks",
-        ],
-        [
-            "Delivery History",
-            "fa-clock-rotate-left",
+        ["Assigned Tasks", "fa-clipboard-list",
+            summary.active.length, "tasks"],
+        ["Delivery History", "fa-clock-rotate-left",
             data.tasks.filter((task) =>
-                [
-                    "delivered",
-                    "cancelled",
-                    "failed",
-                ].includes(task.stage) ||
-                Number(task.attempts || 0) > 0
-            ).length,
-            "history",
-        ],
-        [
-            "My Profile",
-            "fa-user",
-            agent?.id || "View",
-            "profile",
-        ],
+                ["delivered", "cancelled", "failed"].includes(
+                    task.stage
+                ) || Number(task.attempts || 0) > 0
+            ).length, "history"],
+        ["My Profile", "fa-user",
+            agent?.id || "View", "profile"],
     ];
 
     return (
@@ -718,16 +642,15 @@ function Dashboard({ user }) {
                         <Icon name="fa-gauge-high" />
                         DASHBOARD
                     </h1>
-
                     <p>
-                        Your daily pickups, deliveries and task performance.
+                        Your daily pickups, deliveries and
+                        task performance.
                     </p>
                 </div>
 
                 <div className="zd-tools">
                     <label className="zd-period">
                         <Icon name="fa-calendar-days" />
-
                         <select
                             value={period}
                             onChange={(event) =>
@@ -736,10 +659,7 @@ function Dashboard({ user }) {
                             aria-label="Reporting period"
                         >
                             {PERIODS.map((days) => (
-                                <option
-                                    value={days}
-                                    key={days}
-                                >
+                                <option key={days} value={days}>
                                     Last {days} Days
                                 </option>
                             ))}
@@ -757,7 +677,7 @@ function Dashboard({ user }) {
                 </div>
             </header>
 
-            {/* ================== WELCOME BANNER ================== */}
+            {/* ================== WELCOME ================== */}
             <section className="zd-welcome">
                 <div className="zd-welcome-copy">
                     <span className="zd-welcome-eyebrow">
@@ -789,9 +709,7 @@ function Dashboard({ user }) {
                         <Icon name="fa-bell" />
                         Tasks Need Attention
                     </span>
-
                     <strong>{count(attention)}</strong>
-
                     <small>
                         Active pickups, routes and delivery issues
                     </small>
@@ -800,21 +718,14 @@ function Dashboard({ user }) {
 
             {/* ================== ACCOUNT ALERTS ================== */}
             {!agent && (
-                <Alert
-                    severity="warning"
-                    className="dd-alert"
-                >
-                    Your login is not linked to an Admin delivery-agent
-                    record. Ask Admin to register or assign your
-                    delivery account.
+                <Alert severity="warning" className="dd-alert">
+                    Your login is not linked to an Admin
+                    delivery-agent record.
                 </Alert>
             )}
 
             {agent && agent.status !== "Active" && (
-                <Alert
-                    severity="error"
-                    className="dd-alert"
-                >
+                <Alert severity="error" className="dd-alert">
                     Your agent account is {agent.status}.
                     Contact Admin for reactivation.
                 </Alert>
@@ -841,25 +752,21 @@ function Dashboard({ user }) {
                             <span className="zd-kpi-label">
                                 {label}
                             </span>
-
                             <span className="zd-kpi-icon">
                                 <Icon name={icon} />
                             </span>
                         </div>
-
                         <strong>{count(value)}</strong>
-
                         <small>{note}</small>
                     </Link>
                 ))}
             </section>
 
-            {/* ================== PRIORITY AND AVAILABILITY ================== */}
+            {/* ================== PRIORITY / AVAILABILITY ================== */}
             <section
                 className="dd-action-layout"
                 id="dd-priority"
             >
-                {/* ================== PRIORITY TASKS ================== */}
                 <article className="zd-panel">
                     <Heading
                         icon="fa-list-check"
@@ -901,18 +808,15 @@ function Dashboard({ user }) {
                                     <div className="dd-task-info">
                                         <strong>
                                             {task.id}
-
                                             <span>
                                                 {" "}· {task.taskType}
                                             </span>
                                         </strong>
-
                                         <small>
                                             {route.from || "Pickup"}
                                             {" → "}
                                             {route.to || "Destination"}
                                         </small>
-
                                         <span>
                                             {task.product || "Parcel"}
                                         </span>
@@ -942,7 +846,6 @@ function Dashboard({ user }) {
                         subtitle="Manage your shift and assignment capacity"
                     />
 
-                    {/* ================== AGENT INFORMATION ================== */}
                     <div className="dd-agent-card">
                         <span className="dd-agent-avatar">
                             <Icon name="fa-motorcycle" />
@@ -952,7 +855,6 @@ function Dashboard({ user }) {
                             <strong>
                                 {agent?.name || "Delivery Agent"}
                             </strong>
-
                             <small>
                                 {agent?.id || "Account not linked"}
                             </small>
@@ -969,14 +871,11 @@ function Dashboard({ user }) {
                         </span>
                     </div>
 
-                    {/* ================== WORK AVAILABILITY ================== */}
+                    {/* ================== SHIFT CONTROL ================== */}
                     <div className="dd-shift-control">
                         <div className="dd-shift-heading">
                             <div>
-                                <strong>
-                                    Work Availability
-                                </strong>
-
+                                <strong>Work Availability</strong>
                                 <small>
                                     Choose whether you can receive new tasks
                                 </small>
@@ -988,10 +887,7 @@ function Dashboard({ user }) {
                                 }`}
                             >
                                 <Icon name="fa-circle" />
-
-                                {agent
-                                    ? workStatus
-                                    : "Not Linked"}
+                                {agent ? workStatus : "Not Linked"}
                             </span>
                         </div>
 
@@ -1008,7 +904,8 @@ function Dashboard({ user }) {
                                         : ""
                                 }`}
                                 aria-pressed={Boolean(
-                                    agent && workStatus === "Available"
+                                    agent &&
+                                    workStatus === "Available"
                                 )}
                                 disabled={
                                     !canChangeStatus || updating
@@ -1029,7 +926,8 @@ function Dashboard({ user }) {
                                         : ""
                                 }`}
                                 aria-pressed={Boolean(
-                                    agent && workStatus === "Unavailable"
+                                    agent &&
+                                    workStatus === "Unavailable"
                                 )}
                                 disabled={
                                     !canChangeStatus || updating
@@ -1046,10 +944,7 @@ function Dashboard({ user }) {
 
                     {/* ================== AGENT CAPACITY ================== */}
                     <div className="dd-capacity-head">
-                        <span>
-                            Assigned Capacity
-                        </span>
-
+                        <span>Assigned Capacity</span>
                         <strong>
                             {count(allocated)} / {count(capacity)}
                         </strong>
@@ -1065,8 +960,9 @@ function Dashboard({ user }) {
                     />
 
                     <p className="dd-availability-note">
-                        Your availability is saved to the agent record.
-                        Existing assigned tasks remain your responsibility.
+                        Your availability is saved to the
+                        agent record. Existing assigned tasks
+                        remain your responsibility.
                     </p>
                 </article>
             </section>
@@ -1088,15 +984,12 @@ function Dashboard({ user }) {
                                 summary.completedInPeriod.length
                             )}
                         </strong>
-
                         <span>
                             Completed tasks with recorded delivery dates
                         </span>
                     </div>
 
-                    <CompletionChart
-                        points={summary.trend}
-                    />
+                    <CompletionChart points={summary.trend} />
                 </article>
 
                 <article className="zd-panel">
@@ -1113,9 +1006,8 @@ function Dashboard({ user }) {
                 </article>
             </section>
 
-            {/* ================== ACTIVITY AND PANEL OVERVIEW ================== */}
+            {/* ================== ACTIVITY / OVERVIEW ================== */}
             <section className="zd-lists dd-lists">
-                {/* ================== RECENT ACTIVITY ================== */}
                 <article className="zd-panel">
                     <Heading
                         icon="fa-clock-rotate-left"
@@ -1167,7 +1059,6 @@ function Dashboard({ user }) {
                                             {" · "}
                                             {deliveryStageLabel(task.stage)}
                                         </strong>
-
                                         <small>
                                             {formatDeliveryDate(
                                                 activityDate(task)
@@ -1188,7 +1079,6 @@ function Dashboard({ user }) {
                     </div>
                 </article>
 
-                {/* ================== PANEL OVERVIEW ================== */}
                 <article className="zd-panel">
                     <Heading
                         icon="fa-border-all"
@@ -1211,15 +1101,12 @@ function Dashboard({ user }) {
                                 <span className="zd-row-icon">
                                     <Icon name={icon} />
                                 </span>
-
                                 <span>{label}</span>
-
                                 <strong>
                                     {typeof value === "number"
                                         ? count(value)
                                         : value}
                                 </strong>
-
                                 <Icon name="fa-chevron-right" />
                             </Link>
                         ))}

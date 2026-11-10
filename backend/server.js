@@ -1,3 +1,4 @@
+
 require("dotenv").config({
     path: require("path").join(__dirname, ".env"),
 });
@@ -12,7 +13,9 @@ async function startServer() {
         "CLIENT_ORIGIN",
     ]) {
         if (!process.env[key]) {
-            throw new Error(`${key} is required in backend/.env`);
+            throw new Error(
+                `${key} is required in backend/.env`
+            );
         }
     }
 
@@ -43,14 +46,27 @@ async function startServer() {
         throw new Error("Production requires HTTPS.");
     }
 
-    const hops = Number(process.env.TRUST_PROXY_HOPS || 0);
-    const port = Number(process.env.PORT || 5000);
+    const hops = Number(
+        process.env.TRUST_PROXY_HOPS || 0
+    );
 
-    if (!Number.isInteger(hops) || hops < 0 || hops > 10) {
+    const port = Number(
+        process.env.PORT || 5000
+    );
+
+    if (
+        !Number.isInteger(hops) ||
+        hops < 0 ||
+        hops > 10
+    ) {
         throw new Error("Invalid TRUST_PROXY_HOPS.");
     }
 
-    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    if (
+        !Number.isInteger(port) ||
+        port < 1 ||
+        port > 65535
+    ) {
         throw new Error("Invalid PORT.");
     }
 
@@ -58,7 +74,15 @@ async function startServer() {
 
     await connectDB();
 
-    require("./jobs/paymentReconciliation").startPaymentReconciliation();
+    // ================== BACKGROUND JOBS ==================
+    require("./jobs/paymentReconciliation")
+        .startPaymentReconciliation();
+
+    require("./jobs/assignmentWorker")
+        .startAssignmentWorker();
+
+    require("./jobs/deliveryRetryWorker")
+        .startDeliveryRetryWorker();
 
     const app = require("./app");
 
@@ -70,7 +94,9 @@ async function startServer() {
 startServer().catch((error) => {
     console.error(
         "Startup failed:",
-        error.name === "Error" ? error.message : error.name
+        error.name === "Error"
+            ? error.message
+            : error.name
     );
 
     process.exit(1);

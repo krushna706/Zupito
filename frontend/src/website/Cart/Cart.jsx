@@ -22,6 +22,7 @@ function Cart() {
         discount,
         canCheckout,
         loading,
+        updating,
         ready,
         error,
         changeQuantity,
@@ -200,7 +201,7 @@ function Cart() {
                             items={cartItems}
                             cartCount={cartCount}
                             onQuantityChange={changeQuantity}
-                            loading={loading}
+                            loading={loading && !updating}
                             formatPrice={formatPrice}
                         />
 

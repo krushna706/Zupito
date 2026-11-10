@@ -32,37 +32,46 @@ async function buildCart(references, session = null) {
         .session(session)
         .lean();
 
-    const categories = await Category.find({
-        _id: { $in: products.map((product) => product.categoryId) },
+    const categoryQuery = Category.find({
+        _id: { $in: products.map((product) => product.categoryId) }
     })
         .select("name slug status parentId")
         .session(session)
         .lean();
 
-    const sellers = await SellerProfile.find({
-        _id: { $in: products.map((product) => product.sellerProfileId) },
+    const sellerQuery = SellerProfile.find({
+        _id: { $in: products.map((product) => product.sellerProfileId) }
     })
         .select("userId status")
         .session(session)
         .lean();
 
-    const parents = await Category.find({
+    // Transaction reads stay sequential.
+    const [categories, sellers] = session
+        ? [await categoryQuery, await sellerQuery]
+        : await Promise.all([categoryQuery, sellerQuery]);
+
+    const parentQuery = Category.find({
         _id: {
             $in: categories
                 .map((category) => category.parentId)
-                .filter(Boolean),
-        },
+                .filter(Boolean)
+        }
     })
         .select("status parentId")
         .session(session)
         .lean();
 
-    const accounts = await User.find({
-        _id: { $in: sellers.map((seller) => seller.userId) },
+    const accountQuery = User.find({
+        _id: { $in: sellers.map((seller) => seller.userId) }
     })
         .select("role status")
         .session(session)
         .lean();
+
+    const [parents, accounts] = session
+        ? [await parentQuery, await accountQuery]
+        : await Promise.all([parentQuery, accountQuery]);
 
     const productMap = indexById(products);
     const categoryMap = indexById(categories);

@@ -2,8 +2,8 @@ import { getOrderId, getOrderTotal, getProductName } from "../utils/orderStatus"
 import formatDate from "../utils/formatDate";
 import formatAmount from "../utils/formatCurrency";
 
-import { useEffect, useMemo, useState } from "react";
-import { getCustomerOrders } from "../services/orderService";
+import { useMemo, useState } from "react";
+import { useOrderResource } from "../services/orderService";
 import { Link } from "react-router-dom";
 
 const PAGE_SIZE = 5;
@@ -549,41 +549,19 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
 }
 
 export default function MyOrdersPage() {
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [revision, setRevision] = useState(0);
-
-    useEffect(() => {
-        let active = true;
-
-        setLoading(true);
-
-        getCustomerOrders()
-            .then((data) => {
-                if (active) {
-                    setOrders(data);
-                    setError("");
-                }
-            })
-            .catch((failure) => {
-                if (active) setError(failure.message);
-            })
-            .finally(() => {
-                if (active) setLoading(false);
-            });
-
-        return () => {
-            active = false;
-        };
-    }, [revision]);
+    const {
+        data,
+        loading,
+        error,
+        refresh,
+    } = useOrderResource("customer-list");
 
     return (
         <MyOrders
-            orders={orders}
+            orders={data || []}
             loading={loading}
             error={error}
-            onRetry={() => setRevision((value) => value + 1)}
+            onRetry={refresh}
         />
     );
 }

@@ -10,7 +10,7 @@ import {
     sellerKey,
 } from "../services/sellerService";
 
-import { getSellerOrders } from "../services/orderService";
+import { useOrderResource } from "../services/orderService";
 import { getSellerReplacements } from "../services/replacementService";
 
 // ================== CONFIGURATION ==================
@@ -93,10 +93,10 @@ function matchesSeller(record, user, storeNames) {
     return storeNames.has(normalize(record.seller));
 }
 
-function loadDashboard(user) {
+function loadDashboard(user, liveOrders = []) {
     const products = ownProducts(user);
     const inventory = inventoryRows(user);
-    const orders = getSellerOrders(user);
+    const orders = liveOrders;
     const replacements = getSellerReplacements(user);
     const storeName = getStoreName(user);
     const stores = readObject(PROFILE_KEY);
@@ -590,23 +590,16 @@ function OrderBadge({ status }) {
 
 // ================== SELLER DASHBOARD ==================
 function Dashboard({ user }) {
-    const [data, setData] = useState(() => loadDashboard(user));
+    const {
+        data: liveOrders,
+        error: orderError,
+        refresh: refreshOrders,
+    } = useOrderResource("staff-list");
+
+    const data = loadDashboard(user, liveOrders || []);
     const [period, setPeriod] = useState(30);
 
-    const refresh = () => setData(loadDashboard(user));
-
-    useEffect(() => {
-        const sync = () => setData(loadDashboard(user));
-
-        sync();
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
-
-        return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
-        };
-    }, [user?.id, user?.email]);
+    const refresh = refreshOrders;
 
     const summary = useMemo(() =>
         getSummary(data, period),

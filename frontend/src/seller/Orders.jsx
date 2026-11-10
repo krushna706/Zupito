@@ -1,13 +1,8 @@
-
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import {
     Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     MenuItem,
     Table,
     TableBody,
@@ -21,15 +16,8 @@ import {
 
 import { toast } from "react-toastify";
 
-import {
-    formatMoney,
-    inventoryRows,
-} from "../services/sellerService";
-
-import {
-    createDemoSellerOrder,
-    getSellerOrders,
-} from "../services/orderService";
+import { formatMoney } from "../services/sellerService";
+import { useOrderResource } from "../services/orderService";
 
 import {
     formatDateTime,
@@ -96,45 +84,12 @@ function OrderStatus({ status }) {
 
 // ================== SELLER ORDERS ==================
 function Orders({ user }) {
-    const [orders, setOrders] = useState(() => getSellerOrders(user));
+    const { data, loading, error, refresh } = useOrderResource("staff-list");
+    const orders = data || [];
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("All");
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-
-    const [demoOpen, setDemoOpen] = useState(false);
-    const [selectedVariant, setSelectedVariant] = useState("");
-    const [quantity, setQuantity] = useState("1");
-
-    const variants = useMemo(
-        () => inventoryRows(user),
-        [user?.id, user?.email, orders]
-    );
-
-    const availableVariants = variants.filter((item) =>
-        item.available > 0
-    );
-
-    const selected = availableVariants.find((item) =>
-        item.key === selectedVariant
-    );
-
-    // ================== DATA REFRESH ==================
-    const refresh = () => {
-        setOrders(getSellerOrders(user));
-    };
-
-    useEffect(() => {
-        const sync = () => setOrders(getSellerOrders(user));
-
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
-
-        return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
-        };
-    }, [user?.id, user?.email]);
 
     // ================== STATISTICS ==================
     const statistics = [
@@ -198,31 +153,6 @@ function Orders({ user }) {
         (page + 1) * rowsPerPage
     );
 
-    // ================== DEMO ORDER ==================
-    const openDemo = () => {
-        setSelectedVariant(availableVariants[0]?.key || "");
-        setQuantity("1");
-        setDemoOpen(true);
-    };
-
-    const createDemo = () => {
-        try {
-            const orderId = createDemoSellerOrder(
-                user,
-                selectedVariant,
-                quantity
-            );
-
-            setDemoOpen(false);
-            setPage(0);
-            refresh();
-
-            toast.success(`Sample paid order ${orderId} created.`);
-        } catch (error) {
-            toast.error(error.message);
-        }
-    };
-
     return (
         <main className="seller-orders">
             {/* ================== PAGE HEADER ================== */}
@@ -253,17 +183,17 @@ function Orders({ user }) {
                         Refresh
                     </Button>
 
-                    <Button
-                        variant="contained"
-                        onClick={openDemo}
-                        startIcon={
-                            <i className="fa-solid fa-flask" />
-                        }
-                    >
-                        Create Demo Order
-                    </Button>
                 </div>
             </header>
+
+            {loading && <p role="status">Loading orders…</p>}
+
+            {error && (
+                <p role="alert">
+                    {error}
+                    <Button onClick={refresh}>Retry</Button>
+                </p>
+            )}
 
             {/* ================== ORDER SUMMARY ================== */}
             <section className="so-stats">
@@ -301,10 +231,7 @@ function Orders({ user }) {
 
                     <div>
                         <h2>Seller Fulfilment Queue</h2>
-                        <p>
-                            Only your parcels from paid or clearly
-                            labeled demo-paid orders.
-                        </p>
+                       <p>Only your parcels from confirmed paid orders.</p>
                     </div>
 
                     <span className="so-record-count">
@@ -474,17 +401,9 @@ function Orders({ user }) {
                                             <p>
                                                 {orders.length
                                                     ? "Try another filter or search term."
-                                                    : "Create a demo order from your product stock to preview fulfilment."}
+                                                    : "Paid orders will appear here after payment confirmation."}
                                             </p>
 
-                                            {!orders.length && (
-                                                <Button
-                                                    variant="outlined"
-                                                    onClick={openDemo}
-                                                >
-                                                    Create Demo Order
-                                                </Button>
-                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -515,117 +434,6 @@ function Orders({ user }) {
                 />
             </section>
 
-            {/* ================== DEMO ORDER DIALOG ================== */}
-            <Dialog
-                open={demoOpen}
-                onClose={() => setDemoOpen(false)}
-                maxWidth="sm"
-                fullWidth
-                className="so-dialog"
-            >
-                <DialogTitle>Create Paid Demo Order</DialogTitle>
-
-                <DialogContent dividers>
-                    <div className="so-demo-form">
-                        <p>
-                            This is a frontend-only sample. No payment
-                            is processed. Stock will be reserved, not
-                            deducted, until the delivery workflow advances.
-                        </p>
-
-                        {availableVariants.length ? (
-                            <>
-                                <TextField
-                                    select
-                                    fullWidth
-                                    size="small"
-                                    label="Product Variant"
-                                    value={selectedVariant}
-                                    onChange={(event) =>
-                                        setSelectedVariant(event.target.value)
-                                    }
-                                >
-                                    {availableVariants.map((item) => (
-                                        <MenuItem
-                                            key={item.key}
-                                            value={item.key}
-                                        >
-                                            {item.name} · {item.variant} (
-                                            {item.available} available)
-                                        </MenuItem>
-                                    ))}
-                                </TextField>
-
-                                <TextField
-                                    fullWidth
-                                    size="small"
-                                    type="number"
-                                    label="Quantity"
-                                    value={quantity}
-                                    onChange={(event) =>
-                                        setQuantity(event.target.value)
-                                    }
-                                    slotProps={{
-                                        htmlInput: {
-                                            min: 1,
-                                            max: selected?.available || 1,
-                                            step: 1,
-                                        },
-                                    }}
-                                />
-
-                                <div className="so-demo-summary">
-                                    <span>Sample Parcel Value</span>
-
-                                    <strong>
-                                        {formatMoney(
-                                            (selected?.price || 0) *
-                                            (Number(quantity) || 0)
-                                        )}
-                                    </strong>
-                                </div>
-                            </>
-                        ) : (
-                            <p>
-                                No available variants. Add a product
-                                or restock inventory first.
-                            </p>
-                        )}
-                    </div>
-                </DialogContent>
-
-                <DialogActions>
-                    <Button
-                        color="inherit"
-                        onClick={() => setDemoOpen(false)}
-                    >
-                        Cancel
-                    </Button>
-
-                    {!availableVariants.length ? (
-                        <Button
-                            component={Link}
-                            to="/manage/products/new"
-                            onClick={() => setDemoOpen(false)}
-                        >
-                            Add Product
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="contained"
-                            onClick={createDemo}
-                            disabled={
-                                !selected ||
-                                !Number.isSafeInteger(Number(quantity)) ||
-                                Number(quantity) < 1 ||
-                                Number(quantity) > selected.available
-                            }
-                        >
-                            Create Order
-                        </Button>
-                    )}
-                </DialogActions>
-            </Dialog>
         </main>
     );
 }

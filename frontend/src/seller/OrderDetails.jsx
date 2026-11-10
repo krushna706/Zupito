@@ -1,26 +1,13 @@
-
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-
-import {
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    TextField,
-} from "@mui/material";
-
+import { Button, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
 import { formatMoney } from "../services/sellerService";
-
 import {
-    getSellerOrder,
-    reportSellerIssue,
-    updateSellerOrder,
+    advanceSellerParcel,
+    useOrderResource,
 } from "../services/orderService";
-
 import {
     formatDateTime,
     getStatusLabel,
@@ -47,13 +34,9 @@ function progressIndex(status) {
         failed: 4,
     };
 
-    const exact = steps.findIndex(([value]) =>
-        value === status
-    );
+    const exact = steps.findIndex(([value]) => value === status);
 
-    return exact >= 0
-        ? exact
-        : (aliases[status] ?? 0);
+    return exact >= 0 ? exact : (aliases[status] ?? 0);
 }
 
 function DetailField({ label, value }) {
@@ -66,41 +49,29 @@ function DetailField({ label, value }) {
 }
 
 // ================== ORDER DETAILS ==================
-function OrderDetails({ user }) {
+function OrderDetails() {
     const { orderId, parcelId } = useParams();
 
-    const [order, setOrder] = useState(() =>
-        getSellerOrder(user, orderId, parcelId)
-    );
+    const {
+        data: order,
+        loading,
+        error,
+        refresh,
+    } = useOrderResource("staff-detail", orderId, parcelId);
 
     const [note, setNote] = useState("");
-    const [issueOpen, setIssueOpen] = useState(false);
-    const [issueText, setIssueText] = useState("");
-
-    // ================== DATA REFRESH ==================
-    const refresh = () => {
-        setOrder(getSellerOrder(user, orderId, parcelId));
-    };
-
-    useEffect(() => {
-        const sync = () => {
-            setOrder(getSellerOrder(user, orderId, parcelId));
-        };
-
-        window.addEventListener("focus", sync);
-        window.addEventListener("storage", sync);
-
-        return () => {
-            window.removeEventListener("focus", sync);
-            window.removeEventListener("storage", sync);
-        };
-    }, [user?.id, user?.email, orderId, parcelId]);
+    const [saving, setSaving] = useState(false);
+    const actionBusy = useRef(false);
 
     // ================== SELLER ACTIONS ==================
-    const handleStage = (stage) => {
+    const handleStage = async (stage) => {
+        if (actionBusy.current || error) return;
+
+        actionBusy.current = true;
+        setSaving(true);
+
         try {
-            updateSellerOrder(
-                user,
+            await advanceSellerParcel(
                 orderId,
                 parcelId,
                 stage,
@@ -108,38 +79,42 @@ function OrderDetails({ user }) {
             );
 
             setNote("");
-            refresh();
+            await refresh();
 
             toast.success(
                 stage === "packing"
                     ? "Order moved to Packing."
                     : "Parcel marked Ready for Pickup."
             );
-        } catch (error) {
-            toast.error(error.message);
+        } catch (failure) {
+            toast.error(failure.message);
+            await refresh();
+        } finally {
+            actionBusy.current = false;
+            setSaving(false);
         }
     };
 
-    const submitIssue = () => {
-        try {
-            reportSellerIssue(
-                user,
-                orderId,
-                parcelId,
-                issueText
-            );
+    // ================== LOADING AND ERROR ==================
+    if (loading) {
+        return (
+            <main className="seller-order-details">
+                <p role="status">Loading order…</p>
+            </main>
+        );
+    }
 
-            setIssueOpen(false);
-            setIssueText("");
-            refresh();
+    if (error) {
+        return (
+            <main className="seller-order-details">
+                <p role="alert">{error}</p>
 
-            toast.success(
-                "Issue sent to Admin Order Management."
-            );
-        } catch (error) {
-            toast.error(error.message);
-        }
-    };
+                <Button onClick={refresh}>
+                    Retry
+                </Button>
+            </main>
+        );
+    }
 
     // ================== NOT FOUND ==================
     if (!order) {
@@ -149,8 +124,7 @@ function OrderDetails({ user }) {
                     <h2>Order not available</h2>
 
                     <p>
-                        This parcel is not available
-                        under your seller account.
+                        This parcel is not available under your seller account.
                     </p>
 
                     <Button
@@ -173,7 +147,6 @@ function OrderDetails({ user }) {
     ].includes(order.status);
 
     const canReady = order.status === "packing";
-
     const delivery = order.task;
     const agent = order.agent;
     const address = order.address || {};
@@ -182,8 +155,7 @@ function OrderDetails({ user }) {
 
     const activity = (order.activity || [])
         .filter((item) =>
-            !item.parcelId ||
-            item.parcelId === parcelId
+            !item.parcelId || item.parcelId === parcelId
         )
         .slice()
         .reverse();
@@ -202,8 +174,7 @@ function OrderDetails({ user }) {
                     </h1>
 
                     <p>
-                        Review items, pack the parcel
-                        and monitor delivery updates.
+                        Review items, pack the parcel and monitor delivery updates.
                     </p>
                 </div>
 
@@ -212,9 +183,7 @@ function OrderDetails({ user }) {
                         component={Link}
                         to="/manage/orders"
                         variant="outlined"
-                        startIcon={
-                            <i className="fa-solid fa-arrow-left" />
-                        }
+                        startIcon={<i className="fa-solid fa-arrow-left" />}
                     >
                         Back to Orders
                     </Button>
@@ -222,9 +191,7 @@ function OrderDetails({ user }) {
                     <Button
                         variant="outlined"
                         onClick={refresh}
-                        startIcon={
-                            <i className="fa-solid fa-arrows-rotate" />
-                        }
+                        startIcon={<i className="fa-solid fa-arrows-rotate" />}
                     >
                         Refresh
                     </Button>
@@ -242,10 +209,7 @@ function OrderDetails({ user }) {
 
                     <p>
                         Parcel: {order.parcelId} ·{" "}
-                        {formatDateTime(
-                            order.createdAt,
-                            order.demoPayment
-                        )}
+                        {formatDateTime(order.createdAt)}
                     </p>
                 </div>
 
@@ -262,17 +226,6 @@ function OrderDetails({ user }) {
                 </div>
             </section>
 
-            {order.demoPayment && (
-                <div className="sod-notice">
-                    <i
-                        className="fa-solid fa-flask"
-                        aria-hidden="true"
-                    />
-                    Sample paid order. No actual payment
-                    or customer transaction was made.
-                </div>
-            )}
-
             {/* ================== FULFILMENT AND ACTIONS ================== */}
             <div className="sod-grid">
                 <section className="sod-card">
@@ -283,9 +236,7 @@ function OrderDetails({ user }) {
 
                         <div>
                             <h2>Fulfilment Progress</h2>
-                            <p>
-                                Seller packing and delivery milestones.
-                            </p>
+                            <p>Seller packing and delivery milestones.</p>
                         </div>
                     </div>
 
@@ -297,11 +248,7 @@ function OrderDetails({ user }) {
                         <ol className="sod-timeline">
                             {steps.map(([key, label, icon], index) => (
                                 <li
-                                    className={
-                                        index <= progress
-                                            ? "is-complete"
-                                            : ""
-                                    }
+                                    className={index <= progress ? "is-complete" : ""}
                                     key={key}
                                 >
                                     <span>
@@ -337,8 +284,7 @@ function OrderDetails({ user }) {
                         <div>
                             <h2>Seller Actions</h2>
                             <p>
-                                Prepare the parcel for assigned
-                                delivery pickup.
+                                Prepare the parcel for assigned delivery pickup.
                             </p>
                         </div>
                     </div>
@@ -351,10 +297,8 @@ function OrderDetails({ user }) {
                             size="small"
                             label="Packing Note (Optional)"
                             value={note}
-                            onChange={(event) =>
-                                setNote(event.target.value)
-                            }
-                            disabled={!canPack && !canReady}
+                            onChange={(event) => setNote(event.target.value)}
+                            disabled={saving || (!canPack && !canReady)}
                             slotProps={{
                                 htmlInput: { maxLength: 200 },
                             }}
@@ -363,12 +307,9 @@ function OrderDetails({ user }) {
                         {canPack && (
                             <Button
                                 variant="contained"
-                                onClick={() =>
-                                    handleStage("packing")
-                                }
-                                startIcon={
-                                    <i className="fa-solid fa-box" />
-                                }
+                                disabled={saving}
+                                onClick={() => handleStage("packing")}
+                                startIcon={<i className="fa-solid fa-box" />}
                             >
                                 Start Packing
                             </Button>
@@ -377,12 +318,9 @@ function OrderDetails({ user }) {
                         {canReady && (
                             <Button
                                 variant="contained"
-                                onClick={() =>
-                                    handleStage("ready_for_pickup")
-                                }
-                                startIcon={
-                                    <i className="fa-solid fa-box-open" />
-                                }
+                                disabled={saving}
+                                onClick={() => handleStage("ready_for_pickup")}
+                                startIcon={<i className="fa-solid fa-box-open" />}
                             >
                                 Mark Ready for Pickup
                             </Button>
@@ -391,26 +329,10 @@ function OrderDetails({ user }) {
                         {!canPack && !canReady && (
                             <div className="sod-info">
                                 <i className="fa-solid fa-circle-info" />
-                                Delivery stages are updated
-                                by the assigned delivery agent.
+                                Delivery stages are updated by the assigned
+                                delivery agent.
                             </div>
                         )}
-
-                        <Button
-                            variant="outlined"
-                            color="error"
-                            disabled={
-                                order.exception?.status === "Open"
-                            }
-                            onClick={() => setIssueOpen(true)}
-                            startIcon={
-                                <i className="fa-solid fa-triangle-exclamation" />
-                            }
-                        >
-                            {order.exception?.status === "Open"
-                                ? "Issue Already Reported"
-                                : "Report Issue"}
-                        </Button>
                     </div>
                 </section>
             </div>
@@ -425,8 +347,7 @@ function OrderDetails({ user }) {
                     <div>
                         <h2>Parcel Items</h2>
                         <p>
-                            Purchased product snapshots
-                            for your seller parcel.
+                            Purchased product snapshots for your seller parcel.
                         </p>
                     </div>
                 </div>
@@ -438,7 +359,7 @@ function OrderDetails({ user }) {
                             key={`${item.sku || item.name}-${index}`}
                         >
                             {item.image ? (
-                                <img src={item.image} alt="" />
+                                <img src={item.image} alt={item.name || ""} />
                             ) : (
                                 <span className="sod-image-placeholder">
                                     <i className="fa-solid fa-image" />
@@ -450,7 +371,7 @@ function OrderDetails({ user }) {
 
                                 <small>
                                     {[
-                                        item.variant,
+                                        item.variantLabel || item.variant,
                                         item.sku,
                                     ].filter(Boolean).join(" · ")}
                                 </small>
@@ -462,11 +383,8 @@ function OrderDetails({ user }) {
 
                             <strong>
                                 {formatMoney(
-                                    Number(
-                                        item.price ??
-                                        item.unitPrice ??
-                                        0
-                                    ) * Number(item.quantity || 1)
+                                    Number(item.price ?? item.unitPrice ?? 0) *
+                                    Number(item.quantity || 1)
                                 )}
                             </strong>
                         </article>
@@ -520,6 +438,7 @@ function OrderDetails({ user }) {
                             address.house,
                             address.area,
                             address.locality,
+                            address.landmark,
                         ].filter(Boolean).join(", ")}
                     </p>
                 </section>
@@ -546,9 +465,11 @@ function OrderDetails({ user }) {
 
                         <DetailField
                             label="Delivery Stage"
-                            value={delivery?.stage
-                                ? getStatusLabel(delivery.stage)
-                                : "Awaiting pickup workflow"}
+                            value={
+                                delivery?.stage
+                                    ? getStatusLabel(delivery.stage)
+                                    : "Awaiting pickup workflow"
+                            }
                         />
 
                         <DetailField
@@ -567,9 +488,7 @@ function OrderDetails({ user }) {
 
                     <div className="sod-info">
                         <i className="fa-solid fa-circle-info" />
-                        Ready parcels enter the Admin Delivery
-                        Assignment queue. OTP verification and Delivered
-                        status belong to the delivery agent.
+                        The parcel remains with the seller until delivery pickup.
                     </div>
                 </section>
             </div>
@@ -584,8 +503,7 @@ function OrderDetails({ user }) {
                     <div>
                         <h2>Order Activity</h2>
                         <p>
-                            Recorded seller updates and
-                            operational events.
+                            Recorded seller updates and operational events.
                         </p>
                     </div>
                 </div>
@@ -618,63 +536,6 @@ function OrderDetails({ user }) {
                     </p>
                 )}
             </section>
-
-            {/* ================== REPORT ISSUE DIALOG ================== */}
-            <Dialog
-                open={issueOpen}
-                onClose={() => setIssueOpen(false)}
-                fullWidth
-                maxWidth="sm"
-                className="so-dialog"
-            >
-                <DialogTitle>
-                    Report Fulfilment Issue
-                </DialogTitle>
-
-                <DialogContent dividers>
-                    <p className="sod-issue-intro">
-                        Describe the stock, packing or pickup
-                        issue for Admin review.
-                    </p>
-
-                    <TextField
-                        fullWidth
-                        multiline
-                        minRows={4}
-                        size="small"
-                        label="Issue Details"
-                        value={issueText}
-                        onChange={(event) =>
-                            setIssueText(event.target.value)
-                        }
-                        slotProps={{
-                            htmlInput: {
-                                maxLength: 300,
-                            },
-                        }}
-                        helperText={
-                            `${issueText.trim().length}/300 characters (minimum 5)`
-                        }
-                    />
-                </DialogContent>
-
-                <DialogActions>
-                    <Button
-                        color="inherit"
-                        onClick={() => setIssueOpen(false)}
-                    >
-                        Cancel
-                    </Button>
-
-                    <Button
-                        variant="contained"
-                        onClick={submitIssue}
-                        disabled={issueText.trim().length < 5}
-                    >
-                        Submit Issue
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </main>
     );
 }

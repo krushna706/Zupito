@@ -12,49 +12,76 @@ export default function OrderTimeline({ parcel, order, isDemo }) {
     const isCancelled = getStatusCategory(status) === "cancelled";
     const currentStep = statusProgress[status] ?? -1;
 
+    // Packing remains internal to seller fulfilment.
     const visibleSteps = isCancelled
         ? [
-              trackingSteps[0],
-              {
-                  key: "cancelled",
-                  label: "Order Cancelled",
-                  description: "This package has been cancelled.",
-                  dateKey: "cancelledAt"
-              }
-          ]
-        : trackingSteps;
+            trackingSteps[0],
+            {
+                key: "cancelled",
+                label: "Order Cancelled",
+                description: "This package has been cancelled.",
+                dateKey: "cancelledAt"
+            }
+        ]
+        : trackingSteps.filter((step) => step.key !== "packed");
+
+    // Use actual status ranks, not the shortened timeline indexes.
+    const currentVisibleStep = isCancelled
+        ? visibleSteps.length - 1
+        : visibleSteps.findLastIndex(
+            (step) => statusProgress[step.key] <= currentStep
+        );
 
     return (
         <div className="customer-detail-tracking">
             {visibleSteps.map((step, index) => {
-                const isCompleted = isCancelled ? true : index <= currentStep;
+                const isCompleted = isCancelled
+                    ? true
+                    : statusProgress[step.key] <= currentStep;
 
                 const isCurrent = isCancelled
                     ? index === visibleSteps.length - 1
-                    : index === currentStep && status !== "delivered";
+                    : index === currentVisibleStep &&
+                      status !== "delivered";
 
-                const timestamp = getStepTimestamp(parcel, order, step, isDemo);
+                const timestamp = getStepTimestamp(
+                    parcel,
+                    order,
+                    step,
+                    isDemo
+                );
 
-                const formattedTimestamp = isCompleted ? formatDateTime(timestamp, isDemo) : null;
+                const formattedTimestamp = isCompleted
+                    ? formatDateTime(timestamp, isDemo)
+                    : null;
 
                 return (
                     <div
                         key={step.key}
-                        className={`customer-detail-step ${isCompleted ? "is-completed" : ""} ${
+                        className={`customer-detail-step ${
+                            isCompleted ? "is-completed" : ""
+                        } ${
                             isCurrent ? "is-current" : ""
-                        } ${step.key === "cancelled" ? "is-cancelled" : ""}`}
+                        } ${
+                            step.key === "cancelled" ? "is-cancelled" : ""
+                        }`}
                     >
                         <div className="customer-detail-step-marker">
                             <span>
                                 {isCompleted ? (
                                     <i
                                         className={`fa-solid ${
-                                            step.key === "cancelled" ? "fa-xmark" : "fa-check"
+                                            step.key === "cancelled"
+                                                ? "fa-xmark"
+                                                : "fa-check"
                                         }`}
                                         aria-hidden="true"
                                     />
                                 ) : (
-                                    <i className="fa-solid fa-circle" aria-hidden="true" />
+                                    <i
+                                        className="fa-solid fa-circle"
+                                        aria-hidden="true"
+                                    />
                                 )}
                             </span>
                         </div>
@@ -67,7 +94,9 @@ export default function OrderTimeline({ parcel, order, isDemo }) {
                                     <time>{formattedTimestamp}</time>
                                 ) : (
                                     <span className="customer-detail-step-time">
-                                        {isCompleted ? "Time not recorded" : "Pending"}
+                                        {isCompleted
+                                            ? "Time not recorded"
+                                            : "Pending"}
                                     </span>
                                 )}
                             </div>

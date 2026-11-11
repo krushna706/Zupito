@@ -1,11 +1,4 @@
-import {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useRef,
-    useState
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
 import { useAuth } from "./AuthContext";
@@ -16,7 +9,7 @@ import {
     quoteCart,
     readGuestCart,
     saveCart,
-    writeGuestCart
+    writeGuestCart,
 } from "../services/cartService";
 
 const CartContext = createContext(null);
@@ -26,7 +19,7 @@ const emptyCart = {
     cartCount: 0,
     subtotal: 0,
     discount: 0,
-    canCheckout: false
+    canCheckout: false,
 };
 
 // Update the visible cart while the server validates the change.
@@ -38,51 +31,37 @@ function previewCart(base, items) {
         const price = Number(product.price);
         const mrp = Number(product.mrp);
 
-        const valid =
-            product.validPrice !== false &&
-            Number.isFinite(price) &&
-            price > 0;
+        const valid = product.validPrice !== false && Number.isFinite(price) && price > 0;
 
         if (valid) {
             const pricePaise = Math.round(price * 100);
-            const mrpPaise = Math.round(
-                (Number.isFinite(mrp) ? mrp : price) * 100
-            );
+            const mrpPaise = Math.round((Number.isFinite(mrp) ? mrp : price) * 100);
 
             subtotal += pricePaise * quantity;
             discount += Math.max(0, mrpPaise - pricePaise) * quantity;
         }
 
         const availableForPurchase =
-            valid &&
-            product.availableForPurchase !== false &&
-            Number(product.stock) > 0;
+            valid && product.availableForPurchase !== false && Number(product.stock) > 0;
 
         return {
             product: {
                 ...product,
                 validPrice: valid,
-                availableForPurchase
+                availableForPurchase,
             },
             quantity,
-            available:
-                availableForPurchase &&
-                quantity <= Number(product.stock)
+            available: availableForPurchase && quantity <= Number(product.stock),
         };
     });
 
     return {
         ...base,
         items: nextItems,
-        cartCount: nextItems.reduce(
-            (total, item) => total + item.quantity,
-            0
-        ),
+        cartCount: nextItems.reduce((total, item) => total + item.quantity, 0),
         subtotal: subtotal / 100,
         discount: discount / 100,
-        canCheckout:
-            nextItems.length > 0 &&
-            nextItems.every((item) => item.available)
+        canCheckout: nextItems.length > 0 && nextItems.every((item) => item.available),
     };
 }
 
@@ -117,85 +96,75 @@ function CartSession({ accountId, children }) {
     }, []);
 
     // Merge the guest cart once after sign-in.
-    const readCart = useCallback(async (isActive) => {
-        let next = accountId
-            ? await getSavedCart()
-            : await quoteCart(guestMemory.current);
-
-        if (!isActive()) return null;
-
-        if (
-            mergePending.current &&
-            accountId &&
-            guestMemory.current.length
-        ) {
-            const guest = await quoteCart(guestMemory.current);
+    const readCart = useCallback(
+        async (isActive) => {
+            let next = accountId ? await getSavedCart() : await quoteCart(guestMemory.current);
 
             if (!isActive()) return null;
 
-            const merged = new Map(
-                cartReferences(next.items).map((item) => [
-                    `${item.productId}::${item.variantId}`,
-                    item
-                ])
-            );
+            if (mergePending.current && accountId && guestMemory.current.length) {
+                const guest = await quoteCart(guestMemory.current);
 
-            const remaining = [];
-            let adjusted = false;
+                if (!isActive()) return null;
 
-            for (const item of guest.items) {
-                const existing = merged.get(item.product._id);
+                const merged = new Map(
+                    cartReferences(next.items).map((item) => [
+                        `${item.productId}::${item.variantId}`,
+                        item,
+                    ])
+                );
 
-                if (
-                    !item.product.availableForPurchase ||
-                    (!existing && merged.size >= 50)
-                ) {
-                    remaining.push(...cartReferences([item]));
-                    continue;
+                const remaining = [];
+                let adjusted = false;
+
+                for (const item of guest.items) {
+                    const existing = merged.get(item.product._id);
+
+                    if (!item.product.availableForPurchase || (!existing && merged.size >= 50)) {
+                        remaining.push(...cartReferences([item]));
+                        continue;
+                    }
+
+                    if (item.quantity > item.product.stock) {
+                        adjusted = true;
+                    }
+
+                    merged.set(item.product._id, {
+                        productId: item.product.productId,
+                        variantId: item.product.variantId,
+                        quantity: Math.max(
+                            existing?.quantity || 0,
+                            Math.min(item.quantity, item.product.stock)
+                        ),
+                    });
                 }
 
-                if (item.quantity > item.product.stock) {
-                    adjusted = true;
+                next = await saveCart([...merged.values()], next.version);
+
+                if (!isActive()) return null;
+
+                guestMemory.current = remaining;
+
+                if (!writeGuestCart(remaining)) {
+                    toast.warning("Unable to clear your browser cart after sign-in.");
                 }
 
-                merged.set(item.product._id, {
-                    productId: item.product.productId,
-                    variantId: item.product.variantId,
-                    quantity: Math.max(
-                        existing?.quantity || 0,
-                        Math.min(item.quantity, item.product.stock)
-                    )
-                });
+                if (adjusted) {
+                    toast.info("Some guest quantities were reduced to match available stock.");
+                }
+
+                if (remaining.length) {
+                    toast.info(
+                        "Some guest items could not be moved to your account cart because they are unavailable or the cart is full."
+                    );
+                }
             }
 
-            next = await saveCart([...merged.values()], next.version);
-
-            if (!isActive()) return null;
-
-            guestMemory.current = remaining;
-
-            if (!writeGuestCart(remaining)) {
-                toast.warning(
-                    "Unable to clear your browser cart after sign-in."
-                );
-            }
-
-            if (adjusted) {
-                toast.info(
-                    "Some guest quantities were reduced to match available stock."
-                );
-            }
-
-            if (remaining.length) {
-                toast.info(
-                    "Some guest items could not be moved to your account cart because they are unavailable or the cart is full."
-                );
-            }
-        }
-
-        mergePending.current = false;
-        return next;
-    }, [accountId]);
+            mergePending.current = false;
+            return next;
+        },
+        [accountId]
+    );
 
     useEffect(() => {
         let active = true;
@@ -316,21 +285,14 @@ function CartSession({ accountId, children }) {
                 if (!accountId) {
                     const invalid = next.items.find((item) => {
                         const old = confirmed.current.items.find(
-                            (entry) =>
-                                entry.product._id === item.product._id
+                            (entry) => entry.product._id === item.product._id
                         );
 
-                        return (
-                            item.quantity > (old?.quantity || 0) &&
-                            !item.available
-                        );
+                        return item.quantity > (old?.quantity || 0) && !item.available;
                     });
 
                     if (invalid) {
-                        throw new Error(
-                            invalid.product.issue ||
-                            "This item is unavailable."
-                        );
+                        throw new Error(invalid.product.issue || "This item is unavailable.");
                     }
 
                     guestMemory.current = cartReferences(next.items);
@@ -351,17 +313,12 @@ function CartSession({ accountId, children }) {
 
                 // Keep newer clicks while adopting current server product data.
                 const products = new Map(
-                    next.items.map((item) => [
-                        item.product._id,
-                        item.product
-                    ])
+                    next.items.map((item) => [item.product._id, item.product])
                 );
 
                 const rebased = current.current.items.map((item) => ({
                     ...item,
-                    product:
-                        products.get(item.product._id) ||
-                        item.product
+                    product: products.get(item.product._id) || item.product,
                 }));
 
                 current.current = previewCart(next, rebased);
@@ -405,36 +362,25 @@ function CartSession({ accountId, children }) {
         if (!Number.isInteger(change) || !change) return;
 
         if (blocked.current) {
-            toast.error(
-                "Your cart could not be synced. Open Cart and retry."
-            );
+            toast.error("Your cart could not be synced. Open Cart and retry.");
             return;
         }
 
         if (busy.current && !saving.current && !timer.current) {
-            toast.info(
-                "Your cart is being checked. Please try again shortly."
-            );
+            toast.info("Your cart is being checked. Please try again shortly.");
             return;
         }
 
         if (!ready) {
-            toast.error(
-                "Your cart could not be loaded. Open Cart and retry."
-            );
+            toast.error("Your cart could not be loaded. Open Cart and retry.");
             return;
         }
 
         const previous = current.current;
-        const existing = previous.items.find(
-            (item) => item.product._id === product._id
-        );
+        const existing = previous.items.find((item) => item.product._id === product._id);
 
         const source = existing?.product || product;
-        const quantity = Math.max(
-            0,
-            (existing?.quantity || 0) + change
-        );
+        const quantity = Math.max(0, (existing?.quantity || 0) + change);
 
         if (quantity === (existing?.quantity || 0)) return;
 
@@ -445,28 +391,19 @@ function CartSession({ accountId, children }) {
 
         if (
             change > 0 &&
-            (
-                source.availableForPurchase === false ||
+            (source.availableForPurchase === false ||
                 source.validPrice === false ||
                 !Number.isFinite(Number(source.price)) ||
                 Number(source.price) <= 0 ||
                 !Number.isInteger(Number(source.stock)) ||
-                quantity > Number(source.stock)
-            )
+                quantity > Number(source.stock))
         ) {
-            toast.error(
-                source.issue ||
-                "The requested quantity is unavailable."
-            );
+            toast.error(source.issue || "The requested quantity is unavailable.");
             return;
         }
 
         const nextItems = previous.items
-            .map((item) =>
-                item.product._id === product._id
-                    ? { ...item, quantity }
-                    : item
-            )
+            .map((item) => (item.product._id === product._id ? { ...item, quantity } : item))
             .filter((item) => item.quantity > 0);
 
         if (!existing && quantity) {
@@ -496,9 +433,7 @@ function CartSession({ accountId, children }) {
     };
 
     const getQuantity = (productId) =>
-        cart.items.find(
-            (item) => item.product._id === productId
-        )?.quantity || 0;
+        cart.items.find((item) => item.product._id === productId)?.quantity || 0;
 
     return (
         <CartContext.Provider
@@ -510,7 +445,7 @@ function CartSession({ accountId, children }) {
                 error,
                 getQuantity,
                 changeQuantity,
-                refreshCart
+                refreshCart,
             }}
         >
             {children}

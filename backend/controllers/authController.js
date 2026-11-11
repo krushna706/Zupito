@@ -6,19 +6,14 @@ const SellerProfile = require("../models/SellerProfile");
 const AuthSession = require("../models/AuthSession");
 const ExpressError = require("../utils/ExpressError");
 
-const {
-    generateToken,
-    cookieOptions,
-    SESSION_MAX_AGE,
-} = require("../utils/generateToken");
+const { generateToken, cookieOptions, SESSION_MAX_AGE } = require("../utils/generateToken");
 
 const dummyHash = bcrypt.hashSync("unregistered-account-timing-check", 12);
 
 // Return public account fields.
 async function userResponse(user) {
-    const seller = user.role === "seller"
-        ? await SellerProfile.findOne({ userId: user._id }).lean()
-        : null;
+    const seller =
+        user.role === "seller" ? await SellerProfile.findOne({ userId: user._id }).lean() : null;
 
     return {
         id: String(user._id),
@@ -74,40 +69,54 @@ exports.signup = async (req, res, next) => {
 exports.registerSeller = async (req, res, next) => {
     try {
         const {
-            fullName, email, mobile, password,
-            storeName, storeEmail, storePhone, description,
-            street, locality, city, state, pincode,
+            fullName,
+            email,
+            mobile,
+            password,
+            storeName,
+            storeEmail,
+            storePhone,
+            description,
+            street,
+            locality,
+            city,
+            state,
+            pincode,
         } = req.body;
 
         const passwordHash = await bcrypt.hash(password, 12);
 
         await mongoose.connection.transaction(async (session) => {
             const [user] = await User.create(
-                [{
-                    name: fullName,
-                    email,
-                    phone: mobile,
-                    passwordHash,
-                    role: "seller",
-                }],
+                [
+                    {
+                        name: fullName,
+                        email,
+                        phone: mobile,
+                        passwordHash,
+                        role: "seller",
+                    },
+                ],
                 { session }
             );
 
             await SellerProfile.create(
-                [{
-                    userId: user._id,
-                    storeName,
-                    storeEmail,
-                    storePhone,
-                    description,
-                    pickupAddress: {
-                        street,
-                        locality,
-                        city,
-                        state,
-                        pincode,
+                [
+                    {
+                        userId: user._id,
+                        storeName,
+                        storeEmail,
+                        storePhone,
+                        description,
+                        pickupAddress: {
+                            street,
+                            locality,
+                            city,
+                            state,
+                            pincode,
+                        },
                     },
-                }],
+                ],
                 { session }
             );
         });
@@ -127,28 +136,17 @@ exports.login = async (req, res, next) => {
         const { identifier, password } = req.body;
 
         const user = await User.findOne(
-            identifier.includes("@")
-                ? { email: identifier }
-                : { phone: identifier }
+            identifier.includes("@") ? { email: identifier } : { phone: identifier }
         ).select("+passwordHash +tokenVersion");
 
-        const valid = await bcrypt.compare(
-            password,
-            user?.passwordHash || dummyHash
-        );
+        const valid = await bcrypt.compare(password, user?.passwordHash || dummyHash);
 
         if (!user || !valid) {
-            throw new ExpressError(
-                401,
-                "Incorrect email, phone number or password."
-            );
+            throw new ExpressError(401, "Incorrect email, phone number or password.");
         }
 
         if (user.status !== "Active") {
-            throw new ExpressError(
-                403,
-                "This account is inactive. Please contact support."
-            );
+            throw new ExpressError(403, "This account is inactive. Please contact support.");
         }
 
         const data = await userResponse(user);

@@ -48,10 +48,7 @@ function Login() {
             return;
         }
 
-        if (
-            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) &&
-            !/^[6-9]\d{9}$/.test(value)
-        ) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !/^[6-9]\d{9}$/.test(value)) {
             toast.error("Enter a valid email address or 10-digit phone number.");
             return;
         }
@@ -97,8 +94,8 @@ function Login() {
                                 <span> all in one place.</span>
                             </h2>
                             <p className="website-section-description">
-                                Discover everyday essentials, explore amazing products and
-                                enjoy a better shopping experience.
+                                Discover everyday essentials, explore amazing products and enjoy a
+                                better shopping experience.
                             </p>
 
                             <ul className="auth-features">
@@ -177,8 +174,14 @@ function Login() {
                                                     <IconButton
                                                         type="button"
                                                         className="auth-password-toggle"
-                                                        onClick={() => setShowPassword((value) => !value)}
-                                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                                        onClick={() =>
+                                                            setShowPassword((value) => !value)
+                                                        }
+                                                        aria-label={
+                                                            showPassword
+                                                                ? "Hide password"
+                                                                : "Show password"
+                                                        }
                                                         edge="end"
                                                     >
                                                         <i

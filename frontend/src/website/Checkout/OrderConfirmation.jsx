@@ -10,14 +10,7 @@ const formatPrice = new Intl.NumberFormat("en-IN", {
 }).format;
 
 const formatAddress = (address) =>
-    [
-        address.house,
-        address.area,
-        address.landmark,
-        address.city,
-        address.state,
-        address.pincode,
-    ]
+    [address.house, address.area, address.landmark, address.city, address.state, address.pincode]
         .filter(Boolean)
         .join(", ");
 
@@ -58,10 +51,7 @@ function OrderConfirmation() {
     }, [orderId]);
 
     const hasOrder =
-        !loading &&
-        !error &&
-        order?.status === "Confirmed" &&
-        order.orderId === orderId;
+        !loading && !error && order?.status === "Confirmed" && order.orderId === orderId;
 
     if (!hasOrder) {
         return (
@@ -85,13 +75,9 @@ function OrderConfirmation() {
                             <i className="fa-solid fa-receipt" aria-hidden="true" />
                         </div>
 
-                        <h2>
-                            {loading ? "Loading Order…" : "Order Details Unavailable"}
-                        </h2>
+                        <h2>{loading ? "Loading Order…" : "Order Details Unavailable"}</h2>
 
-                        <p>
-                            {error || "Check payment status to confirm this order."}
-                        </p>
+                        <p>{error || "Check payment status to confirm this order."}</p>
 
                         <Link
                             to={`/payment-status?order=${encodeURIComponent(orderId)}`}
@@ -105,22 +91,12 @@ function OrderConfirmation() {
         );
     }
 
-    const {
-        items,
-        address,
-        summary,
-        paymentMethod = "Online Payment",
-        createdAt,
-    } = order;
+    const { items, address, summary, paymentMethod = "Online Payment", createdAt } = order;
 
-    const itemCount = items.reduce(
-        (total, item) => total + getAmount(item.quantity),
-        0
-    );
+    const itemCount = items.reduce((total, item) => total + getAmount(item.quantity), 0);
 
     const originalPrice = getAmount(
-        summary.originalPrice ??
-            getAmount(summary.subtotal) + getAmount(summary.productDiscount)
+        summary.originalPrice ?? getAmount(summary.subtotal) + getAmount(summary.productDiscount)
     );
 
     const productDiscount = getAmount(summary.productDiscount);
@@ -162,9 +138,7 @@ function OrderConfirmation() {
 
                         <div className="order-confirmation-hero-text">
                             <h2>Order Confirmed!</h2>
-                            <p>
-                                Your payment is verified. Review your order details below.
-                            </p>
+                            <p>Your payment is verified. Review your order details below.</p>
                         </div>
                     </div>
 
@@ -226,9 +200,7 @@ function OrderConfirmation() {
                                 {items.map((item, index) => {
                                     const product = item.product || item;
                                     const quantity = getAmount(item.quantity);
-                                    const price = getAmount(
-                                        item.price ?? product.price
-                                    );
+                                    const price = getAmount(item.price ?? product.price);
 
                                     return (
                                         <li
@@ -291,9 +263,7 @@ function OrderConfirmation() {
 
                                 <div className="checkout-card-title">
                                     <h2>Delivery Address</h2>
-                                    <p>
-                                        Selected delivery location for this order.
-                                    </p>
+                                    <p>Selected delivery location for this order.</p>
                                 </div>
                             </div>
 
@@ -337,7 +307,10 @@ function OrderConfirmation() {
                                     <div>
                                         <span>Payment Status</span>
                                         <strong className="order-confirmation-success-text">
-                                            <i className="fa-solid fa-check-circle" aria-hidden="true" />
+                                            <i
+                                                className="fa-solid fa-check-circle"
+                                                aria-hidden="true"
+                                            />
                                             Paid
                                         </strong>
                                     </div>
@@ -372,18 +345,14 @@ function OrderConfirmation() {
                                     {productDiscount > 0 && (
                                         <div className="cart-summary-row cart-summary-discount">
                                             <span>Product Discount</span>
-                                            <strong>
-                                                -{formatPrice(productDiscount)}
-                                            </strong>
+                                            <strong>-{formatPrice(productDiscount)}</strong>
                                         </div>
                                     )}
 
                                     {couponDiscount > 0 && (
                                         <div className="cart-summary-row cart-summary-discount">
                                             <span>Coupon Discount</span>
-                                            <strong>
-                                                -{formatPrice(couponDiscount)}
-                                            </strong>
+                                            <strong>-{formatPrice(couponDiscount)}</strong>
                                         </div>
                                     )}
 
@@ -392,9 +361,7 @@ function OrderConfirmation() {
 
                                         <strong
                                             className={
-                                                deliveryCharge === 0
-                                                    ? "cart-summary-discount"
-                                                    : ""
+                                                deliveryCharge === 0 ? "cart-summary-discount" : ""
                                             }
                                         >
                                             {deliveryCharge === 0
@@ -423,10 +390,7 @@ function OrderConfirmation() {
                             </div>
                         </div>
 
-                        <Link
-                            to="/products"
-                            className="checkout-pay-button text-decoration-none"
-                        >
+                        <Link to="/products" className="checkout-pay-button text-decoration-none">
                             Continue Shopping
                             <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                         </Link>

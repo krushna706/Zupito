@@ -1,11 +1,8 @@
-
 const router = require("express").Router();
+
 const { rateLimit } = require("express-rate-limit");
 
-const {
-    authMiddleware,
-    authorize,
-} = require("../middleware/authMiddleware");
+const { authMiddleware, authorize, authorizeFulfilment } = require("../middleware/authMiddleware");
 
 const orders = require("../controllers/orderController");
 
@@ -27,17 +24,38 @@ router.use((req, res, next) => {
 });
 
 // ================== STAFF ORDERS ==================
-router.get("/manage", authorize("admin", "seller"), orders.managedList);
+router.get("/manage", authorizeFulfilment("admin", "seller"), orders.managedList);
+
 router.get("/manage/:id", authorize("admin"), orders.managedDetail);
-router.get("/manage/:id/parcels/:parcelId", authorize("seller"), orders.managedDetail);
-router.patch("/manage/:id/parcels/:parcelId", authorize("seller"), updateLimiter, orders.advance);
+
+router.get("/manage/:id/parcels/:parcelId", authorizeFulfilment("seller"), orders.managedDetail);
+
+router.patch(
+    "/manage/:id/parcels/:parcelId",
+    authorizeFulfilment("seller"),
+    updateLimiter,
+    orders.advance
+);
 
 // ================== SELLER PICKUP OTP ==================
-router.get("/manage/:id/parcels/:parcelId/pickup-otp", authorize("seller"), orders.pickupOtp);
-router.post("/manage/:id/parcels/:parcelId/pickup-otp", authorize("seller"), updateLimiter, orders.regeneratePickupOtp);
+router.get(
+    "/manage/:id/parcels/:parcelId/pickup-otp",
+    authorizeFulfilment("seller"),
+    orders.pickupOtp
+);
+
+router.post(
+    "/manage/:id/parcels/:parcelId/pickup-otp",
+    authorizeFulfilment("seller"),
+    updateLimiter,
+    orders.regeneratePickupOtp
+);
+
+router.get("/:id/invoice", authorize("customer", "admin"), orders.invoice);
 
 // ================== CUSTOMER ORDERS ==================
 router.get("/", authorize("customer"), orders.list);
+
 router.get("/:id", authorize("customer"), orders.detail);
 
 module.exports = router;

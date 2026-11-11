@@ -12,16 +12,11 @@ const Payment = require("../models/Payment");
 
 const ExpressError = require("../utils/ExpressError");
 
-const {
-    calculatePricing,
-    displayPricing,
-    RESERVATION_MS,
-} = require("../config/orderRules");
+const { displayPricing, RESERVATION_MS } = require("../config/orderRules");
 
 const keyOf = (item) => `${item.productId}::${item.variantId}`;
 
-const indexById = (items) =>
-    new Map(items.map((item) => [String(item._id), item]));
+const indexById = (items) => new Map(items.map((item) => [String(item._id), item]));
 
 // Prices and availability come from the current catalogue.
 async function buildCart(references, session = null) {
@@ -33,14 +28,14 @@ async function buildCart(references, session = null) {
         .lean();
 
     const categoryQuery = Category.find({
-        _id: { $in: products.map((product) => product.categoryId) }
+        _id: { $in: products.map((product) => product.categoryId) },
     })
         .select("name slug status parentId")
         .session(session)
         .lean();
 
     const sellerQuery = SellerProfile.find({
-        _id: { $in: products.map((product) => product.sellerProfileId) }
+        _id: { $in: products.map((product) => product.sellerProfileId) },
     })
         .select("userId status")
         .session(session)
@@ -53,17 +48,15 @@ async function buildCart(references, session = null) {
 
     const parentQuery = Category.find({
         _id: {
-            $in: categories
-                .map((category) => category.parentId)
-                .filter(Boolean)
-        }
+            $in: categories.map((category) => category.parentId).filter(Boolean),
+        },
     })
         .select("status parentId")
         .session(session)
         .lean();
 
     const accountQuery = User.find({
-        _id: { $in: sellers.map((seller) => seller.userId) }
+        _id: { $in: sellers.map((seller) => seller.userId) },
     })
         .select("role status")
         .session(session)
@@ -86,9 +79,7 @@ async function buildCart(references, session = null) {
         const productId = String(reference.productId);
         const product = productMap.get(productId);
 
-        const variant = product?.variants.find(
-            (entry) => entry.variantId === reference.variantId
-        );
+        const variant = product?.variants.find((entry) => entry.variantId === reference.variantId);
 
         const category = categoryMap.get(String(product?.categoryId));
         const parent = parentMap.get(String(category?.parentId));
@@ -117,17 +108,13 @@ async function buildCart(references, session = null) {
             validPrice &&
             Number.isSafeInteger(variant.stock) &&
             Number.isSafeInteger(variant.reservedQuantity ?? 0)
-                ? Math.max(
-                      0,
-                      variant.stock - (variant.reservedQuantity ?? 0)
-                  )
+                ? Math.max(0, variant.stock - (variant.reservedQuantity ?? 0))
                 : 0;
 
         const pricePaise = validPrice ? variant.pricePaise : 0;
         const mrpPaise = validPrice ? variant.mrpPaise : 0;
 
-        const available =
-            listed && validPrice && reference.quantity <= stock;
+        const available = listed && validPrice && reference.quantity <= stock;
 
         const issue = !listed
             ? "This product or variant is currently unavailable."
@@ -159,10 +146,7 @@ async function buildCart(references, session = null) {
                 variantLabel: variant?.label || "",
                 packLabel: "",
                 coverImage: product?.images[0]?.url || "",
-                image:
-                    product?.images[0]?.url ||
-                    product?.images[variant?.imageIndex]?.url ||
-                    "",
+                image: product?.images[0]?.url || product?.images[variant?.imageIndex]?.url || "",
                 price: pricePaise / 100,
                 mrp: mrpPaise / 100,
                 stock,
@@ -177,37 +161,24 @@ async function buildCart(references, session = null) {
 
     return {
         items,
-        cartCount: references.reduce(
-            (total, item) => total + item.quantity,
-            0
-        ),
+        cartCount: references.reduce((total, item) => total + item.quantity, 0),
         subtotal: subtotalPaise / 100,
         discount: discountPaise / 100,
-        canCheckout:
-            items.length > 0 && items.every((item) => item.available),
+        canCheckout: items.length > 0 && items.every((item) => item.available),
     };
 }
 
 exports.buildCart = buildCart;
 
 async function prepareQuote(userId, values, session = null) {
-    const cart = await Cart.findOne({ userId })
-        .session(session)
-        .lean();
+    const cart = await Cart.findOne({ userId }).session(session).lean();
 
-    const book = await Address.findOne({ userId })
-        .session(session)
-        .lean();
+    const book = await Address.findOne({ userId }).session(session).lean();
 
-    const address = book?.addresses.find(
-        (item) => String(item._id) === values.addressId
-    );
+    const address = book?.addresses.find((item) => String(item._id) === values.addressId);
 
     if (!address || String(book.selectedId) !== values.addressId) {
-        throw new ExpressError(
-            409,
-            "Your selected address changed. Review checkout again."
-        );
+        throw new ExpressError(409, "Your selected address changed. Review checkout again.");
     }
 
     if (!cart?.items.length) {
@@ -217,10 +188,7 @@ async function prepareQuote(userId, values, session = null) {
     const catalogue = await buildCart(cart.items, session);
 
     if (!catalogue.canCheckout) {
-        throw new ExpressError(
-            409,
-            "Cart availability changed. Review your cart."
-        );
+        throw new ExpressError(409, "Cart availability changed. Review your cart.");
     }
 
     const items = catalogue.items.map(({ product, quantity }) => ({
@@ -238,7 +206,55 @@ async function prepareQuote(userId, values, session = null) {
         mrpPaise: product.mrpPaise,
     }));
 
-    const pricing = calculatePricing(items, values.couponCode);
+    const products = await Product.find({ _id: { $in: items.map((item) => item.productId) } })
+        .select("categoryId")
+        .session(session)
+        .lean();
+    const categories = await require("../models/Category")
+        .find({ _id: { $in: products.map((item) => item.categoryId) } })
+        .session(session)
+        .lean();
+    for (const item of items) {
+        const product = products.find((row) => String(row._id) === String(item.productId));
+        const category = categories.find((row) => String(row._id) === String(product?.categoryId));
+        item.replacementPolicy = {
+            allowed: Boolean(category?.replacementAllowed),
+            days: category?.replacementDays || 0,
+        };
+    }
+
+    const sellers = await require("../models/SellerProfile")
+        .find({
+            _id: { $in: items.map((item) => item.sellerProfileId) },
+        })
+        .session(session)
+        .lean();
+    const deliveryUsers = await require("../models/User")
+        .find({ role: "delivery", status: "Active" })
+        .select("_id")
+        .session(session)
+        .lean();
+    for (const seller of sellers) {
+        const covered = await require("../models/DeliveryAgentProfile")
+            .exists({
+                status: "Active",
+                userId: { $in: deliveryUsers.map((user) => user._id) },
+                pincodes: { $all: [seller.pickupAddress?.pincode, address.pincode] },
+            })
+            .session(session);
+        if (!covered)
+            throw new ExpressError(
+                409,
+                "Delivery is not available for this address and seller. Choose another address or remove the affected items."
+            );
+    }
+
+    const pricing = await require("./pricingService").quote(
+        items,
+        values.couponCode,
+        userId,
+        session
+    );
 
     const snapshot = {
         items,
@@ -247,9 +263,7 @@ async function prepareQuote(userId, values, session = null) {
         cartVersion: cart.__v,
     };
 
-    const quoteToken = createHash("sha256")
-        .update(JSON.stringify(snapshot))
-        .digest("hex");
+    const quoteToken = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
 
     return { ...snapshot, quoteToken };
 }
@@ -313,25 +327,17 @@ exports.reserveCheckout = async (userId, values) => {
             );
 
             if (!cart.matchedCount) {
-                throw new ExpressError(
-                    409,
-                    "Your cart changed. Review it again."
-                );
+                throw new ExpressError(409, "Your cart changed. Review it again.");
             }
 
             for (const item of quote.items) {
-                const product = await Product.findById(
-                    item.productId
-                ).session(session);
+                const product = await Product.findById(item.productId).session(session);
 
                 const variant = product?.variants.find(
                     (entry) => entry.variantId === item.variantId
                 );
 
-                if (
-                    !variant ||
-                    variant.stock - variant.reservedQuantity < item.quantity
-                ) {
+                if (!variant || variant.stock - variant.reservedQuantity < item.quantity) {
                     throw new ExpressError(
                         409,
                         "Available stock changed. Please review your cart."
@@ -348,24 +354,22 @@ exports.reserveCheckout = async (userId, values) => {
                     },
                     {
                         session,
-                        arrayFilters: [
-                            { "item.variantId": item.variantId },
-                        ],
+                        arrayFilters: [{ "item.variantId": item.variantId }],
                     }
                 );
 
                 if (!changed.matchedCount) {
-                    throw new ExpressError(
-                        409,
-                        "Stock changed. Please retry."
-                    );
+                    throw new ExpressError(409, "Stock changed. Please retry.");
                 }
             }
+
+            await require("./pricingService").reserve(quote.pricing.appliedCoupon, session);
 
             const [order] = await Order.create(
                 [
                     {
                         ...quote,
+                        couponReserved: Boolean(quote.pricing.appliedCoupon),
                         cartVersion: quote.cartVersion + 1,
                         userId,
                         attemptId: values.attemptId,
@@ -375,10 +379,7 @@ exports.reserveCheckout = async (userId, values) => {
                 { session }
             );
 
-            await Payment.create(
-                [{ orderId: order._id }],
-                { session }
-            );
+            await Payment.create([{ orderId: order._id }], { session });
 
             return order;
         });
@@ -391,10 +392,7 @@ exports.reserveCheckout = async (userId, values) => {
 
             if (existing) return checkExisting(existing);
 
-            throw new ExpressError(
-                409,
-                "Another checkout is pending. Resume it first."
-            );
+            throw new ExpressError(409, "Another checkout is pending. Resume it first.");
         }
 
         throw error;

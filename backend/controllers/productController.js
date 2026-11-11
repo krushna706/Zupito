@@ -17,8 +17,7 @@ const {
     attributesSchema,
 } = require("../validations/schema");
 
-const escapeRegex = (value) =>
-    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Seller access
 async function findSeller(userId, session = null) {
@@ -63,17 +62,12 @@ function uploadImage(file, folder) {
                 allowed_formats: ["jpg", "jpeg", "png", "webp"],
                 overwrite: false,
                 timeout: 45000,
-                transformation: [
-                    { width: 1600, height: 1600, crop: "limit" },
-                ],
+                transformation: [{ width: 1600, height: 1600, crop: "limit" }],
             },
             (error, result) => {
                 if (error || !result?.secure_url) {
                     return reject(
-                        new ExpressError(
-                            502,
-                            "Product image upload failed. Please try again."
-                        )
+                        new ExpressError(502, "Product image upload failed. Please try again.")
                     );
                 }
 
@@ -110,10 +104,7 @@ async function cleanupImages(images) {
 
 exports.parseProductBody = (req, res, next) => {
     try {
-        if (
-            Object.keys(req.body || {}).length !== 1 ||
-            typeof req.body.data !== "string"
-        ) {
+        if (Object.keys(req.body || {}).length !== 1 || typeof req.body.data !== "string") {
             throw new Error();
         }
 
@@ -133,20 +124,16 @@ exports.getProductCategories = async (req, res, next) => {
             .lean();
 
         const parents = new Map(
-            categories
-                .filter((item) => !item.parentId)
-                .map((item) => [String(item._id), item])
+            categories.filter((item) => !item.parentId).map((item) => [String(item._id), item])
         );
 
         res.json({
             success: true,
             categories: categories.map((item) => ({
                 ...item,
-                available: item.status === "Active" &&
-                    (
-                        !item.parentId ||
-                        parents.get(String(item.parentId))?.status === "Active"
-                    ),
+                available:
+                    item.status === "Active" &&
+                    (!item.parentId || parents.get(String(item.parentId))?.status === "Active"),
             })),
         });
     } catch (error) {
@@ -204,30 +191,20 @@ exports.getSellerProducts = async (req, res, next) => {
                             },
                         },
                     ],
-                    count: [
-                        { $match: filter },
-                        { $count: "total" },
-                    ],
-                    statistics: [
-                        { $group: { _id: "$status", count: { $sum: 1 } } },
-                    ],
+                    count: [{ $match: filter }, { $count: "total" }],
+                    statistics: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
                 },
             },
         ]);
 
-        const counts = Object.fromEntries(
-            result.statistics.map((item) => [item._id, item.count])
-        );
+        const counts = Object.fromEntries(result.statistics.map((item) => [item._id, item.count]));
 
         res.json({
             success: true,
             products: result.products,
             total: result.count[0]?.total || 0,
             statistics: {
-                total: result.statistics.reduce(
-                    (sum, item) => sum + item.count,
-                    0
-                ),
+                total: result.statistics.reduce((sum, item) => sum + item.count, 0),
                 pending: counts.Pending || 0,
                 approved: counts.Approved || 0,
                 restricted: (counts.Rejected || 0) + (counts.Suspended || 0),
@@ -272,9 +249,9 @@ async function saveProduct(req, res, next) {
 
         const previous = editing
             ? await Product.findOne({
-                _id: productId,
-                sellerProfileId: seller._id,
-            }).lean()
+                  _id: productId,
+                  sellerProfileId: seller._id,
+              }).lean()
             : null;
 
         if (editing && !previous) {
@@ -282,33 +259,20 @@ async function saveProduct(req, res, next) {
         }
 
         if (editing && previous.__v !== req.body.version) {
-            throw new ExpressError(
-                409,
-                "Product changed. Reload and edit again."
-            );
+            throw new ExpressError(409, "Product changed. Reload and edit again.");
         }
 
-        const {
-            imageKeys,
-            stockReason,
-            stockNote,
-            version,
-            ...details
-        } = req.body;
+        const { imageKeys, stockReason, stockNote, version, ...details } = req.body;
 
         const files = req.files || [];
 
-        const oldImages = new Map(
-            (previous?.images || []).map((image) => [image.publicId, image])
-        );
+        const oldImages = new Map((previous?.images || []).map((image) => [image.publicId, image]));
 
         const expectedUploads = files.map((_, index) => `upload:${index}`);
 
         if (
             expectedUploads.some((key) => !imageKeys.includes(key)) ||
-            imageKeys.some((key) =>
-                !oldImages.has(key) && !expectedUploads.includes(key)
-            )
+            imageKeys.some((key) => !oldImages.has(key) && !expectedUploads.includes(key))
         ) {
             throw new ExpressError(400, "Invalid product image selection.");
         }
@@ -319,15 +283,15 @@ async function saveProduct(req, res, next) {
             uploaded.push(await uploadImage(file, folder));
         }
 
-        const images = imageKeys.map((key) =>
-            oldImages.get(key) || uploaded[Number(key.slice(7))]
-        );
+        const images = imageKeys.map((key) => oldImages.get(key) || uploaded[Number(key.slice(7))]);
 
-        const contentChanged = !previous ||
-            contentSignature(previous) !== contentSignature({
-                ...details,
-                images,
-            });
+        const contentChanged =
+            !previous ||
+            contentSignature(previous) !==
+                contentSignature({
+                    ...details,
+                    images,
+                });
 
         const [activeAccount, activeSession] = await Promise.all([
             User.exists({
@@ -356,10 +320,7 @@ async function saveProduct(req, res, next) {
             );
 
             if (!activeSeller) {
-                throw new ExpressError(
-                    403,
-                    "Approved seller access is required."
-                );
+                throw new ExpressError(403, "Approved seller access is required.");
             }
 
             if (contentChanged) {
@@ -373,34 +334,27 @@ async function saveProduct(req, res, next) {
                     { session }
                 );
 
-                const parent = category && await Category.findOneAndUpdate(
-                    {
-                        _id: category.parentId,
-                        parentId: null,
-                        status: "Active",
-                    },
-                    { $inc: { __v: 1 } },
-                    { session }
-                );
+                const parent =
+                    category &&
+                    (await Category.findOneAndUpdate(
+                        {
+                            _id: category.parentId,
+                            parentId: null,
+                            status: "Active",
+                        },
+                        { $inc: { __v: 1 } },
+                        { session }
+                    ));
 
                 if (!parent) {
-                    throw new ExpressError(
-                        400,
-                        "Select an active subcategory."
-                    );
+                    throw new ExpressError(400, "Select an active subcategory.");
                 }
 
                 const labels = new Set(
-                    details.specifications.map((item) =>
-                        item.label.toLowerCase()
-                    )
+                    details.specifications.map((item) => item.label.toLowerCase())
                 );
 
-                if (
-                    category.attributes.some((attribute) =>
-                        !labels.has(attribute.toLowerCase())
-                    )
-                ) {
+                if (category.attributes.some((attribute) => !labels.has(attribute.toLowerCase()))) {
                     throw new ExpressError(
                         400,
                         "Complete the specifications required by this category."
@@ -408,17 +362,13 @@ async function saveProduct(req, res, next) {
                 }
             }
 
-            const stock = inventory.prepareVariantStock(
-                previous,
-                details.variants,
-                {
-                    sellerProfileId: seller._id,
-                    productId,
-                    actorUserId: req.user._id,
-                    stockReason,
-                    stockNote,
-                }
-            );
+            const stock = inventory.prepareVariantStock(previous, details.variants, {
+                sellerProfileId: seller._id,
+                productId,
+                actorUserId: req.user._id,
+                stockReason,
+                stockNote,
+            });
 
             const changes = {
                 ...details,
@@ -428,12 +378,14 @@ async function saveProduct(req, res, next) {
 
             if (!editing) {
                 await Product.create(
-                    [{
-                        _id: productId,
-                        ...changes,
-                        sellerProfileId: seller._id,
-                        productCode: `ZP-${randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
-                    }],
+                    [
+                        {
+                            _id: productId,
+                            ...changes,
+                            sellerProfileId: seller._id,
+                            productCode: `ZP-${randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
+                        },
+                    ],
                     { session }
                 );
             } else {
@@ -465,10 +417,7 @@ async function saveProduct(req, res, next) {
                 );
 
                 if (!result.matchedCount) {
-                    throw new ExpressError(
-                        409,
-                        "Product changed. Reload and edit again."
-                    );
+                    throw new ExpressError(409, "Product changed. Reload and edit again.");
                 }
             }
 
@@ -486,19 +435,14 @@ async function saveProduct(req, res, next) {
         res.status(editing ? 200 : 201).json({
             success: true,
             productId: String(productId),
-            message: editing
-                ? "Product updated successfully."
-                : "Product submitted for review.",
+            message: editing ? "Product updated successfully." : "Product submitted for review.",
         });
     } catch (error) {
         if (!saved) await cleanupImages(uploaded);
 
         if (error.code === 11000) {
             return next(
-                new ExpressError(
-                    409,
-                    "A product with this SKU already exists in your store."
-                )
+                new ExpressError(409, "A product with this SKU already exists in your store.")
             );
         }
 
@@ -524,20 +468,17 @@ async function getCategoryTree() {
             showOnHome: Boolean(parent.showOnHome),
 
             children: records
-                .filter((child) =>
-                    String(child.parentId) === String(parent._id)
-                )
+                .filter((child) => String(child.parentId) === String(parent._id))
                 .map((child) => ({
                     id: child.slug,
                     name: child.name,
                     filterBrand: child.filterBrand !== false,
 
-                    filterAttributes: (child.filterAttributes || [])
-                        .filter((name) =>
-                            child.attributes.some((attribute) =>
-                                attribute.toLowerCase() === name.toLowerCase()
-                            )
-                        ),
+                    filterAttributes: (child.filterAttributes || []).filter((name) =>
+                        child.attributes.some(
+                            (attribute) => attribute.toLowerCase() === name.toLowerCase()
+                        )
+                    ),
                 })),
         }));
 }
@@ -615,10 +556,7 @@ function publicCatalogPipeline(query = {}, match = {}) {
 
         stages.push({
             $match: {
-                $or: [
-                    { "category.slug": { $in: slugs } },
-                    { "parent.slug": { $in: slugs } },
-                ],
+                $or: [{ "category.slug": { $in: slugs } }, { "parent.slug": { $in: slugs } }],
             },
         });
     }
@@ -628,13 +566,9 @@ function publicCatalogPipeline(query = {}, match = {}) {
 
         stages.push({
             $match: {
-                $or: [
-                    "name",
-                    "brand",
-                    "productCode",
-                    "category.name",
-                    "parent.name",
-                ].map((key) => ({ [key]: expression })),
+                $or: ["name", "brand", "productCode", "category.name", "parent.name"].map(
+                    (key) => ({ [key]: expression })
+                ),
             },
         });
     }
@@ -674,6 +608,8 @@ function publicCatalogPipeline(query = {}, match = {}) {
             specifications: 1,
             images: 1,
             variants: 1,
+            ratingSum: 1,
+            ratingCount: 1,
             createdAt: 1,
             categoryId: 1,
             specs: 1,
@@ -736,10 +672,7 @@ function publicCatalogFilters(query, attributes = [], brands = []) {
 
     if (query.inStock) {
         conditions.push({
-            $gt: [
-                "$$variant.stock",
-                { $ifNull: ["$$variant.reservedQuantity", 0] },
-            ],
+            $gt: ["$$variant.stock", { $ifNull: ["$$variant.reservedQuantity", 0] }],
         });
     }
 
@@ -762,9 +695,10 @@ function publicCatalogFilters(query, attributes = [], brands = []) {
         },
         {
             $set: {
-                sortPrice: query.sort === "price-desc"
-                    ? { $max: "$eligibleVariants.pricePaise" }
-                    : { $min: "$eligibleVariants.pricePaise" },
+                sortPrice:
+                    query.sort === "price-desc"
+                        ? { $max: "$eligibleVariants.pricePaise" }
+                        : { $min: "$eligibleVariants.pricePaise" },
             },
         }
     );
@@ -786,15 +720,12 @@ function publicCatalogOrder(sort) {
 
 // Public product response
 function publicProductResponse(product, sort = "newest") {
-    const candidates = [
-        ...(product.eligibleVariants || product.variants),
-    ];
+    const candidates = [...(product.eligibleVariants || product.variants)];
 
     if (sort === "price-asc" || sort === "price-desc") {
         candidates.sort(
             (first, second) =>
-                (sort === "price-asc" ? 1 : -1) *
-                (first.pricePaise - second.pricePaise)
+                (sort === "price-asc" ? 1 : -1) * (first.pricePaise - second.pricePaise)
         );
     } else {
         candidates.sort(
@@ -817,6 +748,8 @@ function publicProductResponse(product, sort = "newest") {
         categoryName: product.category.name,
         group: product.parent.slug,
         groupName: product.parent.name,
+        rating: product.ratingCount ? product.ratingSum / product.ratingCount : null,
+        ratingCount: product.ratingCount || 0,
 
         images: product.images.map((image) => image.url),
         displayVariantId: candidates[0].variantId,
@@ -827,10 +760,7 @@ function publicProductResponse(product, sort = "newest") {
             pricePaise: variant.pricePaise,
             mrpPaise: variant.mrpPaise,
             imageIndex: variant.imageIndex,
-            availableStock: Math.max(
-                0,
-                variant.stock - (variant.reservedQuantity || 0)
-            ),
+            availableStock: Math.max(0, variant.stock - (variant.reservedQuantity || 0)),
         })),
 
         createdAt: product.createdAt,
@@ -858,9 +788,7 @@ function parseSelection(raw, validator) {
 // Public listing, categories and filter options
 exports.getPublicProducts = async (req, res, next) => {
     try {
-        const { value: query, error } = publicProductListSchema.validate(
-            req.query
-        );
+        const { value: query, error } = publicProductListSchema.validate(req.query);
 
         if (error) {
             throw new ExpressError(400, error.details[0].message);
@@ -873,10 +801,8 @@ exports.getPublicProducts = async (req, res, next) => {
         const slugs = query.category.split(",").filter(Boolean);
 
         const children = categories.flatMap((parent) =>
-            parent.children.filter((child) =>
-                !slugs.length ||
-                slugs.includes(parent.id) ||
-                slugs.includes(child.id)
+            parent.children.filter(
+                (child) => !slugs.length || slugs.includes(parent.id) || slugs.includes(child.id)
             )
         );
 
@@ -907,10 +833,7 @@ exports.getPublicProducts = async (req, res, next) => {
                         { $skip: (query.page - 1) * query.limit },
                         { $limit: query.limit },
                     ],
-                    total: [
-                        ...filters,
-                        { $count: "count" },
-                    ],
+                    total: [...filters, { $count: "count" }],
                     price: [
                         { $unwind: "$variants" },
                         {
@@ -941,10 +864,7 @@ exports.getPublicProducts = async (req, res, next) => {
                                         {
                                             $map: {
                                                 input: {
-                                                    $ifNull: [
-                                                        "$category.filterAttributes",
-                                                        [],
-                                                    ],
+                                                    $ifNull: ["$category.filterAttributes", []],
                                                 },
                                                 as: "name",
                                                 in: { $toLower: "$$name" },
@@ -989,9 +909,7 @@ exports.getPublicProducts = async (req, res, next) => {
         res.json({
             success: true,
 
-            products: result.products.map((product) =>
-                publicProductResponse(product, query.sort)
-            ),
+            products: result.products.map((product) => publicProductResponse(product, query.sort)),
 
             categories,
 
@@ -1004,17 +922,9 @@ exports.getPublicProducts = async (req, res, next) => {
                     label: definitions.get(item._id),
                     values: item.values,
                 }))
-                .sort((first, second) =>
-                    first.label.localeCompare(second.label)
-                ),
+                .sort((first, second) => first.label.localeCompare(second.label)),
 
-            priceBounds: [
-                0,
-                Math.max(
-                    1000,
-                    Math.ceil((result.price[0]?.maximum || 0) / 100)
-                ),
-            ],
+            priceBounds: [0, Math.max(1000, Math.ceil((result.price[0]?.maximum || 0) / 100))],
 
             total,
             page: query.page,
@@ -1031,9 +941,7 @@ exports.getPublicProduct = async (req, res, next) => {
     try {
         const _id = new mongoose.Types.ObjectId(req.params.productId);
 
-        const [product] = await Product.aggregate(
-            publicCatalogPipeline({}, { _id })
-        );
+        const [product] = await Product.aggregate(publicCatalogPipeline({}, { _id }));
 
         if (!product) {
             throw new ExpressError(404, "Product is unavailable.");

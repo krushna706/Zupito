@@ -1,3 +1,5 @@
+import api from "../services/api";
+import { toast } from "react-toastify";
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -27,10 +29,7 @@ const PERIODS = {
     365: "12 Months",
 };
 
-const COLORS = [
-    "#f59e0b", "#2563eb", "#8b5cf6",
-    "#16a34a", "#ef4444", "#94a3b8",
-];
+const COLORS = ["#f59e0b", "#2563eb", "#8b5cf6", "#16a34a", "#ef4444", "#94a3b8"];
 
 const format = (value) => Number(value || 0).toLocaleString("en-IN");
 const money = (value) => `₹${format(Math.round(value || 0))}`;
@@ -42,12 +41,16 @@ const compact = (value) => {
     return money(value);
 };
 
-const field = (item, ...keys) => keys
-    .map((key) => key.split(".").reduce((obj, part) => obj?.[part], item))
-    .find((value) => value !== undefined && value !== null && value !== "");
+const field = (item, ...keys) =>
+    keys
+        .map((key) => key.split(".").reduce((obj, part) => obj?.[part], item))
+        .find((value) => value !== undefined && value !== null && value !== "");
 
 const number = (value) => Number(String(value ?? 0).replace(/[₹,\s]/g, "")) || 0;
-const clean = (value) => String(value ?? "").toLowerCase().replace(/[\s_-]/g, "");
+const clean = (value) =>
+    String(value ?? "")
+        .toLowerCase()
+        .replace(/[\s_-]/g, "");
 const status = (item) => clean(field(item, "orderStatus", "status", "state"));
 
 const date = (value) => {
@@ -55,51 +58,35 @@ const date = (value) => {
     return result && !Number.isNaN(result.getTime()) ? result : null;
 };
 
-const itemDate = (item) => date(field(
-    item, "paidAt", "createdAt", "orderDate", "placedAt", "date", "updatedAt"
-));
+const itemDate = (item) =>
+    date(field(item, "paidAt", "createdAt", "orderDate", "placedAt", "date", "updatedAt"));
 
-const total = (item) => number(field(
-    item, "totalAmount", "grandTotal", "finalAmount",
-    "paidAmount", "total", "amount", "pricing.total"
-));
-
-const isPaid = (item) => [
-    "paid", "successful", "success", "captured",
-    "completed", "verified", "settled",
-].includes(clean(field(item, "payment.status", "paymentStatus", "status")));
-
-const pending = (item) => [
-    "pending", "pendingapproval", "submitted",
-    "underreview", "requested", "inreview",
-].includes(status(item));
-
-const read = (key) => {
-    try {
-        const value = JSON.parse(localStorage.getItem(key) || "[]");
-
-        return Array.isArray(value)
-            ? value
-            : [value?.items, value?.records, value?.data, value?.list]
-                .find(Array.isArray) || [];
-    } catch {
-        return [];
-    }
-};
-
-const load = () => {
-    const data = Object.fromEntries(
-        Object.entries(KEYS).map(([name, key]) => [name, read(key)])
+const total = (item) =>
+    number(
+        field(
+            item,
+            "totalAmount",
+            "grandTotal",
+            "finalAmount",
+            "paidAmount",
+            "total",
+            "amount",
+            "pricing.total"
+        )
     );
 
-    if (!data.customers.length) {
-        data.customers = data.users.filter((user) =>
-            ["customer", "user"].includes(clean(user.role))
-        );
-    }
+const isPaid = (item) =>
+    ["paid", "successful", "success", "captured", "completed", "verified", "settled"].includes(
+        clean(field(item, "payment.status", "paymentStatus", "status"))
+    );
 
-    return data;
-};
+const pending = (item) =>
+    ["pending", "pendingapproval", "submitted", "underreview", "requested", "inreview"].includes(
+        status(item)
+    );
+
+const empty = () => Object.fromEntries(Object.keys(KEYS).map((key) => [key, []]));
+const load = async () => ({ ...empty(), ...(await api.get("/reports")).data.snapshot });
 
 const orderType = (item) => {
     const value = status(item);
@@ -111,7 +98,11 @@ const orderType = (item) => {
         return 2;
     }
 
-    if (["confirmed", "accepted", "processing", "packing", "packed", "readyforpickup"].includes(value)) {
+    if (
+        ["confirmed", "accepted", "processing", "packing", "packed", "readyforpickup"].includes(
+            value
+        )
+    ) {
         return 1;
     }
 
@@ -129,9 +120,7 @@ const stockOf = (item) => {
         .map((variant) => field(variant, "stock", "stockQuantity", "quantity"))
         .filter((value) => value !== undefined);
 
-    return stocks.length
-        ? stocks.reduce((sum, value) => sum + number(value), 0)
-        : null;
+    return stocks.length ? stocks.reduce((sum, value) => sum + number(value), 0) : null;
 };
 
 const periodMatch = (value, days, now) => {
@@ -180,7 +169,9 @@ function Heading({ icon, title, subtitle, action }) {
     return (
         <div className="zd-heading">
             <div className="zd-heading-text">
-                <h2><Icon name={icon} /> {title}</h2>
+                <h2>
+                    <Icon name={icon} /> {title}
+                </h2>
                 <p>{subtitle}</p>
             </div>
             {action}
@@ -198,13 +189,13 @@ function SalesChart({ points }) {
 
     const coords = points.map((point, index) => ({
         ...point,
-        x: left + index * (width - left - 15) / Math.max(points.length - 1, 1),
+        x: left + (index * (width - left - 15)) / Math.max(points.length - 1, 1),
         y: bottom - (point.value / ceiling) * 174,
     }));
 
-    const line = coords.map((point, index) =>
-        `${index ? "L" : "M"}${point.x},${point.y}`
-    ).join(" ");
+    const line = coords
+        .map((point, index) => `${index ? "L" : "M"}${point.x},${point.y}`)
+        .join(" ");
 
     const area = coords.length
         ? `${line} L${coords.at(-1).x},${bottom} L${coords[0].x},${bottom} Z`
@@ -212,11 +203,7 @@ function SalesChart({ points }) {
 
     return (
         <div className="zd-chart-wrap">
-            {!max && (
-                <span className="zd-chart-empty">
-                    No paid sales in this period
-                </span>
-            )}
+            {!max && <span className="zd-chart-empty">No paid sales in this period</span>}
 
             <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Paid revenue trend">
                 <defs>
@@ -226,7 +213,7 @@ function SalesChart({ points }) {
                     </linearGradient>
                 </defs>
 
-                {[0, .25, .5, .75, 1].map((tick) => (
+                {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
                     <g key={tick}>
                         <line
                             x1={left}
@@ -273,12 +260,7 @@ function SalesChart({ points }) {
                             <title>{`${point.label}: ${money(point.value)}`}</title>
                         </circle>
 
-                        <text
-                            x={point.x}
-                            y="231"
-                            textAnchor="middle"
-                            className="zd-axis-text"
-                        >
+                        <text x={point.x} y="231" textAnchor="middle" className="zd-axis-text">
                             {point.label}
                         </text>
                     </g>
@@ -290,27 +272,20 @@ function SalesChart({ points }) {
 
 function Donut({ segments, totalValue, label, value }) {
     const perimeter = 2 * Math.PI * 43;
-    let offset = 0;
 
     return (
         <div className="zd-donut">
             <svg viewBox="0 0 120 120" role="img" aria-label={`${label}: ${value}`}>
-                <circle
-                    cx="60"
-                    cy="60"
-                    r="43"
-                    stroke="#eef2f7"
-                    strokeWidth="12"
-                    fill="none"
-                />
+                <circle cx="60" cy="60" r="43" stroke="#eef2f7" strokeWidth="12" fill="none" />
 
                 {segments.map((item, index) => {
-                    const length = totalValue
-                        ? item.value / totalValue * perimeter
-                        : 0;
+                    const length = totalValue ? (item.value / totalValue) * perimeter : 0;
 
-                    const start = offset;
-                    offset += length;
+                    const start = totalValue
+                        ? (segments.slice(0, index).reduce((sum, entry) => sum + entry.value, 0) /
+                              totalValue) *
+                          perimeter
+                        : 0;
 
                     return (
                         <circle
@@ -344,21 +319,16 @@ function RingCard({ icon, title, value, percent, detail, color }) {
     return (
         <div className="zd-ring-card">
             <div>
-                <span className="zd-ring-icon"><Icon name={icon} /></span>
+                <span className="zd-ring-icon">
+                    <Icon name={icon} />
+                </span>
                 <strong>{title}</strong>
                 <small>{detail}</small>
             </div>
 
             <div className="zd-mini-ring">
                 <svg viewBox="0 0 100 100" aria-hidden="true">
-                    <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="none"
-                        stroke="#eef2f7"
-                        strokeWidth="9"
-                    />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#eef2f7" strokeWidth="9" />
 
                     <circle
                         cx="50"
@@ -385,89 +355,89 @@ function Dashboard({ user }) {
     const fullName = field(user, "name", "fullName", "displayName") || "Admin";
     const firstName = String(fullName).trim().split(/\s+/)[0];
 
-    const [data, setData] = useState(load);
+    const [data, setData] = useState(empty);
     const [period, setPeriod] = useState(30);
     const [updated, setUpdated] = useState(() => new Date());
 
-    const refresh = () => {
-        setData(load());
-        setUpdated(new Date());
-    };
-
-    useEffect(() => {
-        const handleRefresh = () => {
-            setData(load());
+    const refresh = async () => {
+        try {
+            setData(await load());
             setUpdated(new Date());
-        };
-
-        window.addEventListener("focus", handleRefresh);
-        window.addEventListener("storage", handleRefresh);
-
-        return () => {
-            window.removeEventListener("focus", handleRefresh);
-            window.removeEventListener("storage", handleRefresh);
-        };
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+    useEffect(() => {
+        void refresh();
     }, []);
 
     const summary = useMemo(() => {
         const {
-            orders, payments, sellers, products, customers,
-            assignments, refunds, replacements, settlements,
-            agents, reviews, complaints, coupons, categories,
+            orders,
+            payments,
+            sellers,
+            products,
+            customers,
+            assignments,
+            refunds,
+            replacements,
+            settlements,
+            agents,
+            reviews,
+            complaints,
+            coupons,
+            categories,
         } = data;
 
         const periodOrders = orders.filter((order) =>
             periodMatch(itemDate(order), period, updated)
         );
 
-        const paidRecords = payments.length
-            ? payments.filter(isPaid)
-            : orders.filter(isPaid);
+        const paidRecords = payments.length ? payments.filter(isPaid) : orders.filter(isPaid);
 
         const sales = paidRecords
             .map((item) => ({ amount: total(item), date: itemDate(item) }))
             .filter((item) => item.date);
 
-        const periodSales = sales.filter((item) =>
-            periodMatch(item.date, period, updated)
-        );
+        const periodSales = sales.filter((item) => periodMatch(item.date, period, updated));
 
-        const revenue = periodSales.reduce(
-            (sum, item) => sum + item.amount, 0
-        );
+        const revenue = periodSales.reduce((sum, item) => sum + item.amount, 0);
 
         const groups = [
-            "Pending", "Processing", "In Transit",
-            "Delivered", "Cancelled", "Other",
+            "Pending",
+            "Processing",
+            "In Transit",
+            "Delivered",
+            "Cancelled",
+            "Other",
         ].map((name, index) => ({
             name,
             color: COLORS[index],
-            value: periodOrders.filter((order) =>
-                orderType(order) === index
-            ).length,
+            value: periodOrders.filter((order) => orderType(order) === index).length,
         }));
 
         const delivered = groups[3].value;
 
-        const assignedIds = new Set(assignments.map((item) =>
-            String(field(item, "orderId", "order.id") ?? "")
-        ));
+        const assignedIds = new Set(
+            assignments.map((item) => String(field(item, "orderId", "order.id") ?? ""))
+        );
 
-        const unassigned = assignments.filter((item) =>
-            !field(item, "agentId", "deliveryAgentId", "agent.id") &&
-            !["completed", "delivered", "cancelled"].includes(status(item))
+        const unassigned = assignments.filter(
+            (item) =>
+                !field(item, "agentId", "deliveryAgentId", "agent.id") &&
+                !["completed", "delivered", "cancelled"].includes(status(item))
         ).length;
 
-        const readyOrders = orders.filter((order) =>
-            status(order) === "readyforpickup" &&
-            !assignedIds.has(String(field(order, "id", "_id", "orderId") ?? ""))
+        const readyOrders = orders.filter(
+            (order) =>
+                status(order) === "readyforpickup" &&
+                !assignedIds.has(String(field(order, "id", "_id", "orderId") ?? ""))
         ).length;
 
         const stockAlerts = products.filter((item) => {
             const stock = stockOf(item);
 
-            return stock !== null &&
-                stock <= number(field(item, "lowStockThreshold") ?? 5);
+            return stock !== null && stock <= number(field(item, "lowStockThreshold") ?? 5);
         }).length;
 
         const ratingValues = reviews
@@ -483,14 +453,25 @@ function Dashboard({ user }) {
             ["Product Approvals", "fa-box-open", products.filter(pending).length, "products"],
             ["Delivery Assignments", "fa-truck-fast", unassigned + readyOrders, "assignments"],
             ["Inventory Alerts", "fa-boxes-stacked", stockAlerts, "products"],
-            ["Replacement Requests", "fa-rotate", replacements.filter(pending).length, "replacements"],
-            ["Refund Requests", "fa-money-bill-transfer", refunds.filter(pending).length, "refunds"],
+            [
+                "Replacement Requests",
+                "fa-rotate",
+                replacements.filter(pending).length,
+                "replacements",
+            ],
+            [
+                "Refund Requests",
+                "fa-money-bill-transfer",
+                refunds.filter(pending).length,
+                "refunds",
+            ],
             ["Seller Settlements", "fa-wallet", settlements.filter(pending).length, "settlements"],
             [
                 "Open Complaints",
                 "fa-headset",
-                complaints.filter((item) =>
-                    !["resolved", "closed", "completed", "rejected"].includes(status(item))
+                complaints.filter(
+                    (item) =>
+                        !["resolved", "closed", "completed", "rejected"].includes(status(item))
                 ).length,
                 "complaints",
             ],
@@ -527,42 +508,55 @@ function Dashboard({ user }) {
             salesTrend: buildTrend(periodSales, period, updated),
             paidCount: paidRecords.length,
             paymentCount: payments.length,
-            pendingOrders: orders.filter((item) =>
-                [0, 1].includes(orderType(item))
-            ).length,
+            pendingOrders: orders.filter((item) => [0, 1].includes(orderType(item))).length,
             attention: actions.reduce((sum, item) => sum + item[2], 0),
             sellers: sellers.length,
             customers: customers.length,
             products: products.length,
             recent: [...orders]
-                .sort((a, b) =>
-                    (itemDate(b)?.getTime() || 0) -
-                    (itemDate(a)?.getTime() || 0)
-                )
+                .sort((a, b) => (itemDate(b)?.getTime() || 0) - (itemDate(a)?.getTime() || 0))
                 .slice(0, 6),
         };
     }, [data, period, updated]);
 
     const cards = [
-        ["Paid Revenue", compact(summary.revenue), "Selected period", "fa-indian-rupee-sign", "payments"],
+        [
+            "Paid Revenue",
+            compact(summary.revenue),
+            "Selected period",
+            "fa-indian-rupee-sign",
+            "payments",
+        ],
         ["Orders", format(summary.periodOrders), "Selected period", "fa-bag-shopping", "orders"],
         ["Customers", format(summary.customers), "Registered customers", "fa-users", "customers"],
         ["Sellers", format(summary.sellers), "Registered sellers", "fa-store", "sellers"],
         ["Products", format(summary.products), "All listed products", "fa-box", "products"],
         ["Delivered", format(summary.delivered), "Selected period", "fa-circle-check", "orders"],
-        ["Pending Orders", format(summary.pendingOrders), "Current open orders", "fa-clock", "orders"],
-        ["Need Attention", format(summary.attention), "Open operational actions", "fa-bell", "reports"],
+        [
+            "Pending Orders",
+            format(summary.pendingOrders),
+            "Current open orders",
+            "fa-clock",
+            "orders",
+        ],
+        [
+            "Need Attention",
+            format(summary.attention),
+            "Open operational actions",
+            "fa-bell",
+            "reports",
+        ],
     ];
 
     const deliveryRate = summary.periodOrders
-        ? Math.round(summary.delivered / summary.periodOrders * 100)
+        ? Math.round((summary.delivered / summary.periodOrders) * 100)
         : 0;
 
     const paymentRate = summary.paymentCount
-        ? Math.round(summary.paidCount / summary.paymentCount * 100)
+        ? Math.round((summary.paidCount / summary.paymentCount) * 100)
         : 0;
 
-    const ratingRate = Math.round(summary.rating / 5 * 100);
+    const ratingRate = Math.round((summary.rating / 5) * 100);
 
     return (
         <main className="zd-dashboard">
@@ -583,7 +577,9 @@ function Dashboard({ user }) {
                             aria-label="Dashboard period"
                         >
                             {Object.entries(PERIODS).map(([days, label]) => (
-                                <option value={days} key={days}>Last {label}</option>
+                                <option value={days} key={days}>
+                                    Last {label}
+                                </option>
                             ))}
                         </select>
                     </label>
@@ -600,10 +596,12 @@ function Dashboard({ user }) {
                         <Icon name="fa-chart-line" /> Marketplace Overview
                     </span>
 
-                    <h2>Welcome back, <span>{firstName}.</span></h2>
+                    <h2>
+                        Welcome back, <span>{firstName}.</span>
+                    </h2>
                     <p>
-                        Monitor sales, manage sellers and orders, and stay
-                        on top of daily operations.
+                        Monitor sales, manage sellers and orders, and stay on top of daily
+                        operations.
                     </p>
 
                     <a href="#zd-actions" className="zd-welcome-link">
@@ -612,7 +610,9 @@ function Dashboard({ user }) {
                 </div>
 
                 <div className="zd-welcome-stat">
-                    <span><Icon name="fa-bell" /> Pending Actions</span>
+                    <span>
+                        <Icon name="fa-bell" /> Pending Actions
+                    </span>
                     <strong>{format(summary.attention)}</strong>
                     <small>Items that need your attention</small>
                 </div>
@@ -620,14 +620,12 @@ function Dashboard({ user }) {
 
             <section className="zd-cards" aria-label="Key dashboard metrics">
                 {cards.map(([label, value, detail, icon, path], index) => (
-                    <Link
-                        to={`/manage/${path}`}
-                        className={`zd-kpi zd-kpi-${index}`}
-                        key={label}
-                    >
+                    <Link to={`/manage/${path}`} className={`zd-kpi zd-kpi-${index}`} key={label}>
                         <div className="zd-kpi-head">
                             <span className="zd-kpi-label">{label}</span>
-                            <span className="zd-kpi-icon"><Icon name={icon} /></span>
+                            <span className="zd-kpi-icon">
+                                <Icon name={icon} />
+                            </span>
                         </div>
                         <strong title={value}>{value}</strong>
                         <small>{detail}</small>
@@ -726,12 +724,10 @@ function Dashboard({ user }) {
 
                     <div className="zd-action-list">
                         {summary.actions.map(([label, icon, value, path]) => (
-                            <Link
-                                to={`/manage/${path}`}
-                                key={label}
-                                className="zd-list-row"
-                            >
-                                <span className="zd-row-icon"><Icon name={icon} /></span>
+                            <Link to={`/manage/${path}`} key={label} className="zd-list-row">
+                                <span className="zd-row-icon">
+                                    <Icon name={icon} />
+                                </span>
                                 <span>{label}</span>
                                 <strong className={value ? "zd-count-active" : ""}>
                                     {format(value)}
@@ -751,12 +747,10 @@ function Dashboard({ user }) {
 
                     <div className="zd-action-list">
                         {summary.modules.map(([label, icon, value, path]) => (
-                            <Link
-                                to={`/manage/${path}`}
-                                key={label}
-                                className="zd-list-row"
-                            >
-                                <span className="zd-row-icon"><Icon name={icon} /></span>
+                            <Link to={`/manage/${path}`} key={label} className="zd-list-row">
+                                <span className="zd-row-icon">
+                                    <Icon name={icon} />
+                                </span>
                                 <span>{label}</span>
                                 <strong>{format(value)}</strong>
                                 <Icon name="fa-chevron-right" />
@@ -813,9 +807,13 @@ function Dashboard({ user }) {
                                             year: "numeric",
                                         }) ?? "—"}
                                     </td>
-                                    <td><strong>{money(total(order))}</strong></td>
                                     <td>
-                                        <span className={`zd-order-status zd-order-status-${orderType(order)}`}>
+                                        <strong>{money(total(order))}</strong>
+                                    </td>
+                                    <td>
+                                        <span
+                                            className={`zd-order-status zd-order-status-${orderType(order)}`}
+                                        >
                                             {field(order, "orderStatus", "status") ?? "Unknown"}
                                         </span>
                                     </td>

@@ -14,15 +14,10 @@ import {
     TextField,
 } from "@mui/material";
 
-import { toast } from "react-toastify";
-
 import { formatMoney } from "../services/sellerService";
 import { useOrderResource } from "../services/orderService";
 
-import {
-    formatDateTime,
-    getStatusLabel,
-} from "../utils/orderStatus";
+import { formatDateTime, getStatusLabel } from "../utils/orderStatus";
 
 // ================== ORDER FILTERS ==================
 const filters = [
@@ -63,29 +58,27 @@ function statusGroup(status) {
 function OrderStatus({ status }) {
     const group = statusGroup(status);
 
-    const theme = group === "Delivered"
-        ? "success"
-        : group === "Cancelled"
-            ? "danger"
-            : group === "Ready" || group === "Packing"
+    const theme =
+        group === "Delivered"
+            ? "success"
+            : group === "Cancelled"
+              ? "danger"
+              : group === "Ready" || group === "Packing"
                 ? "warning"
                 : "blue";
 
     return (
         <span className={`so-status is-${theme}`}>
-            <i
-                className="fa-solid fa-circle"
-                aria-hidden="true"
-            />
+            <i className="fa-solid fa-circle" aria-hidden="true" />
             {getStatusLabel(status)}
         </span>
     );
 }
 
 // ================== SELLER ORDERS ==================
-function Orders({ user }) {
+function Orders() {
     const { data, loading, error, refresh } = useOrderResource("staff-list");
-    const orders = data || [];
+    const orders = useMemo(() => data || [], [data]);
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("All");
     const [page, setPage] = useState(0);
@@ -93,36 +86,24 @@ function Orders({ user }) {
 
     // ================== STATISTICS ==================
     const statistics = [
-        [
-            "Total Parcels",
-            orders.length,
-            "Seller fulfilment records",
-            "fa-boxes-stacked",
-            "blue",
-        ],
+        ["Total Parcels", orders.length, "Seller fulfilment records", "fa-boxes-stacked", "blue"],
         [
             "New Orders",
-            orders.filter((item) =>
-                statusGroup(item.status) === "New"
-            ).length,
+            orders.filter((item) => statusGroup(item.status) === "New").length,
             "Paid orders awaiting packing",
             "fa-cart-shopping",
             "orange",
         ],
         [
             "Ready for Pickup",
-            orders.filter((item) =>
-                statusGroup(item.status) === "Ready"
-            ).length,
+            orders.filter((item) => statusGroup(item.status) === "Ready").length,
             "Awaiting delivery collection",
             "fa-box-open",
             "green",
         ],
         [
             "In Transit",
-            orders.filter((item) =>
-                statusGroup(item.status) === "Transit"
-            ).length,
+            orders.filter((item) => statusGroup(item.status) === "Transit").length,
             "Delivery agent in progress",
             "fa-truck-fast",
             "red",
@@ -130,28 +111,30 @@ function Orders({ user }) {
     ];
 
     // ================== ORDER FILTERING ==================
-    const filtered = useMemo(() => orders.filter((order) => {
-        const query = search.trim().toLowerCase();
+    const filtered = useMemo(
+        () =>
+            orders.filter((order) => {
+                const query = search.trim().toLowerCase();
 
-        const matchesStatus = filter === "All" ||
-            statusGroup(order.status) === filter;
+                const matchesStatus = filter === "All" || statusGroup(order.status) === filter;
 
-        const matchesSearch = [
-            order.orderId,
-            order.parcelId,
-            order.customerName,
-            ...order.items.map((item) => item.name),
-        ].some((value) =>
-            String(value || "").toLowerCase().includes(query)
-        );
+                const matchesSearch = [
+                    order.orderId,
+                    order.parcelId,
+                    order.customerName,
+                    ...order.items.map((item) => item.name),
+                ].some((value) =>
+                    String(value || "")
+                        .toLowerCase()
+                        .includes(query)
+                );
 
-        return matchesStatus && matchesSearch;
-    }), [orders, search, filter]);
-
-    const visible = filtered.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
+                return matchesStatus && matchesSearch;
+            }),
+        [orders, search, filter]
     );
+
+    const visible = filtered.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
     return (
         <main className="seller-orders">
@@ -159,30 +142,21 @@ function Orders({ user }) {
             <header className="so-hero">
                 <div>
                     <h1>
-                        <i
-                            className="fa-solid fa-cart-shopping"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-cart-shopping" aria-hidden="true" />
                         MANAGE ORDERS
                     </h1>
 
-                    <p>
-                        Pack paid seller orders, prepare parcels
-                        and track delivery progress.
-                    </p>
+                    <p>Pack paid seller orders, prepare parcels and track delivery progress.</p>
                 </div>
 
                 <div className="so-header-actions">
                     <Button
                         variant="outlined"
                         onClick={refresh}
-                        startIcon={
-                            <i className="fa-solid fa-arrows-rotate" />
-                        }
+                        startIcon={<i className="fa-solid fa-arrows-rotate" />}
                     >
                         Refresh
                     </Button>
-
                 </div>
             </header>
 
@@ -198,24 +172,16 @@ function Orders({ user }) {
             {/* ================== ORDER SUMMARY ================== */}
             <section className="so-stats">
                 {statistics.map(([label, value, note, icon, color]) => (
-                    <article
-                        className={`so-stat is-${color}`}
-                        key={label}
-                    >
+                    <article className={`so-stat is-${color}`} key={label}>
                         <div className="so-stat-top">
                             <span>{label}</span>
 
                             <span className="so-stat-icon">
-                                <i
-                                    className={`fa-solid ${icon}`}
-                                    aria-hidden="true"
-                                />
+                                <i className={`fa-solid ${icon}`} aria-hidden="true" />
                             </span>
                         </div>
 
-                        <strong>
-                            {value.toLocaleString("en-IN")}
-                        </strong>
+                        <strong>{value.toLocaleString("en-IN")}</strong>
 
                         <small>{note}</small>
                     </article>
@@ -231,12 +197,10 @@ function Orders({ user }) {
 
                     <div>
                         <h2>Seller Fulfilment Queue</h2>
-                       <p>Only your parcels from confirmed paid orders.</p>
+                        <p>Only your parcels from confirmed paid orders.</p>
                     </div>
 
-                    <span className="so-record-count">
-                        {filtered.length} Records
-                    </span>
+                    <span className="so-record-count">{filtered.length} Records</span>
                 </div>
 
                 {/* ================== SEARCH AND FILTERS ================== */}
@@ -262,10 +226,7 @@ function Orders({ user }) {
                         }}
                     >
                         {filters.map(([value, label]) => (
-                            <MenuItem
-                                key={value}
-                                value={value}
-                            >
+                            <MenuItem key={value} value={value}>
                                 {label}
                             </MenuItem>
                         ))}
@@ -285,10 +246,7 @@ function Orders({ user }) {
 
                 {/* ================== ORDERS TABLE ================== */}
                 <TableContainer className="so-table-wrap">
-                    <Table
-                        className="so-table"
-                        aria-label="Seller orders"
-                    >
+                    <Table className="so-table" aria-label="Seller orders">
                         <TableHead>
                             <TableRow>
                                 <TableCell>Order / Parcel</TableCell>
@@ -303,49 +261,33 @@ function Orders({ user }) {
 
                         <TableBody>
                             {visible.map((order) => (
-                                <TableRow
-                                    hover
-                                    key={`${order.orderId}-${order.parcelId}`}
-                                >
+                                <TableRow hover key={`${order.orderId}-${order.parcelId}`}>
                                     <TableCell>
                                         <div className="so-cell-stack">
-                                            <strong className="so-order-id">
-                                                {order.orderId}
-                                            </strong>
+                                            <strong className="so-order-id">{order.orderId}</strong>
 
                                             <small>{order.parcelId}</small>
 
-                                            <small>
-                                                {formatDateTime(
-                                                    order.createdAt,
-                                                    order.demoPayment
-                                                )}
-                                            </small>
+                                            <small>{formatDateTime(order.createdAt)}</small>
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
-                                        {order.customerName ||
-                                            order.address?.name ||
-                                            "Customer"}
+                                        {order.customerName || order.address?.name || "Customer"}
                                     </TableCell>
 
                                     <TableCell>
                                         <div className="so-cell-stack so-products-cell">
                                             <strong>
-                                                {order.items[0]?.name ||
-                                                    "Seller Parcel"}
+                                                {order.items[0]?.name || "Seller Parcel"}
                                             </strong>
 
                                             <small>
                                                 {order.items.reduce(
-                                                    (sum, item) =>
-                                                        sum + Number(
-                                                            item.quantity || 0
-                                                        ),
+                                                    (sum, item) => sum + Number(item.quantity || 0),
                                                     0
-                                                )} unit(s)
-
+                                                )}{" "}
+                                                unit(s)
                                                 {order.items.length > 1
                                                     ? ` · ${order.items.length} items`
                                                     : ""}
@@ -360,13 +302,7 @@ function Orders({ user }) {
                                     </TableCell>
 
                                     <TableCell>
-                                        <span
-                                            className={
-                                                order.demoPayment
-                                                    ? "so-demo-label"
-                                                    : "so-payment-label"
-                                            }
-                                        >
+                                        <span className="so-payment-label">
                                             {order.paymentStatus}
                                         </span>
                                     </TableCell>
@@ -380,9 +316,9 @@ function Orders({ user }) {
                                             size="small"
                                             variant="outlined"
                                             component={Link}
-                                            to={`/manage/orders/${
-                                                encodeURIComponent(order.orderId)
-                                            }/${encodeURIComponent(order.parcelId)}`}
+                                            to={`/manage/orders/${encodeURIComponent(
+                                                order.orderId
+                                            )}/${encodeURIComponent(order.parcelId)}`}
                                         >
                                             View Details
                                         </Button>
@@ -403,7 +339,6 @@ function Orders({ user }) {
                                                     ? "Try another filter or search term."
                                                     : "Paid orders will appear here after payment confirmation."}
                                             </p>
-
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -415,25 +350,16 @@ function Orders({ user }) {
                 <TablePagination
                     component="div"
                     count={filtered.length}
-                    page={Math.min(
-                        page,
-                        Math.max(
-                            0,
-                            Math.ceil(filtered.length / rowsPerPage) - 1
-                        )
-                    )}
+                    page={Math.min(page, Math.max(0, Math.ceil(filtered.length / rowsPerPage) - 1))}
                     rowsPerPage={rowsPerPage}
                     rowsPerPageOptions={[5, 10, 20]}
-                    onPageChange={(_, nextPage) =>
-                        setPage(nextPage)
-                    }
+                    onPageChange={(_, nextPage) => setPage(nextPage)}
                     onRowsPerPageChange={(event) => {
                         setRowsPerPage(Number(event.target.value));
                         setPage(0);
                     }}
                 />
             </section>
-
         </main>
     );
 }

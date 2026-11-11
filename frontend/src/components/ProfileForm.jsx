@@ -14,12 +14,14 @@ const roleLabels = {
 };
 
 function getInitials(name) {
-    return String(name || "")
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((word) => word.charAt(0).toUpperCase())
-        .join("") || "Z";
+    return (
+        String(name || "")
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((word) => word.charAt(0).toUpperCase())
+            .join("") || "Z"
+    );
 }
 
 function ProfileForm({ user, onSave }) {
@@ -39,8 +41,7 @@ function ProfileForm({ user, onSave }) {
     const role = roleLabels[user?.role] || "Staff Member";
 
     const changed =
-        normalizedName !== savedName.trim().replace(/\s+/g, " ") ||
-        Boolean(selectedImage);
+        normalizedName !== savedName.trim().replace(/\s+/g, " ") || Boolean(selectedImage);
 
     useEffect(() => {
         setName(user?.name || "");
@@ -254,7 +255,10 @@ function ProfileForm({ user, onSave }) {
                                     input: {
                                         readOnly: true,
                                         endAdornment: (
-                                            <i className="fa-solid fa-lock spf-field-lock" aria-hidden="true" />
+                                            <i
+                                                className="fa-solid fa-lock spf-field-lock"
+                                                aria-hidden="true"
+                                            />
                                         ),
                                     },
                                 }}
@@ -269,7 +273,10 @@ function ProfileForm({ user, onSave }) {
                                     input: {
                                         readOnly: true,
                                         endAdornment: (
-                                            <i className="fa-solid fa-lock spf-field-lock" aria-hidden="true" />
+                                            <i
+                                                className="fa-solid fa-lock spf-field-lock"
+                                                aria-hidden="true"
+                                            />
                                         ),
                                     },
                                 }}
@@ -278,7 +285,9 @@ function ProfileForm({ user, onSave }) {
 
                         <div className="spf-readonly-note">
                             <i className="fa-solid fa-circle-info" aria-hidden="true" />
-                            <p>Registered email and mobile number cannot be changed from this page.</p>
+                            <p>
+                                Registered email and mobile number cannot be changed from this page.
+                            </p>
                         </div>
 
                         {error && (
@@ -303,7 +312,9 @@ function ProfileForm({ user, onSave }) {
                                 variant="contained"
                                 disabled={saving || !changed}
                                 startIcon={
-                                    <i className={`fa-solid ${saving ? "fa-spinner fa-spin" : "fa-check"}`} />
+                                    <i
+                                        className={`fa-solid ${saving ? "fa-spinner fa-spin" : "fa-check"}`}
+                                    />
                                 }
                             >
                                 {saving ? "Saving..." : "Save Changes"}

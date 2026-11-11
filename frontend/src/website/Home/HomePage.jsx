@@ -24,10 +24,7 @@ function HomePage() {
             .catch((requestError) => {
                 if (!active) return;
 
-                setError(
-                    requestError.message ||
-                    "Unable to load products. Please try again."
-                );
+                setError(requestError.message || "Unable to load products. Please try again.");
             });
 
         return () => {
@@ -44,26 +41,24 @@ function HomePage() {
 
     const sections = products.length
         ? [
-            {
-                key: "new-arrivals",
-                title: "New Arrivals",
-                viewAllPath: "/products?sort=newest",
-                products: products.slice(0, 12),
-            },
+              {
+                  key: "new-arrivals",
+                  title: "New Arrivals",
+                  viewAllPath: "/products?sort=newest",
+                  products: products.slice(0, 12),
+              },
 
-            ...groups.slice(0, 4).map((group) => {
-                const items = products.filter(
-                    (product) => product.group === group
-                );
+              ...groups.slice(0, 4).map((group) => {
+                  const items = products.filter((product) => product.group === group);
 
-                return {
-                    key: group,
-                    title: items[0].groupName,
-                    viewAllPath: `/products?category=${encodeURIComponent(group)}`,
-                    products: items.slice(0, 12),
-                };
-            }),
-        ]
+                  return {
+                      key: group,
+                      title: items[0].groupName,
+                      viewAllPath: `/products?category=${encodeURIComponent(group)}`,
+                      products: items.slice(0, 12),
+                  };
+              }),
+          ]
         : [];
 
     return (
@@ -75,10 +70,7 @@ function HomePage() {
                     <Alert
                         severity="error"
                         action={
-                            <Button
-                                color="inherit"
-                                onClick={() => setReload((value) => value + 1)}
-                            >
+                            <Button color="inherit" onClick={() => setReload((value) => value + 1)}>
                                 Retry
                             </Button>
                         }

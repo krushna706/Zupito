@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -21,149 +20,10 @@ import {
 } from "@mui/material";
 import { toast } from "react-toastify";
 
-import { productCatalog } from "../data/productCatalog";
+import api from "../services/api";
 import { sortNewestFirst } from "../utils/sortNewestFirst";
 
-// ================== REVIEW CONFIGURATION ==================
-const STORAGE_KEY = "zupito_admin_reviews";
-const PRODUCT_KEY = "zupito_admin_products";
-
-const previewReviews = [
-    {
-        productId: "preview-smartphone",
-        rating: 5,
-        title: "Great for everyday use",
-        comment: "The phone feels smooth and the storage is sufficient for my daily use.",
-        status: "Published",
-        date: "2026-11-05T18:20:00+05:30",
-    },
-    {
-        productId: "preview-headphones",
-        rating: 4,
-        title: "Comfortable headphones",
-        comment: "The fit is comfortable and the sound is clear. The cushions are nice.",
-        status: "Published",
-        date: "2026-11-05T12:45:00+05:30",
-    },
-    {
-        productId: "preview-shirt",
-        rating: 2,
-        title: "Sizing issue",
-        comment: "The material is fine but the selected size did not fit as expected.",
-        status: "Flagged",
-        date: "2026-11-04T16:15:00+05:30",
-    },
-    {
-        productId: "preview-laptop",
-        rating: 5,
-        title: "Good performance",
-        comment: "A practical laptop for documents, browsing and regular office tasks.",
-        status: "Published",
-        date: "2026-11-04T10:30:00+05:30",
-    },
-    {
-        productId: "preview-dress",
-        rating: 4,
-        title: "Nice design",
-        comment: "The colour and finish look good, and the product matches the pictures.",
-        status: "Published",
-        date: "2026-11-03T15:40:00+05:30",
-    },
-    {
-        productId: "preview-backpack",
-        rating: 1,
-        title: "Unacceptable experience",
-        comment: "I am unhappy with the received bag and want the issue reviewed.",
-        status: "Flagged",
-        date: "2026-11-03T09:10:00+05:30",
-    },
-    {
-        productId: "preview-kitchen",
-        rating: 4,
-        title: "Useful dining set",
-        comment: "The design is simple and the set is suitable for everyday meals.",
-        status: "Published",
-        date: "2026-11-02T17:35:00+05:30",
-    },
-    {
-        productId: "preview-watch",
-        rating: 3,
-        title: "Average experience",
-        comment: "The watch design is good but the overall finish could be improved.",
-        status: "Published",
-        date: "2026-11-02T11:20:00+05:30",
-    },
-    {
-        productId: "preview-snacks",
-        rating: 1,
-        title: "Content under moderation",
-        comment: "This review was hidden during a previous moderation check.",
-        status: "Hidden",
-        date: "2026-11-01T14:05:00+05:30",
-    },
-    {
-        productId: "preview-trolley",
-        rating: 5,
-        title: "Good travel bag",
-        comment: "The bag is convenient for short trips and the compartments are useful.",
-        status: "Published",
-        date: "2026-11-01T10:45:00+05:30",
-    },
-    {
-        productId: "preview-personal-care",
-        rating: 2,
-        title: "Needs improvement",
-        comment: "The packaging could be improved to protect the items better.",
-        status: "Flagged",
-        date: "2026-10-31T18:00:00+05:30",
-    },
-    {
-        productId: "preview-shoes",
-        rating: 3,
-        title: "Review removed from display",
-        comment: "The quality seems average for the listed price.",
-        status: "Hidden",
-        date: "2026-10-30T12:10:00+05:30",
-    },
-];
-
-const initialReviews = previewReviews.map((review, index) => ({
-    id: `ZRV${1001 + index}`,
-    productId: review.productId,
-    customerName: `Preview Customer ${String(index + 1).padStart(2, "0")}`,
-    rating: review.rating,
-    title: review.title,
-    comment: review.comment,
-    status: review.status,
-    createdAt: review.date,
-    updatedAt: null,
-    moderationReason: review.status === "Hidden"
-        ? "Hidden in preview moderation history."
-        : review.status === "Flagged"
-            ? "Requires admin moderation review."
-            : "",
-    moderationHistory: [],
-}));
-
 const statusOptions = ["Published", "Flagged", "Hidden"];
-
-// ================== HELPERS ==================
-function readList(key) {
-    try {
-        const value = JSON.parse(localStorage.getItem(key));
-        return Array.isArray(value) ? value : null;
-    } catch {
-        return null;
-    }
-}
-
-function loadReviews() {
-    return readList(STORAGE_KEY) || initialReviews;
-}
-
-function loadProducts() {
-    return readList(PRODUCT_KEY) || productCatalog;
-}
 
 function formatDate(value) {
     if (!value) return "—";
@@ -183,11 +43,12 @@ function formatDate(value) {
 }
 
 function ReviewBadge({ status }) {
-    const theme = {
-        Published: "success",
-        Flagged: "warning",
-        Hidden: "danger",
-    }[status] || "neutral";
+    const theme =
+        {
+            Published: "success",
+            Flagged: "warning",
+            Hidden: "danger",
+        }[status] || "neutral";
 
     return (
         <span className={`mr-badge mr-badge--${theme}`}>
@@ -208,8 +69,8 @@ function DetailItem({ label, value }) {
 
 // ================== REVIEW MANAGEMENT ==================
 function Reviews() {
-    const [reviews, setReviews] = useState(loadReviews);
-    const [products, setProducts] = useState(loadProducts);
+    const [reviews, setReviews] = useState([]);
+    const [products, setProducts] = useState([]);
 
     // ================== FILTERS ==================
     const [search, setSearch] = useState("");
@@ -229,21 +90,18 @@ function Reviews() {
     const actionReview = reviews.find((review) => review.id === action?.id);
 
     const getProduct = (productId) =>
-        products.find((product) =>
-            String(product.id || product._id) === String(productId)
-        ) || productCatalog.find((product) => product._id === productId);
+        products.find((product) => String(product.id || product._id) === String(productId));
 
-    const getProductName = (productId) =>
-        getProduct(productId)?.name || "Product Unavailable";
+    const getProductName = (productId) => getProduct(productId)?.name || "Product Unavailable";
 
-    // ================== SAVE RECORDS ==================
+    const loadReviews = async () => {
+        const { data } = await api.get("/reviews/manage");
+        setReviews(data.reviews);
+        setProducts([...new Map(data.products.map((p) => [p._id, p])).values()]);
+    };
     useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(reviews));
-        } catch {
-            // Keep React state available if storage fails.
-        }
-    }, [reviews]);
+        loadReviews().catch((error) => toast.error(error.message));
+    }, []);
 
     // ================== STATISTICS ==================
     const statistics = [
@@ -295,23 +153,25 @@ function Reviews() {
                 review.productId,
                 getProductName(review.productId),
             ].some((value) =>
-                String(value || "").toLowerCase().includes(query)
+                String(value || "")
+                    .toLowerCase()
+                    .includes(query)
             );
 
-            return matchesSearch &&
+            return (
+                matchesSearch &&
                 (statusFilter === "All" || review.status === statusFilter) &&
                 (ratingFilter === "All" || review.rating === Number(ratingFilter)) &&
-                (productFilter === "All" || review.productId === productFilter);
+                (productFilter === "All" || review.productId === productFilter)
+            );
         }),
         "createdAt"
     );
 
-    const visibleReviews = filteredReviews.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
-    );
+    const visibleReviews = filteredReviews.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
-    const hasFilters = Boolean(search.trim()) ||
+    const hasFilters =
+        Boolean(search.trim()) ||
         statusFilter !== "All" ||
         ratingFilter !== "All" ||
         productFilter !== "All";
@@ -326,8 +186,8 @@ function Reviews() {
     };
 
     const handleRefresh = () => {
-        setReviews(loadReviews());
-        setProducts(loadProducts());
+        loadReviews().catch((error) => toast.error(error.message));
+
         setPage(0);
         toast.info("Review records refreshed.");
     };
@@ -352,63 +212,23 @@ function Reviews() {
         setActionError("");
     };
 
-    const handleModeration = () => {
-        if (!action || !actionReview ||
-            actionReview.status !== action.previousStatus) {
-            toast.error("Review status has changed. Please refresh.");
+    const handleModeration = async () => {
+        if (!actionReview) return;
+        try {
+            await api.patch(`/reviews/${actionReview.id}`, {
+                status: {
+                    flag: "Flagged",
+                    hide: "Hidden",
+                    publish: "Published",
+                    restore: "Published",
+                }[action.type],
+                reason: reason.trim(),
+            });
+            await loadReviews();
             closeAction();
-            return;
+        } catch (error) {
+            setActionError(error.message);
         }
-
-        const transitions = {
-            Published: ["Flagged", "Hidden"],
-            Flagged: ["Published", "Hidden"],
-            Hidden: ["Published"],
-        };
-
-        const nextStatus = {
-            flag: "Flagged",
-            hide: "Hidden",
-            publish: "Published",
-            restore: "Published",
-        }[action.type];
-
-        if (!transitions[actionReview.status]?.includes(nextStatus)) {
-            setActionError("This moderation action is not available.");
-            return;
-        }
-
-        const note = reason.trim();
-
-        if (note.length < 5 || note.length > 300) {
-            setActionError("Enter a moderation reason containing 5–300 characters.");
-            return;
-        }
-
-        const now = new Date().toISOString();
-
-        setReviews((previous) => previous.map((review) =>
-            review.id === action.id
-                ? {
-                      ...review,
-                      status: nextStatus,
-                      moderationReason: note,
-                      updatedAt: now,
-                      moderationHistory: [
-                          ...(review.moderationHistory || []),
-                          {
-                              from: review.status,
-                              to: nextStatus,
-                              reason: note,
-                              date: now,
-                          },
-                      ],
-                  }
-                : review
-        ));
-
-        toast.success(`Review status updated to ${nextStatus}.`);
-        closeAction();
     };
 
     // ================== PAGE CONTENT ==================
@@ -423,8 +243,8 @@ function Reviews() {
                     </span>
 
                     <p>
-                        Monitor customer feedback and moderate product reviews
-                        while preserving original ratings and comments.
+                        Monitor customer feedback and moderate product reviews while preserving
+                        original ratings and comments.
                     </p>
                 </div>
 
@@ -470,9 +290,7 @@ function Reviews() {
                         </div>
                     </div>
 
-                    <span className="mr-record-count">
-                        {filteredReviews.length} Records
-                    </span>
+                    <span className="mr-record-count">{filteredReviews.length} Records</span>
                 </div>
 
                 {/* ================== FILTERS ================== */}
@@ -514,7 +332,9 @@ function Reviews() {
                         <MenuItem value="All">All Statuses</MenuItem>
 
                         {statusOptions.map((status) => (
-                            <MenuItem key={status} value={status}>{status}</MenuItem>
+                            <MenuItem key={status} value={status}>
+                                {status}
+                            </MenuItem>
                         ))}
                     </TextField>
 
@@ -744,11 +564,7 @@ function Reviews() {
                                 <h4>Customer Feedback</h4>
 
                                 <div className="mr-detail-feedback">
-                                    <Rating
-                                        value={selectedReview.rating}
-                                        readOnly
-                                        size="medium"
-                                    />
+                                    <Rating value={selectedReview.rating} readOnly size="medium" />
 
                                     <strong>{selectedReview.title}</strong>
                                     <p>{selectedReview.comment}</p>
@@ -757,9 +573,9 @@ function Reviews() {
 
                             {selectedReview.moderationReason && (
                                 <Alert
-                                    severity={selectedReview.status === "Hidden"
-                                        ? "warning"
-                                        : "info"}
+                                    severity={
+                                        selectedReview.status === "Hidden" ? "warning" : "info"
+                                    }
                                     className="mr-alert"
                                 >
                                     <strong>Latest Moderation Note:</strong>{" "}
@@ -788,9 +604,8 @@ function Reviews() {
                             )}
 
                             <Alert severity="info" className="mr-alert">
-                                Moderation controls review visibility only.
-                                Customer rating and original feedback cannot be edited
-                                by Admin.
+                                Moderation controls review visibility only. Customer rating and
+                                original feedback cannot be edited by Admin.
                             </Alert>
                         </DialogContent>
 
@@ -874,8 +689,8 @@ function Reviews() {
 
                     {action?.type === "hide" && (
                         <Alert severity="warning" className="mr-alert">
-                            Hiding this review changes its moderation visibility.
-                            The original review will remain saved.
+                            Hiding this review changes its moderation visibility. The original
+                            review will remain saved.
                         </Alert>
                     )}
 

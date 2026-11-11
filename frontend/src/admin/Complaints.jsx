@@ -1,3 +1,4 @@
+import api from "../services/api";
 
 import { useEffect, useState } from "react";
 import {
@@ -23,7 +24,6 @@ import { toast } from "react-toastify";
 import { sortNewestFirst } from "../utils/sortNewestFirst";
 
 // ================== COMPLAINT CONFIGURATION ==================
-const STORAGE_KEY = "zupito_admin_complaints";
 
 const categories = [
     { value: "order", label: "Order & Delivery" },
@@ -35,146 +35,6 @@ const categories = [
 ];
 
 const statuses = ["Open", "In Progress", "Resolved", "Closed"];
-
-const sampleTickets = [
-    {
-        id: "ZCT1010",
-        customer: "Preview Customer 10",
-        orderId: "ZUP-20261103-1001",
-        category: "order",
-        subject: "Parcel delivery update required",
-        description: "The order contains multiple parcels. I need an update regarding the second parcel delivery.",
-        status: "Open",
-        createdAt: "2026-11-05T16:40:00+05:30",
-    },
-    {
-        id: "ZCT1009",
-        customer: "Preview Customer 09",
-        orderId: "ZUP-20261102-1002",
-        category: "product",
-        subject: "Received a different product size",
-        description: "The product delivered to me has a different size from the variant selected during checkout.",
-        status: "Open",
-        createdAt: "2026-11-05T10:15:00+05:30",
-    },
-    {
-        id: "ZCT1008",
-        customer: "Preview Customer 08",
-        orderId: null,
-        category: "account",
-        subject: "Unable to update account information",
-        description: "I would like to update my profile details but I am unable to save my changes.",
-        status: "In Progress",
-        createdAt: "2026-11-04T17:30:00+05:30",
-    },
-    {
-        id: "ZCT1007",
-        customer: "Preview Customer 07",
-        orderId: "ZUP-20261028-1004",
-        category: "payment",
-        subject: "Refund status clarification",
-        description: "My order was cancelled and I need clarification about the current refund status.",
-        status: "Open",
-        createdAt: "2026-11-04T12:20:00+05:30",
-    },
-    {
-        id: "ZCT1006",
-        customer: "Preview Customer 06",
-        orderId: "ZUP-20261024-1005",
-        category: "replacement",
-        subject: "Replacement pickup information",
-        description: "My replacement request is under review. Please provide information about the pickup process.",
-        status: "In Progress",
-        createdAt: "2026-11-03T15:50:00+05:30",
-    },
-    {
-        id: "ZCT1005",
-        customer: "Preview Customer 05",
-        orderId: "ZUP-20261020-1006",
-        category: "order",
-        subject: "Unable to find delivery details",
-        description: "The delivery timeline is not showing the full parcel tracking information.",
-        status: "Resolved",
-        createdAt: "2026-11-02T14:10:00+05:30",
-    },
-    {
-        id: "ZCT1004",
-        customer: "Preview Customer 04",
-        orderId: "ZUP-20261015-1007",
-        category: "product",
-        subject: "Product packaging concern",
-        description: "The original item packaging was damaged. I wanted to confirm what information was required.",
-        status: "Closed",
-        createdAt: "2026-10-30T11:40:00+05:30",
-    },
-    {
-        id: "ZCT1003",
-        customer: "Preview Customer 03",
-        orderId: null,
-        category: "other",
-        subject: "Need help finding product information",
-        description: "I need some clarification about the available product specifications before placing an order.",
-        status: "Resolved",
-        createdAt: "2026-10-28T13:15:00+05:30",
-    },
-    {
-        id: "ZCT1002",
-        customer: "Preview Customer 02",
-        orderId: "ZUP-20261020-1006",
-        category: "payment",
-        subject: "Payment confirmation question",
-        description: "I would like to understand how the payment confirmation appears after checkout.",
-        status: "Closed",
-        createdAt: "2026-10-25T10:25:00+05:30",
-    },
-    {
-        id: "ZCT1001",
-        customer: "Preview Customer 01",
-        orderId: null,
-        category: "account",
-        subject: "Help with account access",
-        description: "I needed assistance locating the password recovery option in my account.",
-        status: "Resolved",
-        createdAt: "2026-10-21T09:40:00+05:30",
-    },
-];
-
-const initialComplaints = sampleTickets.map((ticket) => ({
-    ...ticket,
-    replies: ["Resolved", "Closed"].includes(ticket.status)
-        ? [{
-              id: `REPLY-${ticket.id}`,
-              message: "We have reviewed your request and recorded the relevant support information.",
-              createdAt: ticket.createdAt,
-              author: "Admin Support (Preview)",
-          }]
-        : [],
-    history: [
-        {
-            action: "Complaint Created",
-            date: ticket.createdAt,
-            note: "Support request recorded in preview data.",
-        },
-    ],
-    resolution: ["Resolved", "Closed"].includes(ticket.status)
-        ? "Support information reviewed and provided."
-        : "",
-    updatedAt: ticket.createdAt,
-    source: "Preview",
-}));
-
-// ================== HELPERS ==================
-function loadComplaints() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-
-        if (Array.isArray(saved)) return saved;
-    } catch {
-        // Use preview records.
-    }
-
-    return initialComplaints;
-}
 
 function formatDate(value) {
     if (!value) return "—";
@@ -198,12 +58,13 @@ function getCategoryLabel(category) {
 }
 
 function StatusBadge({ status }) {
-    const theme = {
-        Open: "danger",
-        "In Progress": "warning",
-        Resolved: "success",
-        Closed: "neutral",
-    }[status] || "neutral";
+    const theme =
+        {
+            Open: "danger",
+            "In Progress": "warning",
+            Resolved: "success",
+            Closed: "neutral",
+        }[status] || "neutral";
 
     return (
         <span className={`cp-badge cp-badge--${theme}`}>
@@ -224,7 +85,7 @@ function DetailItem({ label, value }) {
 
 // ================== COMPLAINT MANAGEMENT ==================
 function Complaints() {
-    const [complaints, setComplaints] = useState(loadComplaints);
+    const [complaints, setComplaints] = useState([]);
 
     // ================== SEARCH AND FILTERS ==================
     const [search, setSearch] = useState("");
@@ -247,14 +108,11 @@ function Complaints() {
     const replyComplaint = complaints.find((item) => item.id === replyId);
     const actionComplaint = complaints.find((item) => item.id === statusAction?.id);
 
-    // ================== PERSIST RECORDS ==================
+    const loadComplaints = async () =>
+        setComplaints((await api.get("/complaints")).data.complaints);
     useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(complaints));
-        } catch {
-            // Continue with React state.
-        }
-    }, [complaints]);
+        loadComplaints().catch((error) => toast.error(error.message));
+    }, []);
 
     // ================== STATISTICS ==================
     const statistics = [
@@ -281,9 +139,7 @@ function Complaints() {
         },
         {
             label: "Resolved Tickets",
-            value: complaints.filter((item) =>
-                ["Resolved", "Closed"].includes(item.status)
-            ).length,
+            value: complaints.filter((item) => ["Resolved", "Closed"].includes(item.status)).length,
             description: "Resolution recorded",
             icon: "fa-circle-check",
             theme: "green",
@@ -303,12 +159,16 @@ function Complaints() {
                 item.description,
                 getCategoryLabel(item.category),
             ].some((value) =>
-                String(value || "").toLowerCase().includes(query)
+                String(value || "")
+                    .toLowerCase()
+                    .includes(query)
             );
 
-            return matchesSearch &&
+            return (
+                matchesSearch &&
                 (statusFilter === "All" || item.status === statusFilter) &&
-                (categoryFilter === "All" || item.category === categoryFilter);
+                (categoryFilter === "All" || item.category === categoryFilter)
+            );
         }),
         "createdAt"
     );
@@ -318,9 +178,7 @@ function Complaints() {
         (page + 1) * rowsPerPage
     );
 
-    const hasFilters = Boolean(search.trim()) ||
-        statusFilter !== "All" ||
-        categoryFilter !== "All";
+    const hasFilters = Boolean(search.trim()) || statusFilter !== "All" || categoryFilter !== "All";
 
     // ================== FILTER ACTIONS ==================
     const resetFilters = () => {
@@ -331,7 +189,7 @@ function Complaints() {
     };
 
     const handleRefresh = () => {
-        setComplaints(loadComplaints());
+        loadComplaints().catch((error) => toast.error(error.message));
         setPage(0);
         toast.info("Complaint records refreshed.");
     };
@@ -350,61 +208,18 @@ function Complaints() {
         setReplyError("");
     };
 
-    const handleReply = () => {
-        if (!replyComplaint ||
-            !["Open", "In Progress"].includes(replyComplaint.status)) {
-            setReplyError("This complaint is not open for new responses.");
-            return;
+    const handleReply = async () => {
+        if (!replyComplaint) return;
+        try {
+            await api.patch(`/complaints/${replyId}`, { message: replyText.trim() });
+            await loadComplaints();
+            closeReply();
+        } catch (error) {
+            setReplyError(error.message);
         }
-
-        const message = replyText.trim();
-
-        if (message.length < 10 || message.length > 1500) {
-            setReplyError("Response must contain 10–1,500 characters.");
-            return;
-        }
-
-        const now = new Date().toISOString();
-
-        setComplaints((previous) => previous.map((complaint) =>
-            complaint.id === replyId
-                ? {
-                      ...complaint,
-                      status: "In Progress",
-                      updatedAt: now,
-                      replies: [
-                          ...(complaint.replies || []),
-                          {
-                              id: `REPLY-${crypto.randomUUID()}`,
-                              author: "Admin Support (Preview)",
-                              message,
-                              createdAt: now,
-                          },
-                      ],
-                      history: [
-                          ...(complaint.history || []),
-                          {
-                              action: "Admin Response Recorded",
-                              date: now,
-                              note: "A support response was saved in preview records.",
-                          },
-                      ],
-                  }
-                : complaint
-        ));
-
-        toast.success("Admin response saved to preview records.");
-        closeReply();
     };
 
     // ================== STATUS MANAGEMENT ==================
-    const allowedActions = {
-        Open: ["start"],
-        "In Progress": ["resolve"],
-        Resolved: ["close", "reopen"],
-        Closed: ["reopen"],
-    };
-
     const statusTransitions = {
         start: "In Progress",
         resolve: "Resolved",
@@ -436,66 +251,18 @@ function Complaints() {
         setActionError("");
     };
 
-    const handleStatusUpdate = () => {
-        if (!statusAction || !actionComplaint ||
-            actionComplaint.status !== statusAction.previousStatus) {
-            toast.error("Complaint status has changed. Please refresh.");
+    const handleStatusUpdate = async () => {
+        if (!actionComplaint) return;
+        try {
+            await api.patch(`/complaints/${actionComplaint.id}`, {
+                status: statusTransitions[statusAction.type],
+                note: actionNote.trim(),
+            });
+            await loadComplaints();
             closeStatusAction();
-            return;
+        } catch (error) {
+            setActionError(error.message);
         }
-
-        if (!allowedActions[actionComplaint.status]?.includes(statusAction.type)) {
-            setActionError("This status change is not available.");
-            return;
-        }
-
-        if (statusAction.type === "resolve" &&
-            !(actionComplaint.replies || []).length) {
-            setActionError("Record an Admin response before resolving the complaint.");
-            return;
-        }
-
-        const note = actionNote.trim();
-        const noteRequired = ["resolve", "reopen"].includes(statusAction.type);
-
-        if (noteRequired && (note.length < 10 || note.length > 300)) {
-            setActionError("Enter a reason or resolution containing 10–300 characters.");
-            return;
-        }
-
-        if (note.length > 300) {
-            setActionError("Internal note cannot exceed 300 characters.");
-            return;
-        }
-
-        const nextStatus = statusTransitions[statusAction.type];
-        const now = new Date().toISOString();
-
-        setComplaints((previous) => previous.map((complaint) =>
-            complaint.id === statusAction.id
-                ? {
-                      ...complaint,
-                      status: nextStatus,
-                      updatedAt: now,
-                      resolution: statusAction.type === "resolve"
-                          ? note
-                          : statusAction.type === "reopen"
-                              ? ""
-                              : complaint.resolution,
-                      history: [
-                          ...(complaint.history || []),
-                          {
-                              action: actionLabels[statusAction.type],
-                              date: now,
-                              note: note || `Complaint moved to ${nextStatus}.`,
-                          },
-                      ],
-                  }
-                : complaint
-        ));
-
-        toast.success(`Complaint moved to ${nextStatus}.`);
-        closeStatusAction();
     };
 
     return (
@@ -509,8 +276,8 @@ function Complaints() {
                     </span>
 
                     <p>
-                        Track support requests, respond to customer concerns
-                        and manage complaint resolution history.
+                        Track support requests, respond to customer concerns and manage complaint
+                        resolution history.
                     </p>
                 </div>
 
@@ -552,15 +319,11 @@ function Complaints() {
 
                         <div>
                             <h2>Customer Complaints</h2>
-                            <p>
-                                Manage support tickets, responses and resolution status.
-                            </p>
+                            <p>Manage support tickets, responses and resolution status.</p>
                         </div>
                     </div>
 
-                    <span className="cp-record-count">
-                        {filteredComplaints.length} Records
-                    </span>
+                    <span className="cp-record-count">{filteredComplaints.length} Records</span>
                 </div>
 
                 {/* ================== SEARCH AND FILTERS ================== */}
@@ -808,8 +571,7 @@ function Complaints() {
 
                             {selectedComplaint.resolution && (
                                 <Alert severity="success" className="cp-alert">
-                                    <strong>Resolution:</strong>{" "}
-                                    {selectedComplaint.resolution}
+                                    <strong>Resolution:</strong> {selectedComplaint.resolution}
                                 </Alert>
                             )}
 
@@ -855,8 +617,8 @@ function Complaints() {
                             </div>
 
                             <Alert severity="info" className="cp-alert">
-                                Admin responses are saved only in frontend preview records.
-                                They are not yet delivered to customer accounts.
+                                Admin responses are visible to the customer. They are not yet
+                                delivered to customer accounts.
                             </Alert>
                         </DialogContent>
 
@@ -894,7 +656,9 @@ function Complaints() {
 
                                     <Button
                                         variant="contained"
-                                        onClick={() => openStatusAction(selectedComplaint, "resolve")}
+                                        onClick={() =>
+                                            openStatusAction(selectedComplaint, "resolve")
+                                        }
                                     >
                                         Resolve
                                     </Button>
@@ -905,7 +669,9 @@ function Complaints() {
                                 <>
                                     <Button
                                         variant="outlined"
-                                        onClick={() => openStatusAction(selectedComplaint, "reopen")}
+                                        onClick={() =>
+                                            openStatusAction(selectedComplaint, "reopen")
+                                        }
                                     >
                                         Reopen
                                     </Button>
@@ -948,8 +714,8 @@ function Complaints() {
                     </p>
 
                     <Alert severity="info" className="cp-alert">
-                        Response will be saved to this preview ticket.
-                        Customer notification is not connected.
+                        Response will be saved to this support ticket. Customer notification is not
+                        connected.
                     </Alert>
 
                     <TextField
@@ -988,9 +754,7 @@ function Complaints() {
                 maxWidth="xs"
                 slotProps={{ paper: { className: "cp-dialog" } }}
             >
-                <DialogTitle>
-                    {actionLabels[statusAction?.type] || "Update Complaint"}
-                </DialogTitle>
+                <DialogTitle>{actionLabels[statusAction?.type] || "Update Complaint"}</DialogTitle>
 
                 <DialogContent dividers>
                     <p className="cp-confirm-text">
@@ -998,15 +762,15 @@ function Complaints() {
                     </p>
 
                     <Alert severity="info" className="cp-alert">
-                        New status: <strong>
-                            {statusTransitions[statusAction?.type]}
-                        </strong>
+                        New status: <strong>{statusTransitions[statusAction?.type]}</strong>
                     </Alert>
 
                     <TextField
-                        label={statusAction?.type === "resolve"
-                            ? "Resolution Summary"
-                            : "Internal Note"}
+                        label={
+                            statusAction?.type === "resolve"
+                                ? "Resolution Summary"
+                                : "Internal Note"
+                        }
                         value={actionNote}
                         onChange={(event) => {
                             setActionNote(event.target.value);

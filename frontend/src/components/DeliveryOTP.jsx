@@ -1,4 +1,4 @@
-export default function DeliveryOTP({ otp, visible, onToggle, isDemo }) {
+export default function DeliveryOTP({ otp, visible, onToggle }) {
     return (
         <div className="customer-detail-otp-card">
             <div className="customer-detail-otp-heading">
@@ -20,13 +20,17 @@ export default function DeliveryOTP({ otp, visible, onToggle, isDemo }) {
                     onClick={onToggle}
                     aria-label={visible ? "Hide delivery OTP" : "Show delivery OTP"}
                 >
-                    <i className={`fa-solid ${visible ? "fa-eye-slash" : "fa-eye"}`} aria-hidden="true" />
+                    <i
+                        className={`fa-solid ${visible ? "fa-eye-slash" : "fa-eye"}`}
+                        aria-hidden="true"
+                    />
                 </button>
             </div>
 
-            <p>Share this code only with the delivery agent when this package reaches your doorstep.</p>
-
-            {isDemo && <small>Sample OTP for design preview only.</small>}
+            <p>
+                Share this code only with the delivery agent when this package reaches your
+                doorstep.
+            </p>
         </div>
     );
 }

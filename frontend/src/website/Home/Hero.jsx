@@ -9,7 +9,7 @@ const slides = [
         description: "Discover gadgets and accessories for work, play and everything in between.",
         image: "/images/hero_electronics.webp",
         button: "Explore Electronics",
-        path: "/products?search=electronics"
+        path: "/products?search=electronics",
     },
     {
         id: "fashion",
@@ -18,7 +18,7 @@ const slides = [
         description: "Explore clothing and accessories that bring your everyday wardrobe together.",
         image: "/images/hero_fashion.webp",
         button: "Explore Fashion",
-        path: "/products?search=fashion"
+        path: "/products?search=fashion",
     },
     {
         id: "grocery",
@@ -27,8 +27,8 @@ const slides = [
         description: "Shop fresh produce and everyday essentials for your kitchen and beyond.",
         image: "/images/hero_grocery.webp",
         button: "Explore Grocery",
-        path: "/products?search=grocery"
-    }
+        path: "/products?search=grocery",
+    },
 ];
 
 function Hero() {
@@ -51,7 +51,11 @@ function Hero() {
     };
 
     return (
-        <section className="home-hero" aria-label="Featured collections" aria-roledescription="carousel">
+        <section
+            className="home-hero"
+            aria-label="Featured collections"
+            aria-roledescription="carousel"
+        >
             <div className="container-fluid website-shell">
                 <div className="home-hero-slider">
                     {/* Full-width image banners */}
@@ -59,7 +63,7 @@ function Hero() {
                         id="home-hero-slides"
                         className="home-hero-slides"
                         style={{
-                            transform: `translate3d(-${activeIndex * 100}%, 0, 0)`
+                            transform: `translate3d(-${activeIndex * 100}%, 0, 0)`,
                         }}
                         aria-live={isPlaying ? "off" : "polite"}
                     >
@@ -142,7 +146,9 @@ function Hero() {
                             type="button"
                             className="home-hero-play"
                             onClick={() => setIsPlaying((current) => !current)}
-                            aria-label={isPlaying ? "Pause automatic slides" : "Start automatic slides"}
+                            aria-label={
+                                isPlaying ? "Pause automatic slides" : "Start automatic slides"
+                            }
                         >
                             <i
                                 className={`fa-solid ${isPlaying ? "fa-pause" : "fa-play"}`}

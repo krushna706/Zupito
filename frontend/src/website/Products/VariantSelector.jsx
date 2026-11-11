@@ -12,7 +12,8 @@ function VariantSelector({ product, selectedVariant }) {
 
     if (!variants.length || !selectedVariant) return null;
 
-    const getLabel = (group, value) => group.values.find((item) => item.value === value)?.label ?? value;
+    const getLabel = (group, value) =>
+        group.values.find((item) => item.value === value)?.label ?? value;
 
     const findVariant = (key, value) => {
         const candidates = variants.filter((variant) => variant.options?.[key] === value);
@@ -48,14 +49,17 @@ function VariantSelector({ product, selectedVariant }) {
         const variantId = getVariantId(variant);
 
         const changes = groups
-            .filter((item) => item.key !== group.key && selection[item.key] !== variant.options?.[item.key])
+            .filter(
+                (item) =>
+                    item.key !== group.key && selection[item.key] !== variant.options?.[item.key]
+            )
             .map((item) => `${item.label}: ${getLabel(item, variant.options?.[item.key])}`);
 
         setNotice(
             changes.length
                 ? {
                       variantId,
-                      text: `Updated to ${changes.join(", ")} to match this option.`
+                      text: `Updated to ${changes.join(", ")} to match this option.`,
                   }
                 : null
         );

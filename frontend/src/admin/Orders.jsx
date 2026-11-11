@@ -20,11 +20,7 @@ import {
 } from "@mui/material";
 
 import { useOrderResource } from "../services/orderService";
-import {
-    normalizeStatus,
-    getStatusLabel,
-    formatDateTime,
-} from "../utils/orderStatus";
+import { normalizeStatus, getStatusLabel, formatDateTime } from "../utils/orderStatus";
 
 // ================== ORDER HELPERS ==================
 function getSeller(item) {
@@ -45,13 +41,11 @@ function getOrderGroup(order) {
     if (status === "cancelled") return "Cancelled";
     if (status === "delivered") return "Delivered";
 
-    if ([
-        "picked_up",
-        "shipped",
-        "in_transit",
-        "out_for_delivery",
-        "partially_delivered",
-    ].includes(status)) {
+    if (
+        ["picked_up", "shipped", "in_transit", "out_for_delivery", "partially_delivered"].includes(
+            status
+        )
+    ) {
         return "In Transit";
     }
 
@@ -65,14 +59,10 @@ function OrderBadge({ value }) {
         status === "delivered" || status === "resolved"
             ? "success"
             : status === "cancelled" || status === "open"
-                ? "danger"
-                : [
-                    "out_for_delivery",
-                    "shipped",
-                    "in_transit",
-                ].includes(status)
-                    ? "blue"
-                    : "warning";
+              ? "danger"
+              : ["out_for_delivery", "shipped", "in_transit"].includes(status)
+                ? "blue"
+                : "warning";
 
     return (
         <span className={`mo-badge mo-badge--${theme}`}>
@@ -93,12 +83,7 @@ function DetailItem({ label, value }) {
 
 // ================== MANAGE ORDERS ==================
 function Orders() {
-    const {
-        data,
-        loading,
-        error,
-        refresh,
-    } = useOrderResource("staff-list");
+    const { data, loading, error, refresh } = useOrderResource("staff-list");
 
     const orders = data || [];
 
@@ -112,35 +97,21 @@ function Orders() {
     // ================== ORDER DETAILS ==================
     const [selectedId, setSelectedId] = useState(null);
 
-    const selectedOrder = orders.find(
-        (order) => order.id === selectedId
-    );
+    const selectedOrder = orders.find((order) => order.id === selectedId);
 
     // ================== SELLER AND PARCEL HELPERS ==================
-    const getOrderSellers = (order) => [
-        ...new Set(order.items.map(getSeller)),
-    ];
+    const getOrderSellers = (order) => [...new Set(order.items.map(getSeller))];
 
     const getParcelItems = (order, parcel) =>
-        parcel.itemIndexes
-            .map((index) => order.items[index])
-            .filter(Boolean);
+        parcel.itemIndexes.map((index) => order.items[index]).filter(Boolean);
 
     const getParcelSeller = (order, parcel) => {
-        const sellers = [
-            ...new Set(
-                getParcelItems(order, parcel).map(getSeller)
-            ),
-        ];
+        const sellers = [...new Set(getParcelItems(order, parcel).map(getSeller))];
 
         return sellers.join(", ") || "Marketplace Seller";
     };
 
-    const sellerOptions = [
-        ...new Set(
-            orders.flatMap((order) => getOrderSellers(order))
-        ),
-    ].sort();
+    const sellerOptions = [...new Set(orders.flatMap((order) => getOrderSellers(order)))].sort();
 
     // ================== STATISTICS ==================
     const statistics = [
@@ -154,9 +125,7 @@ function Orders() {
         {
             label: "In Progress",
             value: orders.filter((order) =>
-                ["Processing", "In Transit"].includes(
-                    getOrderGroup(order)
-                )
+                ["Processing", "In Transit"].includes(getOrderGroup(order))
             ).length,
             description: "Awaiting fulfilment or delivery",
             icon: "fa-truck-fast",
@@ -164,18 +133,14 @@ function Orders() {
         },
         {
             label: "Delivered Orders",
-            value: orders.filter(
-                (order) => getOrderGroup(order) === "Delivered"
-            ).length,
+            value: orders.filter((order) => getOrderGroup(order) === "Delivered").length,
             description: "Completed customer deliveries",
             icon: "fa-circle-check",
             theme: "green",
         },
         {
             label: "Open Exceptions",
-            value: orders.filter(
-                (order) => order.exception?.status === "Open"
-            ).length,
+            value: orders.filter((order) => order.exception?.status === "Open").length,
             description: "Require admin attention",
             icon: "fa-triangle-exclamation",
             theme: "red",
@@ -183,47 +148,39 @@ function Orders() {
     ];
 
     // ================== FILTERED ORDERS ==================
-    const filteredOrders = orders.filter((order) => {
-        const query = search.trim().toLowerCase();
+    const filteredOrders = orders
+        .filter((order) => {
+            const query = search.trim().toLowerCase();
 
-        const matchesSearch = [
-            order.id,
-            order.customerName,
-            order.address?.phone,
-            order.address?.pincode,
-            ...order.items.map((item) => item.name),
-            ...getOrderSellers(order),
-        ].some((value) =>
-            String(value || "").toLowerCase().includes(query)
-        );
-
-        const matchesStatus =
-            statusFilter === "All" ||
-            (
-                statusFilter === "Exception"
-                    ? order.exception?.status === "Open"
-                    : getOrderGroup(order) === statusFilter
+            const matchesSearch = [
+                order.id,
+                order.customerName,
+                order.address?.phone,
+                order.address?.pincode,
+                ...order.items.map((item) => item.name),
+                ...getOrderSellers(order),
+            ].some((value) =>
+                String(value || "")
+                    .toLowerCase()
+                    .includes(query)
             );
 
-        const matchesSeller =
-            sellerFilter === "All" ||
-            getOrderSellers(order).includes(sellerFilter);
+            const matchesStatus =
+                statusFilter === "All" ||
+                (statusFilter === "Exception"
+                    ? order.exception?.status === "Open"
+                    : getOrderGroup(order) === statusFilter);
 
-        return matchesSearch && matchesStatus && matchesSeller;
-    }).sort(
-        (first, second) =>
-            new Date(second.createdAt) - new Date(first.createdAt)
-    );
+            const matchesSeller =
+                sellerFilter === "All" || getOrderSellers(order).includes(sellerFilter);
 
-    const visibleOrders = filteredOrders.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
-    );
+            return matchesSearch && matchesStatus && matchesSeller;
+        })
+        .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt));
 
-    const hasFilters =
-        Boolean(search.trim()) ||
-        statusFilter !== "All" ||
-        sellerFilter !== "All";
+    const visibleOrders = filteredOrders.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+
+    const hasFilters = Boolean(search.trim()) || statusFilter !== "All" || sellerFilter !== "All";
 
     // ================== FILTER ACTIONS ==================
     const resetFilters = () => {
@@ -245,29 +202,22 @@ function Orders() {
             date: order.createdAt,
         },
         ...(order.confirmedAt
-            ? [{
-                key: "confirmed",
-                label: "Payment Confirmed",
-                date: order.confirmedAt,
-            }]
+            ? [
+                  {
+                      key: "confirmed",
+                      label: "Payment Confirmed",
+                      date: order.confirmedAt,
+                  },
+              ]
             : []),
     ];
 
     return (
         <div className="manage-orders">
-            {loading && (
-                <p role="status">Loading orders…</p>
-            )}
+            {loading && <p role="status">Loading orders…</p>}
 
             {error && (
-                <Alert
-                    severity="error"
-                    action={
-                        <Button onClick={refresh}>
-                            Retry
-                        </Button>
-                    }
-                >
+                <Alert severity="error" action={<Button onClick={refresh}>Retry</Button>}>
                     {error}
                 </Alert>
             )}
@@ -276,16 +226,13 @@ function Orders() {
             <section className="mo-hero">
                 <div className="mo-hero-content">
                     <span className="zs-eyebrow">
-                        <i
-                            className="fa-solid fa-cart-shopping"
-                            aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-cart-shopping" aria-hidden="true" />
                         ORDER MANAGEMENT
                     </span>
 
                     <p>
-                        Monitor customer orders, seller fulfilment,
-                        parcel delivery and operational exceptions.
+                        Monitor customer orders, seller fulfilment, parcel delivery and operational
+                        exceptions.
                     </p>
                 </div>
 
@@ -302,24 +249,16 @@ function Orders() {
             {/* ================== STATISTICS ================== */}
             <section className="mo-stats" aria-label="Order overview">
                 {statistics.map((item) => (
-                    <article
-                        key={item.label}
-                        className={`mo-stat mo-stat--${item.theme}`}
-                    >
+                    <article key={item.label} className={`mo-stat mo-stat--${item.theme}`}>
                         <div className="mo-stat-heading">
                             <span>{item.label}</span>
 
                             <span className="mo-stat-icon">
-                                <i
-                                    className={`fa-solid ${item.icon}`}
-                                    aria-hidden="true"
-                                />
+                                <i className={`fa-solid ${item.icon}`} aria-hidden="true" />
                             </span>
                         </div>
 
-                        <strong className="mo-stat-value">
-                            {item.value}
-                        </strong>
+                        <strong className="mo-stat-value">{item.value}</strong>
 
                         <p>{item.description}</p>
                     </article>
@@ -331,24 +270,16 @@ function Orders() {
                 <div className="mo-section-header">
                     <div className="mo-section-heading">
                         <span className="mo-section-icon">
-                            <i
-                                className="fa-solid fa-clipboard-list"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-solid fa-clipboard-list" aria-hidden="true" />
                         </span>
 
                         <div>
                             <h2>Customer Orders</h2>
-                            <p>
-                                View order records, payment references
-                                and parcel progress.
-                            </p>
+                            <p>View order records, payment references and parcel progress.</p>
                         </div>
                     </div>
 
-                    <span className="mo-record-count">
-                        {filteredOrders.length} Records
-                    </span>
+                    <span className="mo-record-count">{filteredOrders.length} Records</span>
                 </div>
 
                 {/* ================== SEARCH AND FILTERS ================== */}
@@ -447,13 +378,9 @@ function Orders() {
                                 <TableRow key={order.id} hover>
                                     <TableCell>
                                         <div className="mo-cell-stack">
-                                            <strong className="mo-order-id">
-                                                {order.id}
-                                            </strong>
+                                            <strong className="mo-order-id">{order.id}</strong>
 
-                                            <small>
-                                                {formatDateTime(order.createdAt, true)}
-                                            </small>
+                                            <small>{formatDateTime(order.createdAt, true)}</small>
                                         </div>
                                     </TableCell>
 
@@ -462,17 +389,14 @@ function Orders() {
                                             <strong>{order.customerName}</strong>
 
                                             <small>
-                                                {order.address?.city},{" "}
-                                                {order.address?.state}
+                                                {order.address?.city}, {order.address?.state}
                                             </small>
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
                                         <div className="mo-cell-stack">
-                                            <strong>
-                                                {getOrderSellers(order).join(", ")}
-                                            </strong>
+                                            <strong>{getOrderSellers(order).join(", ")}</strong>
 
                                             <small>
                                                 {order.items.length} item(s) ·{" "}
@@ -528,10 +452,7 @@ function Orders() {
                                             <p>Try adjusting the search or filters.</p>
 
                                             {hasFilters && (
-                                                <Button
-                                                    variant="outlined"
-                                                    onClick={resetFilters}
-                                                >
+                                                <Button variant="outlined" onClick={resetFilters}>
                                                     Clear Filters
                                                 </Button>
                                             )}
@@ -570,35 +491,21 @@ function Orders() {
             >
                 {selectedOrder && (
                     <>
-                        <DialogTitle className="mo-dialog-title">
-                            Order Details
-                        </DialogTitle>
+                        <DialogTitle className="mo-dialog-title">Order Details</DialogTitle>
 
-                        <DialogContent
-                            dividers
-                            className="mo-dialog-content"
-                        >
+                        <DialogContent dividers className="mo-dialog-content">
                             <div className="mo-detail-banner">
                                 <div>
                                     <span>ORDER NUMBER</span>
                                     <h3>{selectedOrder.id}</h3>
 
-                                    <p>
-                                        {formatDateTime(
-                                            selectedOrder.createdAt,
-                                            true
-                                        )}
-                                    </p>
+                                    <p>{formatDateTime(selectedOrder.createdAt, true)}</p>
                                 </div>
 
                                 <div className="mo-detail-summary">
-                                    <OrderBadge
-                                        value={selectedOrder.orderStatus}
-                                    />
+                                    <OrderBadge value={selectedOrder.orderStatus} />
 
-                                    <strong>
-                                        {formatMoney(selectedOrder.totalAmount)}
-                                    </strong>
+                                    <strong>{formatMoney(selectedOrder.totalAmount)}</strong>
                                 </div>
                             </div>
 
@@ -634,10 +541,7 @@ function Orders() {
 
                                     <DetailItem
                                         label="Refund Status"
-                                        value={
-                                            selectedOrder.refundStatus ||
-                                            "Not Applicable"
-                                        }
+                                        value={selectedOrder.refundStatus || "Not Applicable"}
                                     />
                                 </dl>
                             </div>
@@ -647,15 +551,10 @@ function Orders() {
                                 <h4>Delivery Address Snapshot</h4>
 
                                 <div className="mo-address">
-                                    <i
-                                        className="fa-solid fa-location-dot"
-                                        aria-hidden="true"
-                                    />
+                                    <i className="fa-solid fa-location-dot" aria-hidden="true" />
 
                                     <div>
-                                        <strong>
-                                            {selectedOrder.address?.name}
-                                        </strong>
+                                        <strong>{selectedOrder.address?.name}</strong>
 
                                         <p>
                                             {[
@@ -665,7 +564,9 @@ function Orders() {
                                                 selectedOrder.address?.city,
                                                 selectedOrder.address?.state,
                                                 selectedOrder.address?.pincode,
-                                            ].filter(Boolean).join(", ")}
+                                            ]
+                                                .filter(Boolean)
+                                                .join(", ")}
                                         </p>
                                     </div>
                                 </div>
@@ -677,17 +578,11 @@ function Orders() {
 
                                 <div className="mo-parcel-list">
                                     {selectedOrder.parcels.map((parcel) => (
-                                        <article
-                                            key={parcel.id}
-                                            className="mo-parcel"
-                                        >
+                                        <article key={parcel.id} className="mo-parcel">
                                             <div className="mo-parcel-header">
                                                 <div>
                                                     <strong>
-                                                        {getParcelSeller(
-                                                            selectedOrder,
-                                                            parcel
-                                                        )}
+                                                        {getParcelSeller(selectedOrder, parcel)}
                                                     </strong>
 
                                                     <small>{parcel.id}</small>
@@ -697,34 +592,33 @@ function Orders() {
                                             </div>
 
                                             <div className="mo-parcel-items">
-                                                {getParcelItems(
-                                                    selectedOrder,
-                                                    parcel
-                                                ).map((item, index) => (
-                                                    <div
-                                                        className="mo-parcel-item"
-                                                        key={`${parcel.id}-${index}`}
-                                                    >
-                                                        <span className="mo-product-image">
-                                                            {item.image ? (
-                                                                <img
-                                                                    src={item.image}
-                                                                    alt={item.name || ""}
-                                                                    loading="lazy"
-                                                                />
-                                                            ) : (
-                                                                <i className="fa-solid fa-box-open" />
-                                                            )}
-                                                        </span>
+                                                {getParcelItems(selectedOrder, parcel).map(
+                                                    (item, index) => (
+                                                        <div
+                                                            className="mo-parcel-item"
+                                                            key={`${parcel.id}-${index}`}
+                                                        >
+                                                            <span className="mo-product-image">
+                                                                {item.image ? (
+                                                                    <img
+                                                                        src={item.image}
+                                                                        alt={item.name || ""}
+                                                                        loading="lazy"
+                                                                    />
+                                                                ) : (
+                                                                    <i className="fa-solid fa-box-open" />
+                                                                )}
+                                                            </span>
 
-                                                        <div>
-                                                            <strong>{item.name}</strong>
-                                                            <small>
-                                                                Quantity: {item.quantity}
-                                                            </small>
+                                                            <div>
+                                                                <strong>{item.name}</strong>
+                                                                <small>
+                                                                    Quantity: {item.quantity}
+                                                                </small>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    )
+                                                )}
                                             </div>
 
                                             {parcel.expectedDeliveryAt && (
@@ -744,18 +638,13 @@ function Orders() {
 
                                 <div className="mo-timeline">
                                     {getOrderTimeline(selectedOrder).map((event) => (
-                                        <div
-                                            className="mo-timeline-event"
-                                            key={event.key}
-                                        >
+                                        <div className="mo-timeline-event" key={event.key}>
                                             <span className="mo-timeline-dot" />
 
                                             <div>
                                                 <strong>{event.label}</strong>
 
-                                                <small>
-                                                    {formatDateTime(event.date, true)}
-                                                </small>
+                                                <small>{formatDateTime(event.date, true)}</small>
                                             </div>
                                         </div>
                                     ))}
@@ -770,13 +659,9 @@ function Orders() {
                                                 <span className="mo-timeline-dot" />
 
                                                 <div>
-                                                    <strong>
-                                                        {getStatusLabel(event.type)}
-                                                    </strong>
+                                                    <strong>{getStatusLabel(event.type)}</strong>
 
-                                                    <small>
-                                                        {formatDateTime(event.date)}
-                                                    </small>
+                                                    <small>{formatDateTime(event.date)}</small>
 
                                                     <p>
                                                         {event.parcelId} · {event.note}
@@ -796,25 +681,16 @@ function Orders() {
                                     }
                                     className="mo-detail-alert"
                                 >
-                                    <strong>
-                                        {selectedOrder.exception.status} Exception:
-                                    </strong>{" "}
+                                    <strong>{selectedOrder.exception.status} Exception:</strong>{" "}
                                     {selectedOrder.exception.reason}
-
                                     {selectedOrder.exception.resolution && (
-                                        <p>
-                                            Resolution:{" "}
-                                            {selectedOrder.exception.resolution}
-                                        </p>
+                                        <p>Resolution: {selectedOrder.exception.resolution}</p>
                                     )}
                                 </Alert>
                             )}
 
                             {selectedOrder.cancellationReason && (
-                                <Alert
-                                    severity="info"
-                                    className="mo-detail-alert"
-                                >
+                                <Alert severity="info" className="mo-detail-alert">
                                     <strong>Cancellation Reason:</strong>{" "}
                                     {selectedOrder.cancellationReason}
                                 </Alert>
@@ -822,10 +698,7 @@ function Orders() {
                         </DialogContent>
 
                         <DialogActions className="mo-dialog-actions">
-                            <Button
-                                color="inherit"
-                                onClick={() => setSelectedId(null)}
-                            >
+                            <Button color="inherit" onClick={() => setSelectedId(null)}>
                                 Close
                             </Button>
                         </DialogActions>

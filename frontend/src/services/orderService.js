@@ -19,9 +19,7 @@ export async function getCustomerOrders() {
 }
 
 export async function getCustomerOrder(id) {
-    const { data } = await api.get(
-        `/orders/${encodeURIComponent(id)}`
-    );
+    const { data } = await api.get(`/orders/${encodeURIComponent(id)}`);
 
     return data.order;
 }
@@ -45,20 +43,13 @@ export async function getManagedOrder(orderId, parcelId) {
     const path = `/orders/manage/${encodeURIComponent(orderId)}`;
 
     const { data } = await api.get(
-        parcelId
-            ? `${path}/parcels/${encodeURIComponent(parcelId)}`
-            : path
+        parcelId ? `${path}/parcels/${encodeURIComponent(parcelId)}` : path
     );
 
     return data.order;
 }
 
-export async function advanceSellerParcel(
-    orderId,
-    parcelId,
-    stage,
-    note = ""
-) {
+export async function advanceSellerParcel(orderId, parcelId, stage, note = "") {
     const status = {
         packing: "Packing",
         ready_for_pickup: "Ready for Pickup",
@@ -79,11 +70,7 @@ export async function advanceSellerParcel(
 }
 
 // ================== ORDER REFRESH ==================
-export function useOrderResource(
-    kind,
-    orderId = "",
-    parcelId = ""
-) {
+export function useOrderResource(kind, orderId = "", parcelId = "") {
     const { user } = useAuth();
     const accountId = user?._id || user?.id || "";
 
@@ -122,10 +109,10 @@ export function useOrderResource(
                     kind === "customer-list"
                         ? await getCustomerOrders()
                         : kind === "customer-detail"
-                            ? await getCustomerOrder(orderId)
-                            : kind === "staff-list"
-                                ? await getManagedOrders()
-                                : await getManagedOrder(orderId, parcelId);
+                          ? await getCustomerOrder(orderId)
+                          : kind === "staff-list"
+                            ? await getManagedOrders()
+                            : await getManagedOrder(orderId, parcelId);
 
                 if (active) {
                     setState({

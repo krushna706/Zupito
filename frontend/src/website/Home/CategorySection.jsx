@@ -26,9 +26,7 @@ function CategorySection({ categories = [] }) {
                                     )}
                                 </div>
 
-                                <span className="home-category-name">
-                                    {category.name}
-                                </span>
+                                <span className="home-category-name">{category.name}</span>
                             </Link>
                         </li>
                     ))}

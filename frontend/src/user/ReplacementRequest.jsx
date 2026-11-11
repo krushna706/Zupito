@@ -1,39 +1,40 @@
-import { useMemo, useState } from "react";
-import { Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from "@mui/material";
+import api from "../services/api";
+import { useEffect, useMemo, useState } from "react";
+import {
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    MenuItem,
+    TextField,
+} from "@mui/material";
 import { toast } from "react-toastify";
-
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const MAX_IMAGES = 3;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
 const reasons = [
     "Damaged item",
     "Defective or not working",
     "Wrong item received",
     "Missing parts or accessories",
-    "Other"
+    "Other",
 ];
-
 function getItemId(item) {
-    return String(item?.orderItemId || item?._id || item?.id || item?.demoItemId || "");
+    return String(item?.orderItemId || item?._id || item?.id || "");
 }
-
 function getProductName(item) {
-    return item?.productSnapshot?.name || item?.product?.name || item?.productName || item?.name || "Product";
+    return (
+        item?.productSnapshot?.name ||
+        item?.product?.name ||
+        item?.productName ||
+        item?.name ||
+        "Product"
+    );
 }
-
 function getItemQuantity(item) {
     const quantity = Number(item?.quantity);
     return Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 1;
 }
-
-function normalizeStatus(value) {
-    return String(value || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[\s-]+/g, "_");
-}
-
 function formatDateTime(value) {
     if (!value) return "Not available";
     const date = new Date(value);
@@ -45,32 +46,31 @@ function formatDateTime(value) {
         hour: "2-digit",
         minute: "2-digit",
         hour12: true,
-        timeZone: "Asia/Kolkata"
+        timeZone: "Asia/Kolkata",
     }).format(date);
 }
-
 function formatAddress(address) {
     if (!address) return "Unavailable";
     return [
         address.name,
         [address.house, address.area, address.landmark].filter(Boolean).join(", "),
-        [address.city, address.state, address.pincode].filter(Boolean).join(", ")
+        [address.city, address.state, address.pincode].filter(Boolean).join(", "),
     ]
         .filter(Boolean)
         .join(" · ");
 }
-
 function ReplacementRequestContent({
     open = false,
     onClose,
     order,
     items = [],
     address = null,
-    isDemo = false,
-    onSubmit
+    onSubmit,
 }) {
     const [itemId, setItemId] = useState(() => {
-        const item = items.find((entry) => entry?.replacementEligible !== false && getItemId(entry));
+        const item = items.find(
+            (entry) => entry?.replacementEligible !== false && getItemId(entry)
+        );
         return item ? getItemId(item) : "";
     });
     const [quantity, setQuantity] = useState(1);
@@ -79,19 +79,16 @@ function ReplacementRequestContent({
     const [images, setImages] = useState([]);
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
-
     const eligibleItems = useMemo(
-        () => items.filter((item) => item?.replacementEligible !== false && Boolean(getItemId(item))),
+        () =>
+            items.filter((item) => item?.replacementEligible !== false && Boolean(getItemId(item))),
         [items]
     );
-
     const selectedItem = eligibleItems.find((item) => getItemId(item) === itemId);
     const maxQuantity = selectedItem ? getItemQuantity(selectedItem) : 1;
-
     const close = () => {
         if (!submitting) onClose?.();
     };
-
     const selectImages = (event) => {
         const files = Array.from(event.target.files || []);
         event.target.value = "";
@@ -113,7 +110,6 @@ function ReplacementRequestContent({
         setImages((previous) => [...previous, ...files]);
         setError("");
     };
-
     const submit = async (event) => {
         event.preventDefault();
         if (!selectedItem) {
@@ -137,36 +133,39 @@ function ReplacementRequestContent({
             setError("Description cannot exceed 1000 characters.");
             return;
         }
-        if (isDemo || typeof onSubmit !== "function") {
-            toast.info("This is a preview. No replacement request was submitted.");
-            return;
-        }
-
         // API must verify item ownership, delivered status, category window and stock.
         try {
             setSubmitting(true);
-            const result = await onSubmit(order, {
+            const payload = {
                 orderItemId: getItemId(selectedItem),
-                productId: selectedItem.productId || selectedItem.product?._id || null,
-                variantId: selectedItem.variantId || selectedItem.productSnapshot?.variantId || null,
                 quantity: count,
                 reason,
                 description: description.trim(),
-                images
-            });
+                images,
+            };
+            let result;
+            if (onSubmit) result = await onSubmit(order, payload);
+            else {
+                const body = new FormData();
+                body.append("orderId", order._id || order.id);
+                for (const key of ["orderItemId", "quantity", "reason", "description"])
+                    body.append(key, payload[key]);
+                images.forEach((image) => body.append("images", image));
+                result = (await api.post("/replacements", body)).data;
+            }
             if (result?.success !== true) {
                 toast.error(result?.message || "Replacement request could not be confirmed.");
                 return;
             }
             toast.success(result?.message || "Replacement request submitted for review.");
+            window.dispatchEvent(new Event("zupito:replacements-updated"));
             onClose?.();
         } catch (err) {
-            toast.error(err?.response?.data?.message || "Unable to request replacement.");
+            toast.error(err.message || "Unable to request replacement.");
         } finally {
             setSubmitting(false);
         }
     };
-
     return (
         <Dialog
             open={open}
@@ -178,10 +177,14 @@ function ReplacementRequestContent({
         >
             <DialogTitle id="zupito-replacement-title">Request Product Replacement</DialogTitle>
             <DialogContent dividers>
-                <form id="customer-replacement-form" onSubmit={submit} className="customer-replacement-form">
+                <form
+                    id="customer-replacement-form"
+                    onSubmit={submit}
+                    className="customer-replacement-form"
+                >
                     <p>
-                        Choose a delivered product. Replacement is for the same product and variant, subject
-                        to category rules, approval and stock verification.
+                        Choose a delivered product. Replacement is for the same product and variant,
+                        subject to category rules, approval and stock verification.
                     </p>
                     {eligibleItems.length ? (
                         <>
@@ -217,7 +220,13 @@ function ReplacementRequestContent({
                                     setQuantity(event.target.value);
                                     setError("");
                                 }}
-                                slotProps={{ htmlInput: { min: 1, max: maxQuantity, step: 1 } }}
+                                slotProps={{
+                                    htmlInput: {
+                                        min: 1,
+                                        max: maxQuantity,
+                                        step: 1,
+                                    },
+                                }}
                                 helperText={`Purchased quantity: ${maxQuantity}`}
                             />
                             <TextField
@@ -287,7 +296,10 @@ function ReplacementRequestContent({
                                                         )
                                                     }
                                                 >
-                                                    <i className="fa-solid fa-xmark" aria-hidden="true" />
+                                                    <i
+                                                        className="fa-solid fa-xmark"
+                                                        aria-hidden="true"
+                                                    />
                                                 </button>
                                             </div>
                                         ))}
@@ -298,7 +310,8 @@ function ReplacementRequestContent({
                                 <strong>Original Delivery Address</strong>
                                 <p>{formatAddress(address)}</p>
                                 <small>
-                                    Replacement pickup and delivery will use the original address by default.
+                                    Replacement pickup and delivery will use the original address by
+                                    default.
                                 </small>
                             </div>
                         </>
@@ -337,66 +350,109 @@ function ReplacementRequestContent({
         </Dialog>
     );
 }
-
 export function ReplacementStatus({ order }) {
-    const source = order?.replacements ?? (order?.replacement ? [order.replacement] : []);
-    const replacements = Array.isArray(source) ? source : [];
-    if (!replacements.length) return null;
-
+    const [rows, setRows] = useState([]);
+    const [code, setCode] = useState(null);
+    const [loadError, setLoadError] = useState("");
+    const id = order?._id || order?.id;
+    useEffect(() => {
+        if (!id) return;
+        let active = true;
+        const refresh = () =>
+            api
+                .get("/replacements", {
+                    params: {
+                        orderId: id,
+                    },
+                })
+                .then(({ data }) => {
+                    if (active) {
+                        setRows(data.replacements);
+                        setLoadError("");
+                    }
+                })
+                .catch((error) => {
+                    if (active) setLoadError(error.message);
+                });
+        void refresh();
+        window.addEventListener("focus", refresh);
+        window.addEventListener("zupito:replacements-updated", refresh);
+        const timer = setInterval(refresh, 30000);
+        return () => {
+            active = false;
+            clearInterval(timer);
+            window.removeEventListener("focus", refresh);
+            window.removeEventListener("zupito:replacements-updated", refresh);
+        };
+    }, [id]);
+    const showCode = async (row) => {
+        try {
+            const { data } = await api.get(`/replacements/${row.id}/code`);
+            setCode({
+                ...data,
+                id: row.id,
+            });
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+    if (loadError)
+        return (
+            <p className="customer-replacement-error" role="alert">
+                Replacement tracking: {loadError}
+            </p>
+        );
+    if (!rows.length) return null;
     return (
-        <section className="customer-detail-card">
-            <div className="customer-detail-card-heading">
-                <span className="customer-detail-card-icon">
-                    <i className="fa-solid fa-rotate" aria-hidden="true" />
-                </span>
-                <div>
-                    <h3>Replacement Requests</h3>
-                    <p>Request progress and admin decisions</p>
+        <section className="customer-replacement-tracking">
+            <h3>Replacement Tracking</h3>
+            {rows.map((row) => (
+                <div className="customer-replacement-status-row" key={row.id}>
+                    <div>
+                        {row.item.image && (
+                            <img
+                                src={row.item.image}
+                                alt=""
+                                className="customer-replacement-thumbnail"
+                            />
+                        )}
+                        <strong>{row.item.name}</strong>
+                        <p>
+                            {row.item.variantLabel} · Quantity: {row.quantity}
+                        </p>
+                        <p>{row.status}</p>
+                        <p>{row.reason}</p>
+                        <p>{row.description}</p>
+                        <ol className="customer-replacement-history">
+                            {(row.history || []).map((entry, index) => (
+                                <li key={`${entry.date}-${index}`}>
+                                    <strong>{entry.status}</strong>
+                                    <p>{entry.note}</p>
+                                    <small>{formatDateTime(entry.date)}</small>
+                                </li>
+                            ))}
+                        </ol>
+                        <small>Requested: {formatDateTime(row.createdAt)}</small>
+                        {!["Rejected", "Completed"].includes(row.status) && (
+                            <button
+                                className="btn btn-outline-primary"
+                                onClick={() => showCode(row)}
+                            >
+                                View My Handover OTP
+                            </button>
+                        )}
+                        {code?.id === row.id && (
+                            <p role="status">
+                                <strong>{code.otp}</strong> · Expires{" "}
+                                {formatDateTime(code.expiresAt)}. Share only during handover.
+                            </p>
+                        )}
+                    </div>
                 </div>
-            </div>
-            <div className="customer-replacement-status-list">
-                {replacements.map((replacement, index) => {
-                    const status = normalizeStatus(replacement.status);
-                    const safeStatus = [
-                        "requested",
-                        "pending",
-                        "approved",
-                        "rejected",
-                        "pickup_assigned",
-                        "picked_up",
-                        "inspection",
-                        "ready_for_pickup",
-                        "out_for_delivery",
-                        "completed"
-                    ].includes(status)
-                        ? status
-                        : "other";
-                    return (
-                        <div
-                            className="customer-replacement-status-row"
-                            key={replacement._id || replacement.id || index}
-                        >
-                            <div>
-                                <strong>{replacement.productName || `Replacement ${index + 1}`}</strong>
-                                <span>
-                                    Requested:{" "}
-                                    {formatDateTime(replacement.createdAt || replacement.requestedAt)}
-                                </span>
-                                {replacement.adminNote && (
-                                    <span>Admin response: {replacement.adminNote}</span>
-                                )}
-                            </div>
-                            <span className={`customer-replacement-status is-${safeStatus}`}>
-                                {(status || "pending").replace(/_/g, " ")}
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
+            ))}
         </section>
     );
 }
-
 export default function ReplacementRequest(props) {
     if (!props.open) return null;
     return <ReplacementRequestContent key={props.order?._id || props.order?.id} {...props} />;

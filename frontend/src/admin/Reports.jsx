@@ -1,32 +1,41 @@
+import api from "../services/api";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-    Alert, Button, InputAdornment, MenuItem, Table, TableBody, TableCell,
-    TableContainer, TableHead, TablePagination, TableRow, TextField,
+    Alert,
+    Button,
+    InputAdornment,
+    MenuItem,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TablePagination,
+    TableRow,
+    TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
 
-import { demoOrders } from "../data/orderPreview";
-import { productCatalog } from "../data/productCatalog";
 import { sortNewestFirst } from "../utils/sortNewestFirst";
 
 // ================== DATA SOURCES ==================
-const KEYS = {
-    sellers: ["zupito_admin_sellers"],
-    customers: ["zupito_admin_customers", "zupito_admin_users"],
-    agents: ["zupito_admin_delivery_agents"],
-    categories: ["zupito_admin_categories"],
-    products: ["zupito_admin_products"],
-    orders: ["zupito_admin_orders"],
-    tasks: ["zupito_admin_delivery_assignments"],
-    payments: ["zupito_admin_payments"],
-    refunds: ["zupito_admin_refunds"],
-    replacements: ["zupito_admin_replacements"],
-    settlements: ["zupito_admin_settlements"],
-    coupons: ["zupito_admin_coupons"],
-    reviews: ["zupito_admin_reviews"],
-    complaints: ["zupito_admin_complaints"],
-};
+const COLLECTIONS = [
+    "sellers",
+    "customers",
+    "agents",
+    "categories",
+    "products",
+    "orders",
+    "tasks",
+    "payments",
+    "refunds",
+    "replacements",
+    "settlements",
+    "coupons",
+    "reviews",
+    "complaints",
+];
 
 const rupees = new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -36,113 +45,40 @@ const rupees = new Intl.NumberFormat("en-IN", {
 
 const number = new Intl.NumberFormat("en-IN");
 
-const amount = (value) =>
-    rupees.format(Number.isFinite(Number(value)) ? Number(value) : 0);
+const amount = (value) => rupees.format(Number.isFinite(Number(value)) ? Number(value) : 0);
 
-const count = (value) =>
-    number.format(Number(value) || 0);
+const count = (value) => number.format(Number(value) || 0);
 
-const raw = (value) =>
-    String(value ?? "").trim();
+const raw = (value) => String(value ?? "").trim();
 
-const lower = (value) =>
-    raw(value).toLowerCase();
+const lower = (value) => raw(value).toLowerCase();
 
-const numberOf = (value) =>
-    Number.isFinite(Number(value)) ? Number(value) : 0;
+const numberOf = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
 
 const label = (value) =>
     raw(value)
         .replace(/[_-]+/g, " ")
         .replace(/\b\w/g, (s) => s.toUpperCase()) || "Unknown";
 
-const idOf = (item, fallback = "—") =>
-    raw(item?.id || item?._id || fallback);
+const idOf = (item, fallback = "—") => raw(item?.id || item?._id || fallback);
 
 const first = (item, keys, fallback = "") =>
-    keys.map((key) => item?.[key]).find((value) =>
-        value !== undefined &&
-        value !== null &&
-        raw(value) !== ""
-    ) ?? fallback;
-
-function readArray(keys) {
-    for (const key of keys) {
-        try {
-            const json = localStorage.getItem(key);
-            if (json === null) continue;
-
-            const data = JSON.parse(json);
-
-            if (Array.isArray(data)) {
-                return {
-                    rows: data,
-                    source: "Saved preview",
-                };
-            }
-        } catch {
-            // Skip unavailable or invalid storage.
-        }
-    }
-
-    return {
-        rows: [],
-        source: "Not initialized",
-    };
-}
-
-function readSettlements() {
-    try {
-        const data = JSON.parse(
-            localStorage.getItem(KEYS.settlements[0])
-        );
-
-        if (
-            data &&
-            Array.isArray(data.batches) &&
-            Array.isArray(data.ledger)
-        ) {
-            return {
-                batches: data.batches,
-                ledger: data.ledger,
-                source: "Saved preview",
-            };
-        }
-    } catch {
-        // No valid settlement snapshot.
-    }
-
-    return {
-        batches: [],
-        ledger: [],
-        source: "Not initialized",
-    };
-}
+    keys
+        .map((key) => item?.[key])
+        .find((value) => value !== undefined && value !== null && raw(value) !== "") ?? fallback;
 
 function loadSnapshot() {
-    const result = {};
-
-    for (const key of Object.keys(KEYS)) {
-        if (key === "settlements") continue;
-        result[key] = readArray(KEYS[key]);
-    }
-
-    if (result.orders.source === "Not initialized") {
-        result.orders = {
-            rows: demoOrders,
-            source: "Catalog demo",
-        };
-    }
-
-    if (result.products.source === "Not initialized") {
-        result.products = {
-            rows: productCatalog,
-            source: "Catalog demo",
-        };
-    }
-
-    result.settlements = readSettlements();
-
+    return Object.fromEntries(
+        COLLECTIONS.map((key) => [key, { rows: [], batches: [], ledger: [], source: "Database" }])
+    );
+}
+async function readSnapshot() {
+    const { data } = await api.get("/reports");
+    const result = loadSnapshot();
+    for (const key of Object.keys(result))
+        result[key].rows = data.snapshot[key === "tasks" ? "assignments" : key] || [];
+    result.settlements.batches = result.settlements.rows;
+    result.settlements.ledger = result.settlements.rows;
     return result;
 }
 
@@ -151,10 +87,7 @@ function loadSnapshot() {
 function istDay(value) {
     if (!value) return "";
 
-    if (
-        typeof value === "string" &&
-        /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ) {
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
         return value;
     }
 
@@ -169,8 +102,7 @@ function istDay(value) {
         day: "2-digit",
     }).formatToParts(parsed);
 
-    const get = (type) =>
-        parts.find((part) => part.type === type)?.value || "";
+    const get = (type) => parts.find((part) => part.type === type)?.value || "";
 
     return `${get("year")}-${get("month")}-${get("day")}`;
 }
@@ -282,13 +214,9 @@ function stateOf(item, fields = ["status"]) {
 }
 
 function stockOf(product) {
-    if (
-        Array.isArray(product.variants) &&
-        product.variants.length
-    ) {
+    if (Array.isArray(product.variants) && product.variants.length) {
         return product.variants.reduce(
-            (sum, variant) =>
-                sum + Math.max(0, numberOf(variant.stock)),
+            (sum, variant) => sum + Math.max(0, numberOf(variant.stock)),
             0
         );
     }
@@ -303,26 +231,17 @@ function stockLabel(stock) {
 }
 
 function salesAmounts(line) {
-    const gross = Math.round(
-        numberOf(line.grossAmount) * 100
-    );
+    const gross = Math.round(numberOf(line.grossAmount) * 100);
 
-    const commission = Math.round(
-        gross * numberOf(line.commissionRate) / 100
-    );
+    const commission = Math.round((gross * numberOf(line.commissionRate)) / 100);
 
-    const adjustments = Math.round(
-        numberOf(line.adjustment) * 100
-    );
+    const adjustments = Math.round(numberOf(line.adjustment) * 100);
 
     return {
         gross: gross / 100,
         commission: commission / 100,
         adjustments: adjustments / 100,
-        payable: Math.max(
-            0,
-            gross - commission + adjustments
-        ) / 100,
+        payable: Math.max(0, gross - commission + adjustments) / 100,
     };
 }
 
@@ -334,22 +253,13 @@ function isListed(product) {
         "status",
     ]);
 
-    return (
-        !state ||
-        ["active", "approved", "published", "live", "listed"]
-            .includes(state)
-    );
+    return !state || ["active", "approved", "published", "live", "listed"].includes(state);
 }
 
 function isRemoved(product) {
-    return ["removed", "deleted", "unlisted", "archived"]
-        .includes(
-            stateOf(product, [
-                "listingStatus",
-                "moderationStatus",
-                "status",
-            ])
-        );
+    return ["removed", "deleted", "unlisted", "archived"].includes(
+        stateOf(product, ["listingStatus", "moderationStatus", "status"])
+    );
 }
 
 // ================== PRODUCT HISTORY ==================
@@ -360,22 +270,14 @@ function productEvents(products) {
     const add = (product, action, at, detail = "") => {
         if (!istDay(at)) return;
 
-        const key = [
-            idOf(product),
-            lower(action),
-            istDay(at),
-        ].join("|");
+        const key = [idOf(product), lower(action), istDay(at)].join("|");
 
         if (unique.has(key)) return;
         unique.add(key);
 
         events.push({
             id: key,
-            product: first(
-                product,
-                ["name", "title"],
-                "Unnamed Product"
-            ),
+            product: first(product, ["name", "title"], "Unnamed Product"),
             productId: idOf(product),
             action: label(action),
             detail,
@@ -385,34 +287,16 @@ function productEvents(products) {
     };
 
     for (const product of products) {
-        const created = first(product, [
-            "createdAt",
-            "submittedAt",
-        ]);
+        const created = first(product, ["createdAt", "submittedAt"]);
 
         if (created) {
-            add(
-                product,
-                "Listed / Submitted",
-                created,
-                "Record creation"
-            );
+            add(product, "Listed / Submitted", created, "Record creation");
         }
 
-        const removed = first(product, [
-            "deletedAt",
-            "removedAt",
-            "unlistedAt",
-            "archivedAt",
-        ]);
+        const removed = first(product, ["deletedAt", "removedAt", "unlistedAt", "archivedAt"]);
 
         if (removed) {
-            add(
-                product,
-                "Removed",
-                removed,
-                "Recorded removal date"
-            );
+            add(product, "Removed", removed, "Recorded removal date");
         }
 
         for (const historyKey of [
@@ -421,32 +305,15 @@ function productEvents(products) {
             "activityHistory",
             "moderationHistory",
         ]) {
-            const changes = Array.isArray(product[historyKey])
-                ? product[historyKey]
-                : [];
+            const changes = Array.isArray(product[historyKey]) ? product[historyKey] : [];
 
             for (const change of changes) {
-                const action = first(change, [
-                    "action",
-                    "type",
-                    "status",
-                    "event",
-                ]);
+                const action = first(change, ["action", "type", "status", "event"]);
 
-                const at = first(change, [
-                    "date",
-                    "at",
-                    "createdAt",
-                    "timestamp",
-                ]);
+                const at = first(change, ["date", "at", "createdAt", "timestamp"]);
 
                 if (action && at) {
-                    add(
-                        product,
-                        action,
-                        at,
-                        first(change, ["reason", "note"], "")
-                    );
+                    add(product, action, at, first(change, ["reason", "note"], ""));
                 }
             }
         }
@@ -457,57 +324,27 @@ function productEvents(products) {
 
 // ================== ENTITY HELPERS ==================
 function customerName(item) {
-    return first(
-        item,
-        ["name", "fullName", "customerName", "displayName"],
-        "Customer"
-    );
+    return first(item, ["name", "fullName", "customerName", "displayName"], "Customer");
 }
 
 function sellerName(item) {
-    return first(
-        item,
-        [
-            "storeName",
-            "businessName",
-            "shopName",
-            "sellerName",
-            "name",
-        ],
-        "Seller"
-    );
+    return first(item, ["storeName", "businessName", "shopName", "sellerName", "name"], "Seller");
 }
 
 function agentName(item) {
-    return first(
-        item,
-        ["name", "fullName", "agentName"],
-        "Delivery Agent"
-    );
+    return first(item, ["name", "fullName", "agentName"], "Delivery Agent");
 }
 
 function productName(item) {
-    return first(
-        item,
-        ["name", "title"],
-        "Unnamed Product"
-    );
+    return first(item, ["name", "title"], "Unnamed Product");
 }
 
 function categoryName(item) {
-    return first(
-        item,
-        ["name", "title", "label", "slug"],
-        "Category"
-    );
+    return first(item, ["name", "title", "label", "slug"], "Category");
 }
 
 function productCategory(item) {
-    return first(
-        item,
-        ["categoryName", "category", "group"],
-        "Uncategorized"
-    );
+    return first(item, ["categoryName", "category", "group"], "Uncategorized");
 }
 
 function itemStatus(item) {
@@ -515,13 +352,7 @@ function itemStatus(item) {
 }
 
 function orderAmount(item) {
-    return numberOf(
-        first(
-            item,
-            ["totalAmount", "grandTotal", "total", "amount"],
-            0
-        )
-    );
+    return numberOf(first(item, ["totalAmount", "grandTotal", "total", "amount"], 0));
 }
 
 function batchAmount(value) {
@@ -529,18 +360,10 @@ function batchAmount(value) {
 }
 
 function datedCount(rows, bounds) {
-    const tracked = rows.filter((row) =>
-        istDay(dateOf(row))
-    );
+    const tracked = rows.filter((row) => istDay(dateOf(row)));
 
     return {
-        value: tracked.filter((row) =>
-            within(
-                dateOf(row),
-                bounds.start,
-                bounds.end
-            )
-        ).length,
+        value: tracked.filter((row) => within(dateOf(row), bounds.start, bounds.end)).length,
         tracked: tracked.length,
         total: rows.length,
     };
@@ -798,17 +621,13 @@ const REPORTS = {
 function couponStatus(coupon) {
     const today = todayIST();
 
-    if (
-        coupon.validUntil &&
-        coupon.validUntil < today
-    ) {
+    if (coupon.validUntil && coupon.validUntil < today) {
         return "Expired";
     }
 
     if (
         numberOf(coupon.usageLimit) > 0 &&
-        numberOf(coupon.usageCount) >=
-        numberOf(coupon.usageLimit)
+        numberOf(coupon.usageCount) >= numberOf(coupon.usageLimit)
     ) {
         return "Exhausted";
     }
@@ -817,10 +636,7 @@ function couponStatus(coupon) {
         return "Paused";
     }
 
-    if (
-        coupon.validFrom &&
-        coupon.validFrom > today
-    ) {
+    if (coupon.validFrom && coupon.validFrom > today) {
         return "Scheduled";
     }
 
@@ -831,12 +647,7 @@ function couponStatus(coupon) {
 function buildTables(data) {
     const products = data.products.rows;
 
-    const productNames = new Map(
-        products.map((item) => [
-            idOf(item),
-            productName(item),
-        ])
-    );
+    const productNames = new Map(products.map((item) => [idOf(item), productName(item)]));
 
     const categoryProductCount = new Map();
     const sellerProductCount = new Map();
@@ -844,41 +655,21 @@ function buildTables(data) {
     for (const product of products) {
         const category = lower(productCategory(product));
 
-        categoryProductCount.set(
-            category,
-            (categoryProductCount.get(category) || 0) + 1
-        );
+        categoryProductCount.set(category, (categoryProductCount.get(category) || 0) + 1);
 
-        const seller = lower(
-            first(product, [
-                "sellerName",
-                "storeName",
-                "seller",
-            ])
-        );
+        const seller = lower(first(product, ["sellerName", "storeName", "seller"]));
 
         if (seller) {
-            sellerProductCount.set(
-                seller,
-                (sellerProductCount.get(seller) || 0) + 1
-            );
+            sellerProductCount.set(seller, (sellerProductCount.get(seller) || 0) + 1);
         }
     }
 
     return {
         orders: data.orders.rows.map((item) => ({
             id: idOf(item),
-            customer: first(
-                item,
-                ["customerName", "userName", "customer"],
-                "—"
-            ),
+            customer: first(item, ["customerName", "userName", "customer"], "—"),
             items: Array.isArray(item.items)
-                ? item.items.reduce(
-                    (sum, row) =>
-                        sum + numberOf(row.quantity || 1),
-                    0
-                )
+                ? item.items.reduce((sum, row) => sum + numberOf(row.quantity || 1), 0)
                 : 0,
             total: orderAmount(item),
             status: itemStatus(item),
@@ -890,11 +681,7 @@ function buildTables(data) {
             orderId: item.orderId || "—",
             amount: numberOf(item.amount),
             status: statusOf(item),
-            gatewayId: first(
-                item,
-                ["gatewayPaymentId", "razorpayPaymentId"],
-                "—"
-            ),
+            gatewayId: first(item, ["gatewayPaymentId", "razorpayPaymentId"], "—"),
             createdAt: dateOf(item),
         })),
 
@@ -911,81 +698,39 @@ function buildTables(data) {
             id: idOf(item),
             name: productName(item),
             category: productCategory(item),
-            seller: first(
-                item,
-                ["sellerName", "storeName", "seller"],
-                "—"
-            ),
-            variants: Array.isArray(item.variants)
-                ? item.variants.length
-                : 0,
+            seller: first(item, ["sellerName", "storeName", "seller"], "—"),
+            variants: Array.isArray(item.variants) ? item.variants.length : 0,
             stock: stockOf(item),
-            price: numberOf(
-                first(
-                    item,
-                    ["price", "sellingPrice"],
-                    0
-                )
-            ),
+            price: numberOf(first(item, ["price", "sellingPrice"], 0)),
             status: statusOf(item, [
                 "listingStatus",
                 "moderationStatus",
                 "approvalStatus",
                 "status",
-            ]).replace(
-                /^Unknown$/,
-                "Listed (Preview)"
-            ),
-            createdAt: first(item, [
-                "createdAt",
-                "submittedAt",
-            ]),
+            ]).replace(/^Unknown$/, "Listed (Preview)"),
+            createdAt: first(item, ["createdAt", "submittedAt"]),
         })),
 
         stock: products.flatMap((item) => {
             const variants =
-                Array.isArray(item.variants) &&
-                item.variants.length
-                    ? item.variants
-                    : [item];
+                Array.isArray(item.variants) && item.variants.length ? item.variants : [item];
 
             return variants.map((variant, index) => {
-                const stock = Math.max(
-                    0,
-                    numberOf(variant.stock)
-                );
+                const stock = Math.max(0, numberOf(variant.stock));
 
                 const options =
-                    variant.options &&
-                    typeof variant.options === "object"
+                    variant.options && typeof variant.options === "object"
                         ? Object.values(variant.options).join(" / ")
-                        : first(
-                            variant,
-                            ["name", "sku", "variantLabel"],
-                            "Default"
-                        );
+                        : first(variant, ["name", "sku", "variantLabel"], "Default");
 
                 return {
-                    id: `${idOf(item)} / ${first(
-                        variant,
-                        ["sku", "id"],
-                        index + 1
-                    )}`,
+                    id: `${idOf(item)} / ${first(variant, ["sku", "id"], index + 1)}`,
                     product: productName(item),
                     variant: options || "Default",
                     stock,
-                    price: numberOf(
-                        first(
-                            variant,
-                            ["price"],
-                            item.price
-                        )
-                    ),
+                    price: numberOf(first(variant, ["price"], item.price)),
                     status: stockLabel(stock),
-                    createdAt: first(item, [
-                        "createdAt",
-                        "submittedAt",
-                    ]),
+                    createdAt: first(item, ["createdAt", "submittedAt"]),
                 };
             });
         }),
@@ -993,48 +738,20 @@ function buildTables(data) {
         changes: productEvents(products),
 
         categories: data.categories.rows.map((item) => ({
-            id: idOf(
-                item,
-                first(item, ["slug", "name"])
-            ),
+            id: idOf(item, first(item, ["slug", "name"])),
             name: categoryName(item),
-            parent: first(
-                item,
-                ["parentName", "parentId"],
-                "Root"
-            ),
-            products:
-                categoryProductCount.get(
-                    lower(
-                        first(item, [
-                            "slug",
-                            "name",
-                        ])
-                    )
-                ) || 0,
-            status: statusOf(item, [
-                "status",
-                "approvalStatus",
-            ]),
+            parent: first(item, ["parentName", "parentId"], "Root"),
+            products: categoryProductCount.get(lower(first(item, ["slug", "name"]))) || 0,
+            status: statusOf(item, ["status", "approvalStatus"]),
             createdAt: dateOf(item),
         })),
 
         sellers: data.sellers.rows.map((item) => ({
             id: idOf(item),
             name: sellerName(item),
-            products:
-                sellerProductCount.get(
-                    lower(sellerName(item))
-                ) || 0,
-            status: statusOf(item, [
-                "approvalStatus",
-                "status",
-            ]),
-            city: first(
-                item,
-                ["city", "storeCity"],
-                "—"
-            ),
+            products: sellerProductCount.get(lower(sellerName(item))) || 0,
+            status: statusOf(item, ["approvalStatus", "status"]),
+            city: first(item, ["city", "storeCity"], "—"),
             createdAt: dateOf(item),
         })),
 
@@ -1042,10 +759,7 @@ function buildTables(data) {
             id: idOf(item),
             name: customerName(item),
             email: item.email || "—",
-            status: statusOf(item, [
-                "status",
-                "accountStatus",
-            ]),
+            status: statusOf(item, ["status", "accountStatus"]),
             createdAt: dateOf(item),
         })),
 
@@ -1053,10 +767,7 @@ function buildTables(data) {
             id: idOf(item),
             name: agentName(item),
             status: statusOf(item),
-            availability: statusOf(
-                item,
-                ["availability"]
-            ),
+            availability: statusOf(item, ["availability"]),
             assigned: numberOf(item.activeTasks),
             capacity: numberOf(item.capacity),
             createdAt: dateOf(item),
@@ -1065,72 +776,44 @@ function buildTables(data) {
         delivery: data.tasks.rows.map((item) => ({
             id: idOf(item),
             orderId: item.orderId || "—",
-            type: label(
-                first(
-                    item,
-                    ["kind", "type"],
-                    "Original Delivery"
-                )
-            ),
+            type: label(first(item, ["kind", "type"], "Original Delivery")),
             agent: item.agentId || "Unassigned",
             attempts: numberOf(item.attempts),
-            status: statusOf(item, [
-                "stage",
-                "status",
-            ]),
+            status: statusOf(item, ["stage", "status"]),
             createdAt: dateOf(item),
         })),
 
-        replacements: data.replacements.rows.map(
-            (item) => ({
-                id: idOf(item),
-                orderId: item.orderId || "—",
-                product: first(
-                    item,
-                    ["productName"],
-                    productNames.get(item.productId) || "—"
-                ),
-                seller: item.seller || "—",
-                sellerDecision:
-                    item.sellerDecision || "Awaiting",
-                status: statusOf(item),
-                createdAt: dateOf(item),
-            })
-        ),
+        replacements: data.replacements.rows.map((item) => ({
+            id: idOf(item),
+            orderId: item.orderId || "—",
+            product: first(item, ["productName"], productNames.get(item.productId) || "—"),
+            seller: item.seller || "—",
+            sellerDecision: item.sellerDecision || "Awaiting",
+            status: statusOf(item),
+            createdAt: dateOf(item),
+        })),
 
-        batches: data.settlements.batches.map(
-            (item) => ({
-                id: idOf(item),
-                seller: item.seller || "—",
-                sales: Array.isArray(item.lineIds)
-                    ? item.lineIds.length
-                    : 0,
-                gross: batchAmount(item.gross),
-                commission: batchAmount(
-                    item.commission
-                ),
-                adjustment: batchAmount(
-                    item.adjustments
-                ),
-                payable: batchAmount(item.payable),
-                status: statusOf(item),
-                createdAt:
-                    item.preparedAt || dateOf(item),
-            })
-        ),
+        batches: data.settlements.batches.map((item) => ({
+            id: idOf(item),
+            seller: item.seller || "—",
+            sales: Array.isArray(item.lineIds) ? item.lineIds.length : 0,
+            gross: batchAmount(item.gross),
+            commission: batchAmount(item.commission),
+            adjustment: batchAmount(item.adjustments),
+            payable: batchAmount(item.payable),
+            status: statusOf(item),
+            createdAt: item.preparedAt || dateOf(item),
+        })),
 
-        earnings: data.settlements.ledger.map(
-            (item) => ({
-                id: idOf(item),
-                orderId: item.orderId || "—",
-                seller: item.seller || "—",
-                ...salesAmounts(item),
-                adjustment: salesAmounts(item).adjustments,
-                status: statusOf(item),
-                createdAt:
-                    item.earnedAt || dateOf(item),
-            })
-        ),
+        earnings: data.settlements.ledger.map((item) => ({
+            id: idOf(item),
+            orderId: item.orderId || "—",
+            seller: item.seller || "—",
+            ...salesAmounts(item),
+            adjustment: salesAmounts(item).adjustments,
+            status: statusOf(item),
+            createdAt: item.earnedAt || dateOf(item),
+        })),
 
         coupons: data.coupons.rows.map((item) => ({
             id: idOf(item),
@@ -1138,9 +821,7 @@ function buildTables(data) {
             type: item.type || "—",
             discount:
                 item.type === "Percentage"
-                    ? `${item.value}% (cap ${amount(
-                        item.maxDiscount
-                    )})`
+                    ? `${item.value}% (cap ${amount(item.maxDiscount)})`
                     : amount(item.value),
             used: numberOf(item.usageCount),
             limit: numberOf(item.usageLimit),
@@ -1150,36 +831,24 @@ function buildTables(data) {
 
         reviews: data.reviews.rows.map((item) => ({
             id: idOf(item),
-            product: first(
-                item,
-                ["productName"],
-                productNames.get(item.productId) || "—"
-            ),
+            product: first(item, ["productName"], productNames.get(item.productId) || "—"),
             customer: item.customerName || "—",
             rating: numberOf(item.rating),
-            title: first(
-                item,
-                ["title", "comment"],
-                "—"
-            ),
+            title: first(item, ["title", "comment"], "—"),
             status: statusOf(item),
             createdAt: dateOf(item),
         })),
 
-        complaints: data.complaints.rows.map(
-            (item) => ({
-                id: idOf(item),
-                customer: item.customer || "—",
-                orderId: item.orderId || "—",
-                category: label(item.category),
-                subject: item.subject || "—",
-                replies: Array.isArray(item.replies)
-                    ? item.replies.length
-                    : 0,
-                status: statusOf(item),
-                createdAt: dateOf(item),
-            })
-        ),
+        complaints: data.complaints.rows.map((item) => ({
+            id: idOf(item),
+            customer: item.customer || "—",
+            orderId: item.orderId || "—",
+            category: label(item.category),
+            subject: item.subject || "—",
+            replies: Array.isArray(item.replies) ? item.replies.length : 0,
+            status: statusOf(item),
+            createdAt: dateOf(item),
+        })),
     };
 }
 
@@ -1195,44 +864,37 @@ function downloadCsv(rows, columns, reportName) {
         return `"${string.replace(/"/g, '""')}"`;
     };
 
-    const lines = [
-        columns.map(
-            (column) => escape(column.title)
-        ).join(","),
-    ];
+    const lines = [columns.map((column) => escape(column.title)).join(",")];
 
     for (const row of rows) {
         lines.push(
-            columns.map((column) => escape(
-                column.type === "money"
-                    ? amount(row[column.key])
-                    : column.type === "date"
-                        ? showDate(row[column.key])
-                        : row[column.key]
-            )).join(",")
+            columns
+                .map((column) =>
+                    escape(
+                        column.type === "money"
+                            ? amount(row[column.key])
+                            : column.type === "date"
+                              ? showDate(row[column.key])
+                              : row[column.key]
+                    )
+                )
+                .join(",")
         );
     }
 
-    const blob = new Blob(
-        ["\uFEFF", lines.join("\r\n")],
-        { type: "text/csv;charset=utf-8" }
-    );
+    const blob = new Blob(["\uFEFF", lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
 
     link.href = url;
-    link.download =
-        `Zupito_${reportName}_${todayIST()}.csv`;
+    link.download = `Zupito_${reportName}_${todayIST()}.csv`;
 
     document.body.appendChild(link);
     link.click();
     link.remove();
 
-    window.setTimeout(
-        () => URL.revokeObjectURL(url),
-        1000
-    );
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ================== MODULE OVERVIEW ==================
@@ -1263,7 +925,7 @@ function Badge({ value }) {
         "active",
         "approved",
         "successful",
-        "confirmed (demo)",
+        "paid",
         "completed",
         "resolved",
         "in stock",
@@ -1271,36 +933,30 @@ function Badge({ value }) {
     ].includes(key)
         ? "green"
         : [
-            "failed",
-            "rejected",
-            "cancelled",
-            "hidden",
-            "expired",
-            "out of stock",
-            "removed",
-            "suspended",
-        ].includes(key)
-            ? "red"
-            : [
-                "pending",
-                "flagged",
-                "low stock",
-                "held",
-                "prepared",
-                "paused",
-                "open",
-                "awaiting",
+                "failed",
+                "rejected",
+                "cancelled",
+                "hidden",
+                "expired",
+                "out of stock",
+                "removed",
+                "suspended",
             ].includes(key)
-                ? "orange"
-                : [
-                    "assigned",
-                    "shipped",
-                    "in progress",
-                    "out for delivery",
-                    "scheduled",
-                ].includes(key)
-                    ? "blue"
-                    : "gray";
+          ? "red"
+          : [
+                  "pending",
+                  "flagged",
+                  "low stock",
+                  "held",
+                  "prepared",
+                  "paused",
+                  "open",
+                  "awaiting",
+              ].includes(key)
+            ? "orange"
+            : ["assigned", "shipped", "in progress", "out for delivery", "scheduled"].includes(key)
+              ? "blue"
+              : "gray";
 
     return (
         <span className={`rpt-badge rpt-badge--${color}`}>
@@ -1313,12 +969,27 @@ function Badge({ value }) {
 // ================== ADMIN REPORTS ==================
 function Reports() {
     const [snapshot, setSnapshot] = useState(loadSnapshot);
+    const [jobs, setJobs] = useState([]);
+    const [retrying, setRetrying] = useState("");
+    const refresh = async () => {
+        try {
+            const [snapshot, response] = await Promise.all([
+                readSnapshot(),
+                api.get("/reports/jobs"),
+            ]);
+            setSnapshot(snapshot);
+            setJobs(response.data.jobs || []);
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+    useEffect(() => {
+        void refresh();
+    }, []);
 
     // ================== FILTER STATE ==================
     const [period, setPeriod] = useState("month");
-    const [fromDate, setFromDate] = useState(
-        monthStart(todayIST())
-    );
+    const [fromDate, setFromDate] = useState(monthStart(todayIST()));
     const [toDate, setToDate] = useState(todayIST());
     const [reportType, setReportType] = useState("orders");
     const [search, setSearch] = useState("");
@@ -1328,22 +999,11 @@ function Reports() {
     const [rowsPerPage, setRowsPerPage] = useState(10);
 
     // ================== REPORT DATA ==================
-    const bounds = rangeFor(
-        period,
-        fromDate,
-        toDate
-    );
+    const bounds = rangeFor(period, fromDate, toDate);
 
-    const monthBounds = rangeFor(
-        "month",
-        fromDate,
-        toDate
-    );
+    const monthBounds = rangeFor("month", fromDate, toDate);
 
-    const tables = useMemo(
-        () => buildTables(snapshot),
-        [snapshot]
-    );
+    const tables = useMemo(() => buildTables(snapshot), [snapshot]);
 
     const report = REPORTS[reportType];
     const baseRows = tables[reportType];
@@ -1369,19 +1029,10 @@ function Reports() {
         complaints: "complaints",
     };
 
-    const source =
-        snapshot[sourceMap[reportType]]?.source ||
-        "Not initialized";
+    const source = snapshot[sourceMap[reportType]]?.source || "Not initialized";
 
     const periodRows = (key, range = bounds) =>
-        tables[key].filter((row) =>
-            range.valid &&
-            within(
-                row.createdAt,
-                range.start,
-                range.end
-            )
-        );
+        tables[key].filter((row) => range.valid && within(row.createdAt, range.start, range.end));
 
     const periodOrders = periodRows("orders");
     const periodPayments = periodRows("payments");
@@ -1391,8 +1042,7 @@ function Reports() {
     const periodComplaints = periodRows("complaints");
 
     // ================== MONTHLY COUNTS ==================
-    const inMonth = (rows) =>
-        datedCount(rows, monthBounds);
+    const inMonth = (rows) => datedCount(rows, monthBounds);
 
     const monthCustomers = inMonth(tables.customers);
     const monthSellers = inMonth(tables.sellers);
@@ -1401,82 +1051,46 @@ function Reports() {
     const monthCoupons = inMonth(tables.coupons);
 
     const monthChanges = tables.changes.filter((row) =>
-        within(
-            row.createdAt,
-            monthBounds.start,
-            monthBounds.end
-        )
+        within(row.createdAt, monthBounds.start, monthBounds.end)
     );
 
     const removedMonth = monthChanges.filter((row) =>
-        /removed|deleted|unlisted|archived/i.test(
-            row.action
-        )
+        /removed|deleted|unlisted|archived/i.test(row.action)
     );
 
     const removalTracked = tables.changes.some((row) =>
-        /removed|deleted|unlisted|archived/i.test(
-            row.action
-        )
+        /removed|deleted|unlisted|archived/i.test(row.action)
     );
 
     // ================== GENERAL METRICS ==================
-    const listed = snapshot.products.rows.filter(
-        isListed
-    ).length;
+    const listed = snapshot.products.rows.filter(isListed).length;
 
-    const unlisted = snapshot.products.rows.filter(
-        isRemoved
-    ).length;
+    const unlisted = snapshot.products.rows.filter(isRemoved).length;
 
-    const lowStock = tables.products.filter(
-        (row) => row.stock <= 5
-    ).length;
+    const lowStock = tables.products.filter((row) => row.stock <= 5).length;
 
     const valueOfOrders = periodOrders
-        .filter((row) =>
-            lower(row.status) !== "cancelled"
-        )
-        .reduce(
-            (sum, row) => sum + row.total,
-            0
-        );
+        .filter((row) => lower(row.status) !== "cancelled")
+        .reduce((sum, row) => sum + row.total, 0);
 
-    const deliveredOrders = periodOrders.filter(
-        (row) =>
-            lower(row.status) === "delivered"
-    ).length;
+    const deliveredOrders = periodOrders.filter((row) => lower(row.status) === "delivered").length;
 
-    const cancelledOrders = periodOrders.filter(
-        (row) =>
-            lower(row.status) === "cancelled"
-    ).length;
+    const cancelledOrders = periodOrders.filter((row) => lower(row.status) === "cancelled").length;
 
     const paymentSuccess = periodPayments.filter(
-        (row) =>
-            lower(row.status) === "successful"
+        (row) => lower(row.status) === "successful"
     ).length;
 
-    const paymentFailed = periodPayments.filter(
-        (row) =>
-            lower(row.status) === "failed"
+    const paymentFailed = periodPayments.filter((row) => lower(row.status) === "failed").length;
+
+    const refundPending = periodRefunds.filter((row) =>
+        lower(row.status).includes("pending")
     ).length;
 
-    const refundPending = periodRefunds.filter(
-        (row) =>
-            lower(row.status).includes("pending")
-    ).length;
+    const deliveryUnassigned = periodDelivery.filter((row) => row.agent === "Unassigned").length;
 
-    const deliveryUnassigned = periodDelivery.filter(
-        (row) =>
-            row.agent === "Unassigned"
-    ).length;
-
-    const openComplaints = periodComplaints.filter(
-        (row) =>
-            ["open", "in progress"].includes(
-                lower(row.status)
-            )
+    const openComplaints = periodComplaints.filter((row) =>
+        ["open", "in progress"].includes(lower(row.status))
     ).length;
 
     const overview = [
@@ -1484,41 +1098,31 @@ function Reports() {
             label: "Total Orders",
             value: count(periodOrders.length),
             subtitle:
-                `${count(deliveredOrders)} delivered · ` +
-                `${count(cancelledOrders)} cancelled`,
+                `${count(deliveredOrders)} delivered · ` + `${count(cancelledOrders)} cancelled`,
             icon: "fa-cart-shopping",
             theme: "blue",
         },
         {
             label: "Preview Order Value",
             value: amount(valueOfOrders),
-            subtitle:
-                "Not verified revenue · excludes cancellations",
+            subtitle: "Not verified revenue · excludes cancellations",
             icon: "fa-indian-rupee-sign",
             theme: "green",
         },
         {
             label: "Currently Listed",
             value: count(listed),
-            subtitle:
-                `${count(unlisted)} unlisted / removed records ` +
-                "· current snapshot",
+            subtitle: `${count(unlisted)} unlisted / removed records ` + "· current snapshot",
             icon: "fa-box-open",
             theme: "orange",
         },
         {
             label: "Total Customers",
             value:
-                snapshot.customers.source ===
-                "Not initialized"
+                snapshot.customers.source === "Not initialized"
                     ? "—"
                     : count(tables.customers.length),
-            subtitle:
-                "New this month: " +
-                numberOrNA(
-                    monthCustomers.value,
-                    monthCustomers.tracked
-                ),
+            subtitle: "New this month: " + numberOrNA(monthCustomers.value, monthCustomers.tracked),
             icon: "fa-users",
             theme: "red",
         },
@@ -1542,26 +1146,16 @@ function Reports() {
         [
             "Complaints This Month",
             {
-                value: periodRows(
-                    "complaints",
-                    monthBounds
-                ).length,
-                tracked: tables.complaints.some(
-                    (row) => istDay(row.createdAt)
-                ) ? 1 : 0,
+                value: periodRows("complaints", monthBounds).length,
+                tracked: tables.complaints.some((row) => istDay(row.createdAt)) ? 1 : 0,
             },
             "fa-headset",
         ],
         [
             "Reviews This Month",
             {
-                value: periodRows(
-                    "reviews",
-                    monthBounds
-                ).length,
-                tracked: tables.reviews.some(
-                    (row) => istDay(row.createdAt)
-                ) ? 1 : 0,
+                value: periodRows("reviews", monthBounds).length,
+                tracked: tables.reviews.some((row) => istDay(row.createdAt)) ? 1 : 0,
             },
             "fa-star",
         ],
@@ -1569,141 +1163,89 @@ function Reports() {
 
     // ================== MODULE METRICS ==================
     const moduleExtras = {
-        sellers:
-            `${numberOrNA(monthSellers.value, monthSellers.tracked)} ` +
-            "joined this month",
+        sellers: `${numberOrNA(monthSellers.value, monthSellers.tracked)} ` + "joined this month",
 
         customers:
-            `${numberOrNA(monthCustomers.value, monthCustomers.tracked)} ` +
-            "joined this month",
+            `${numberOrNA(monthCustomers.value, monthCustomers.tracked)} ` + "joined this month",
 
-        agents:
-            `${numberOrNA(monthAgents.value, monthAgents.tracked)} ` +
-            "added this month",
+        agents: `${numberOrNA(monthAgents.value, monthAgents.tracked)} ` + "added this month",
 
-        categories:
-            `${count(tables.categories.filter(
-                (r) => lower(r.status) === "active"
-            ).length)} active recorded`,
+        categories: `${count(
+            tables.categories.filter((r) => lower(r.status) === "active").length
+        )} active recorded`,
 
-        products:
-            `${count(lowStock)} low / out of stock`,
+        products: `${count(lowStock)} low / out of stock`,
 
-        orders:
-            `${count(deliveredOrders)} delivered in period`,
+        orders: `${count(deliveredOrders)} delivered in period`,
 
-        delivery:
-            `${count(deliveryUnassigned)} unassigned in period`,
+        delivery: `${count(deliveryUnassigned)} unassigned in period`,
 
         payments:
-            `${count(paymentSuccess)} successful previews · ` +
-            `${count(paymentFailed)} failed`,
+            `${count(paymentSuccess)} successful previews · ` + `${count(paymentFailed)} failed`,
 
-        refunds:
-            `${count(refundPending)} pending in period`,
+        refunds: `${count(refundPending)} pending in period`,
 
-        replacements:
-            `${count(periodReplacements.filter(
-                (r) => lower(r.status) === "pending"
-            ).length)} pending in period`,
+        replacements: `${count(
+            periodReplacements.filter((r) => lower(r.status) === "pending").length
+        )} pending in period`,
 
-        batches:
-            `${count(tables.batches.filter(
-                (r) => lower(r.status) === "prepared"
-            ).length)} prepared`,
+        batches: `${count(
+            tables.batches.filter((r) => lower(r.status) === "prepared").length
+        )} prepared`,
 
-        coupons:
-            `${count(tables.coupons.filter(
-                (r) => lower(r.status) === "active"
-            ).length)} active`,
+        coupons: `${count(
+            tables.coupons.filter((r) => lower(r.status) === "active").length
+        )} active`,
 
-        reviews:
-            `${count(tables.reviews.filter(
-                (r) => lower(r.status) === "flagged"
-            ).length)} flagged`,
+        reviews: `${count(
+            tables.reviews.filter((r) => lower(r.status) === "flagged").length
+        )} flagged`,
 
-        complaints:
-            `${count(openComplaints)} open / in progress in period`,
+        complaints: `${count(openComplaints)} open / in progress in period`,
     };
 
     // ================== TABLE FILTERS ==================
     const statusOptions = [
-        ...new Set(
-            baseRows.map((row) =>
-                raw(row.status)
-            ).filter(Boolean)
-        ),
+        ...new Set(baseRows.map((row) => raw(row.status)).filter(Boolean)),
     ].sort();
 
     const matching = baseRows.filter((row) => {
-        if (
-            !isSnapshot &&
-            (
-                !bounds.valid ||
-                !within(
-                    row.createdAt,
-                    bounds.start,
-                    bounds.end
-                )
-            )
-        ) {
+        if (!isSnapshot && (!bounds.valid || !within(row.createdAt, bounds.start, bounds.end))) {
             return false;
         }
 
-        if (
-            statusFilter !== "All" &&
-            raw(row.status) !== statusFilter
-        ) {
+        if (statusFilter !== "All" && raw(row.status) !== statusFilter) {
             return false;
         }
 
         const term = lower(search);
 
-        return !term || Object.values(row).some(
-            (value) =>
-                lower(value).includes(term)
-        );
+        return !term || Object.values(row).some((value) => lower(value).includes(term));
     });
 
-    let rows = sortNewestFirst(
-        matching,
-        "createdAt"
-    );
+    let rows = sortNewestFirst(matching, "createdAt");
 
     if (sortMode === "oldest") {
         rows = [...rows].reverse();
     }
 
-    if (
-        sortMode === "az" ||
-        sortMode === "za"
-    ) {
-        const key = [
-            "customers",
-            "sellers",
-            "agents",
-            "categories",
-            "products",
-        ].includes(reportType)
+    if (sortMode === "az" || sortMode === "za") {
+        const key = ["customers", "sellers", "agents", "categories", "products"].includes(
+            reportType
+        )
             ? "name"
             : reportType === "coupons"
-                ? "code"
-                : reportType === "stock"
-                    ? "product"
-                    : "id";
+              ? "code"
+              : reportType === "stock"
+                ? "product"
+                : "id";
 
         rows = [...rows].sort(
-            (a, b) =>
-                lower(a[key]).localeCompare(
-                    lower(b[key])
-                ) * (sortMode === "az" ? 1 : -1)
+            (a, b) => lower(a[key]).localeCompare(lower(b[key])) * (sortMode === "az" ? 1 : -1)
         );
     }
 
-    const visibleRows = rows.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
-    );
+    const visibleRows = rows.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
     // ================== CHART DATA ==================
     const trendMap = new Map();
@@ -1712,34 +1254,21 @@ function Reports() {
         const day = istDay(row.createdAt);
 
         if (day) {
-            trendMap.set(
-                day,
-                (trendMap.get(day) || 0) + 1
-            );
+            trendMap.set(day, (trendMap.get(day) || 0) + 1);
         }
     }
 
-    const trend = [...trendMap]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(-8);
+    const trend = [...trendMap].sort(([a], [b]) => a.localeCompare(b)).slice(-8);
 
-    const trendMax = Math.max(
-        1,
-        ...trend.map(([, value]) => value)
-    );
+    const trendMax = Math.max(1, ...trend.map(([, value]) => value));
 
     const statusCounts = new Map();
 
     for (const row of periodOrders) {
-        statusCounts.set(
-            row.status,
-            (statusCounts.get(row.status) || 0) + 1
-        );
+        statusCounts.set(row.status, (statusCounts.get(row.status) || 0) + 1);
     }
 
-    const distribution = [...statusCounts].sort(
-        (a, b) => b[1] - a[1]
-    );
+    const distribution = [...statusCounts].sort((a, b) => b[1] - a[1]);
 
     // ================== ACTIONS ==================
     const changeReport = (name) => {
@@ -1763,21 +1292,13 @@ function Reports() {
 
     const exportReport = () => {
         if (!rows.length) {
-            toast.info(
-                "No records available for export."
-            );
+            toast.info("No records available for export.");
             return;
         }
 
-        downloadCsv(
-            rows,
-            report.columns,
-            reportType
-        );
+        downloadCsv(rows, report.columns, reportType);
 
-        toast.success(
-            "Filtered CSV exported."
-        );
+        toast.success("Filtered CSV exported.");
     };
 
     const formatCell = (row, column) => {
@@ -1816,29 +1337,72 @@ function Reports() {
                         REPORTS & ANALYTICS
                     </span>
 
-                    <p>
-                        Complete operational reports across
-                        every Zupito management module.
-                    </p>
+                    <p>Complete operational reports across every Zupito management module.</p>
                 </div>
 
                 <Button
                     className="rpt-refresh"
                     variant="outlined"
-                    startIcon={
-                        <i className="fa-solid fa-arrows-rotate" />
-                    }
+                    startIcon={<i className="fa-solid fa-arrows-rotate" />}
                     onClick={() => {
-                        setSnapshot(loadSnapshot());
+                        void refresh();
                         setPage(0);
-                        toast.info(
-                            "Reports refreshed from saved preview data."
-                        );
+                        toast.info("Report refresh requested.");
                     }}
                 >
                     Refresh
                 </Button>
             </section>
+
+            {jobs.some((job) => job.status === "Review") && (
+                <section className="rpt-card">
+                    <div className="rpt-filter-heading">
+                        <h2>Background jobs need attention</h2>
+                    </div>
+                    <TableContainer>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Job</TableCell>
+                                    <TableCell>Attempts</TableCell>
+                                    <TableCell>Action</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {jobs
+                                    .filter((job) => job.status === "Review")
+                                    .map((job) => (
+                                        <TableRow key={job._id}>
+                                            <TableCell>{job.key}</TableCell>
+                                            <TableCell>{job.attempts}</TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    disabled={Boolean(retrying)}
+                                                    onClick={async () => {
+                                                        setRetrying(job._id);
+                                                        try {
+                                                            await api.post(
+                                                                `/reports/jobs/${job._id}/retry`
+                                                            );
+                                                            await refresh();
+                                                            toast.success("Retry scheduled.");
+                                                        } catch (error) {
+                                                            toast.error(error.message);
+                                                        } finally {
+                                                            setRetrying("");
+                                                        }
+                                                    }}
+                                                >
+                                                    {retrying === job._id ? "Scheduling…" : "Retry"}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </section>
+            )}
 
             {/* ================== DATE FILTERS ================== */}
             <section className="rpt-card">
@@ -1846,18 +1410,12 @@ function Reports() {
                     <div>
                         <h2>Reporting Period</h2>
                         <p>
-                            Selected dates apply to activity reports;
-                            current inventory and account lists
-                            remain complete.
+                            Selected dates apply to activity reports; current inventory and account
+                            lists remain complete.
                         </p>
                     </div>
 
-                    <Button
-                        onClick={reset}
-                        startIcon={
-                            <i className="fa-solid fa-rotate-left" />
-                        }
-                    >
+                    <Button onClick={reset} startIcon={<i className="fa-solid fa-rotate-left" />}>
                         Reset
                     </Button>
                 </div>
@@ -1873,24 +1431,12 @@ function Reports() {
                             setPage(0);
                         }}
                     >
-                        <MenuItem value="month">
-                            This Month
-                        </MenuItem>
-                        <MenuItem value="lastMonth">
-                            Last Month
-                        </MenuItem>
-                        <MenuItem value="7">
-                            Last 7 Days
-                        </MenuItem>
-                        <MenuItem value="30">
-                            Last 30 Days
-                        </MenuItem>
-                        <MenuItem value="all">
-                            All Time
-                        </MenuItem>
-                        <MenuItem value="custom">
-                            Custom Range
-                        </MenuItem>
+                        <MenuItem value="month">This Month</MenuItem>
+                        <MenuItem value="lastMonth">Last Month</MenuItem>
+                        <MenuItem value="7">Last 7 Days</MenuItem>
+                        <MenuItem value="30">Last 30 Days</MenuItem>
+                        <MenuItem value="all">All Time</MenuItem>
+                        <MenuItem value="custom">Custom Range</MenuItem>
                     </TextField>
 
                     {period === "custom" && (
@@ -1901,9 +1447,7 @@ function Reports() {
                                 type="date"
                                 value={fromDate}
                                 onChange={(event) => {
-                                    setFromDate(
-                                        event.target.value
-                                    );
+                                    setFromDate(event.target.value);
                                     setPage(0);
                                 }}
                                 slotProps={{
@@ -1919,9 +1463,7 @@ function Reports() {
                                 type="date"
                                 value={toDate}
                                 onChange={(event) => {
-                                    setToDate(
-                                        event.target.value
-                                    );
+                                    setToDate(event.target.value);
                                     setPage(0);
                                 }}
                                 slotProps={{
@@ -1935,10 +1477,7 @@ function Reports() {
                 </div>
 
                 {!bounds.valid && (
-                    <Alert
-                        severity="error"
-                        className="rpt-inline-alert"
-                    >
+                    <Alert severity="error" className="rpt-inline-alert">
                         Select valid From and To dates.
                     </Alert>
                 )}
@@ -1947,17 +1486,12 @@ function Reports() {
             {/* ================== MAIN STATISTICS ================== */}
             <section className="rpt-stats">
                 {overview.map((item) => (
-                    <article
-                        className={`rpt-stat rpt-stat--${item.theme}`}
-                        key={item.label}
-                    >
+                    <article className={`rpt-stat rpt-stat--${item.theme}`} key={item.label}>
                         <div className="rpt-stat-top">
                             <span>{item.label}</span>
 
                             <span className="rpt-stat-icon">
-                                <i
-                                    className={`fa-solid ${item.icon}`}
-                                />
+                                <i className={`fa-solid ${item.icon}`} />
                             </span>
                         </div>
 
@@ -1976,38 +1510,23 @@ function Reports() {
                         </span>
 
                         <div>
-                            <h2>
-                                This Month — Growth & Changes
-                            </h2>
-                            <p>
-                                Registrations, new listings,
-                                removals and support activity.
-                            </p>
+                            <h2>This Month — Growth & Changes</h2>
+                            <p>Registrations, new listings, removals and support activity.</p>
                         </div>
                     </div>
                 </div>
 
                 <div className="rpt-month-grid">
                     {monthly.map(([name, metric, icon]) => (
-                        <div
-                            className="rpt-month-item"
-                            key={name}
-                        >
+                        <div className="rpt-month-item" key={name}>
                             <span className="rpt-month-icon">
-                                <i
-                                    className={`fa-solid ${icon}`}
-                                />
+                                <i className={`fa-solid ${icon}`} />
                             </span>
 
                             <div>
                                 <span>{name}</span>
 
-                                <strong>
-                                    {numberOrNA(
-                                        metric.value,
-                                        metric.tracked
-                                    )}
-                                </strong>
+                                <strong>{numberOrNA(metric.value, metric.tracked)}</strong>
 
                                 <small>
                                     {metric.tracked
@@ -2032,61 +1551,39 @@ function Reports() {
 
                         <div>
                             <h2>All Module Reports</h2>
-                            <p>
-                                Select any module for detailed records
-                                and CSV export below.
-                            </p>
+                            <p>Select any module for detailed records and CSV export below.</p>
                         </div>
                     </div>
                 </div>
 
                 <div className="rpt-module-grid">
-                    {MODULES.map(([
-                        key,
-                        name,
-                        icon,
-                        description,
-                    ]) => {
-                        const store =
-                            snapshot[sourceMap[key]];
+                    {MODULES.map(([key, name, icon, description]) => {
+                        const store = snapshot[sourceMap[key]];
 
-                        const exists =
-                            store?.source !== "Not initialized";
+                        const exists = store?.source !== "Not initialized";
 
-                        const total = exists
-                            ? count(tables[key].length)
-                            : "—";
+                        const total = exists ? count(tables[key].length) : "—";
 
                         return (
                             <button
-                                className={
-                                    `rpt-module-item ${
-                                        reportType === key
-                                            ? "is-selected"
-                                            : ""
-                                    }`
-                                }
+                                className={`rpt-module-item ${
+                                    reportType === key ? "is-selected" : ""
+                                }`}
                                 type="button"
                                 key={key}
                                 onClick={() => changeReport(key)}
                             >
                                 <span className="rpt-module-icon">
-                                    <i
-                                        className={`fa-solid ${icon}`}
-                                    />
+                                    <i className={`fa-solid ${icon}`} />
                                 </span>
 
                                 <div>
                                     <strong>{name}</strong>
                                     <span>{description}</span>
-                                    <small>
-                                        {moduleExtras[key]}
-                                    </small>
+                                    <small>{moduleExtras[key]}</small>
                                 </div>
 
-                                <span className="rpt-module-count">
-                                    {total}
-                                </span>
+                                <span className="rpt-module-count">{total}</span>
                             </button>
                         );
                     })}
@@ -2103,43 +1600,28 @@ function Reports() {
 
                         <div>
                             <h2>Order Activity</h2>
-                            <p>
-                                Latest 8 order dates in
-                                the selected period.
-                            </p>
+                            <p>Latest 8 order dates in the selected period.</p>
                         </div>
                     </div>
 
                     {trend.length ? (
                         <div className="rpt-trend">
                             {trend.map(([day, value]) => (
-                                <div
-                                    className="rpt-trend-row"
-                                    key={day}
-                                >
-                                    <span>
-                                        {showDate(day)}
-                                    </span>
+                                <div className="rpt-trend-row" key={day}>
+                                    <span>{showDate(day)}</span>
 
                                     <progress
                                         value={value}
                                         max={trendMax}
-                                        aria-label={
-                                            `${value} orders on ${day}`
-                                        }
+                                        aria-label={`${value} orders on ${day}`}
                                     />
 
-                                    <strong>
-                                        {value}
-                                    </strong>
+                                    <strong>{value}</strong>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <p className="rpt-chart-empty">
-                            No dated orders found
-                            in this period.
-                        </p>
+                        <p className="rpt-chart-empty">No dated orders found in this period.</p>
                     )}
                 </article>
 
@@ -2150,46 +1632,30 @@ function Reports() {
                         </span>
 
                         <div>
-                            <h2>
-                                Order Status Distribution
-                            </h2>
-                            <p>
-                                Selected-period fulfilment outcomes.
-                            </p>
+                            <h2>Order Status Distribution</h2>
+                            <p>Selected-period fulfilment outcomes.</p>
                         </div>
                     </div>
 
                     {distribution.length ? (
                         <div className="rpt-status-chart">
-                            {distribution.map(
-                                ([status, value]) => (
-                                    <div key={status}>
-                                        <div className="rpt-status-label">
-                                            <span>
-                                                {status}
-                                            </span>
-                                            <strong>
-                                                {value}
-                                            </strong>
-                                        </div>
-
-                                        <progress
-                                            value={value}
-                                            max={
-                                                periodOrders.length || 1
-                                            }
-                                            aria-label={
-                                                `${status}: ${value}`
-                                            }
-                                        />
+                            {distribution.map(([status, value]) => (
+                                <div key={status}>
+                                    <div className="rpt-status-label">
+                                        <span>{status}</span>
+                                        <strong>{value}</strong>
                                     </div>
-                                )
-                            )}
+
+                                    <progress
+                                        value={value}
+                                        max={periodOrders.length || 1}
+                                        aria-label={`${status}: ${value}`}
+                                    />
+                                </div>
+                            ))}
                         </div>
                     ) : (
-                        <p className="rpt-chart-empty">
-                            No status data for this period.
-                        </p>
+                        <p className="rpt-chart-empty">No status data for this period.</p>
                     )}
                 </article>
             </section>
@@ -2203,13 +1669,8 @@ function Reports() {
                         </span>
 
                         <div>
-                            <h2>
-                                Operational Overview
-                            </h2>
-                            <p>
-                                Cross-module operational counts
-                                for the selected period.
-                            </p>
+                            <h2>Operational Overview</h2>
+                            <p>Cross-module operational counts for the selected period.</p>
                         </div>
                     </div>
                 </div>
@@ -2217,89 +1678,54 @@ function Reports() {
                 <div className="rpt-operations">
                     <div>
                         <span>Payment Attempts</span>
-                        <strong>
-                            {count(periodPayments.length)}
-                        </strong>
+                        <strong>{count(periodPayments.length)}</strong>
                         <small>
-                            {paymentSuccess} successful preview ·{" "}
-                            {paymentFailed} failed
+                            {paymentSuccess} successful preview · {paymentFailed} failed
                         </small>
                     </div>
 
                     <div>
                         <span>Refund Records</span>
-                        <strong>
-                            {count(periodRefunds.length)}
-                        </strong>
-                        <small>
-                            {refundPending} pending
-                        </small>
+                        <strong>{count(periodRefunds.length)}</strong>
+                        <small>{refundPending} pending</small>
                     </div>
 
                     <div>
                         <span>Delivery Tasks</span>
-                        <strong>
-                            {count(periodDelivery.length)}
-                        </strong>
-                        <small>
-                            {deliveryUnassigned} unassigned
-                        </small>
+                        <strong>{count(periodDelivery.length)}</strong>
+                        <small>{deliveryUnassigned} unassigned</small>
                     </div>
 
                     <div>
                         <span>Stock Alerts</span>
-                        <strong>
-                            {count(lowStock)}
-                        </strong>
-                        <small>
-                            Current product stock ≤ 5
-                        </small>
+                        <strong>{count(lowStock)}</strong>
+                        <small>Current product stock ≤ 5</small>
                     </div>
 
                     <div>
                         <span>Replacements</span>
-                        <strong>
-                            {count(periodReplacements.length)}
-                        </strong>
-                        <small>
-                            Requests in period
-                        </small>
+                        <strong>{count(periodReplacements.length)}</strong>
+                        <small>Requests in period</small>
                     </div>
 
                     <div>
                         <span>Complaints</span>
-                        <strong>
-                            {count(periodComplaints.length)}
-                        </strong>
-                        <small>
-                            {openComplaints} open / in progress
-                        </small>
+                        <strong>{count(periodComplaints.length)}</strong>
+                        <small>{openComplaints} open / in progress</small>
                     </div>
 
                     <div>
                         <span>Coupon Redemptions</span>
                         <strong>
-                            {count(
-                                tables.coupons.reduce(
-                                    (sum, coupon) =>
-                                        sum + coupon.used,
-                                    0
-                                )
-                            )}
+                            {count(tables.coupons.reduce((sum, coupon) => sum + coupon.used, 0))}
                         </strong>
-                        <small>
-                            All-time preview usage total
-                        </small>
+                        <small>All-time preview usage total</small>
                     </div>
 
                     <div>
                         <span>Settlement Batches</span>
-                        <strong>
-                            {count(tables.batches.length)}
-                        </strong>
-                        <small>
-                            All-time preview batches
-                        </small>
+                        <strong>{count(tables.batches.length)}</strong>
+                        <small>All-time preview batches</small>
                     </div>
                 </div>
             </section>
@@ -2314,16 +1740,11 @@ function Reports() {
 
                         <div>
                             <h2>Detailed Reports</h2>
-                            <p>
-                                Filter, inspect and export data
-                                across all management sections.
-                            </p>
+                            <p>Filter, inspect and export data across all management sections.</p>
                         </div>
                     </div>
 
-                    <span className="rpt-record-count">
-                        {rows.length} Records
-                    </span>
+                    <span className="rpt-record-count">{rows.length} Records</span>
                 </div>
 
                 {/* ================== TABLE FILTERS ================== */}
@@ -2334,22 +1755,13 @@ function Reports() {
                         size="small"
                         label="Report Type"
                         value={reportType}
-                        onChange={(event) =>
-                            changeReport(
-                                event.target.value
-                            )
-                        }
+                        onChange={(event) => changeReport(event.target.value)}
                     >
-                        {Object.entries(REPORTS).map(
-                            ([key, config]) => (
-                                <MenuItem
-                                    key={key}
-                                    value={key}
-                                >
-                                    {config.title}
-                                </MenuItem>
-                            )
-                        )}
+                        {Object.entries(REPORTS).map(([key, config]) => (
+                            <MenuItem key={key} value={key}>
+                                {config.title}
+                            </MenuItem>
+                        ))}
                     </TextField>
 
                     <TextField
@@ -2381,21 +1793,14 @@ function Reports() {
                         label="Record Status"
                         value={statusFilter}
                         onChange={(event) => {
-                            setStatusFilter(
-                                event.target.value
-                            );
+                            setStatusFilter(event.target.value);
                             setPage(0);
                         }}
                     >
-                        <MenuItem value="All">
-                            All Statuses
-                        </MenuItem>
+                        <MenuItem value="All">All Statuses</MenuItem>
 
                         {statusOptions.map((status) => (
-                            <MenuItem
-                                value={status}
-                                key={status}
-                            >
+                            <MenuItem value={status} key={status}>
                                 {status}
                             </MenuItem>
                         ))}
@@ -2408,35 +1813,23 @@ function Reports() {
                         label="Sort By"
                         value={sortMode}
                         onChange={(event) => {
-                            setSortMode(
-                                event.target.value
-                            );
+                            setSortMode(event.target.value);
                             setPage(0);
                         }}
                     >
-                        <MenuItem value="newest">
-                            Newest First
-                        </MenuItem>
+                        <MenuItem value="newest">Newest First</MenuItem>
 
-                        <MenuItem value="oldest">
-                            Oldest First
-                        </MenuItem>
+                        <MenuItem value="oldest">Oldest First</MenuItem>
 
-                        <MenuItem value="az">
-                            A – Z
-                        </MenuItem>
+                        <MenuItem value="az">A – Z</MenuItem>
 
-                        <MenuItem value="za">
-                            Z – A
-                        </MenuItem>
+                        <MenuItem value="za">Z – A</MenuItem>
                     </TextField>
 
                     <Button
                         className="rpt-export"
                         variant="contained"
-                        startIcon={
-                            <i className="fa-solid fa-file-csv" />
-                        }
+                        startIcon={<i className="fa-solid fa-file-csv" />}
                         disabled={!rows.length}
                         onClick={exportReport}
                     >
@@ -2457,74 +1850,43 @@ function Reports() {
 
                 {/* ================== REPORT TABLE ================== */}
                 <TableContainer className="rpt-table-scroll">
-                    <Table
-                        className="rpt-table"
-                        aria-label={report.title}
-                    >
+                    <Table className="rpt-table" aria-label={report.title}>
                         <TableHead>
                             <TableRow>
                                 {report.columns.map((column) => (
-                                    <TableCell key={column.key}>
-                                        {column.title}
-                                    </TableCell>
+                                    <TableCell key={column.key}>{column.title}</TableCell>
                                 ))}
                             </TableRow>
                         </TableHead>
 
                         <TableBody>
                             {visibleRows.map((row, index) => (
-                                <TableRow
-                                    key={`${row.id}-${index}`}
-                                    hover
-                                >
-                                    {report.columns.map(
-                                        (column) => (
-                                            <TableCell
-                                                key={column.key}
-                                            >
-                                                {[
-                                                    "id",
-                                                    "name",
-                                                    "code",
-                                                ].includes(
-                                                    column.key
-                                                ) ? (
-                                                    <strong className="rpt-cell-primary">
-                                                        {formatCell(
-                                                            row,
-                                                            column
-                                                        )}
-                                                    </strong>
-                                                ) : (
-                                                    formatCell(
-                                                        row,
-                                                        column
-                                                    )
-                                                )}
-                                            </TableCell>
-                                        )
-                                    )}
+                                <TableRow key={`${row.id}-${index}`} hover>
+                                    {report.columns.map((column) => (
+                                        <TableCell key={column.key}>
+                                            {["id", "name", "code"].includes(column.key) ? (
+                                                <strong className="rpt-cell-primary">
+                                                    {formatCell(row, column)}
+                                                </strong>
+                                            ) : (
+                                                formatCell(row, column)
+                                            )}
+                                        </TableCell>
+                                    ))}
                                 </TableRow>
                             ))}
 
                             {!visibleRows.length && (
                                 <TableRow>
-                                    <TableCell
-                                        colSpan={
-                                            report.columns.length
-                                        }
-                                    >
+                                    <TableCell colSpan={report.columns.length}>
                                         <div className="rpt-empty">
                                             <i className="fa-solid fa-chart-column" />
 
-                                            <h3>
-                                                No Records Found
-                                            </h3>
+                                            <h3>No Records Found</h3>
 
                                             <p>
-                                                {source ===
-                                                "Not initialized"
-                                                    ? "Open the corresponding Admin page to initialize its demo records."
+                                                {source === "Not initialized"
+                                                    ? "No records are available for this report yet."
                                                     : "Try another date range or search filter."}
                                             </p>
                                         </div>
@@ -2543,27 +1905,18 @@ function Reports() {
                     page={page}
                     rowsPerPage={rowsPerPage}
                     rowsPerPageOptions={[10, 25, 50]}
-                    onPageChange={(_, nextPage) =>
-                        setPage(nextPage)
-                    }
+                    onPageChange={(_, nextPage) => setPage(nextPage)}
                     onRowsPerPageChange={(event) => {
-                        setRowsPerPage(
-                            Number(event.target.value)
-                        );
+                        setRowsPerPage(Number(event.target.value));
                         setPage(0);
                     }}
                 />
             </section>
 
-            <Alert
-                severity="info"
-                className="rpt-bottom-note"
-            >
-                Preview reports cannot prove successful payments,
-                actual bank settlements, customer notifications
-                or historical deletions. Real monthly deletions
-                and accurate revenue need backend audit logs,
-                immutable payment records and database timestamps.
+            <Alert severity="info" className="rpt-bottom-note">
+                Preview reports cannot prove successful payments, actual bank settlements, customer
+                notifications or historical deletions. Real monthly deletions and accurate revenue
+                need backend audit logs, immutable payment records and database timestamps.
             </Alert>
         </div>
     );

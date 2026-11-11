@@ -27,6 +27,8 @@ const productSchema = new mongoose.Schema(
             ref: "Category",
             required: true,
         },
+        ratingSum: { type: Number, default: 0 },
+        ratingCount: { type: Number, default: 0 },
         productCode: {
             type: String,
             required: true,
@@ -38,19 +40,23 @@ const productSchema = new mongoose.Schema(
         description: { type: String, required: true, maxlength: 5000 },
         highlights: { type: [String], default: [] },
         specifications: {
-            type: [{
-                _id: false,
-                label: String,
-                value: String,
-            }],
+            type: [
+                {
+                    _id: false,
+                    label: String,
+                    value: String,
+                },
+            ],
             default: [],
         },
         images: {
-            type: [{
-                _id: false,
-                url: { type: String, required: true },
-                publicId: { type: String, required: true },
-            }],
+            type: [
+                {
+                    _id: false,
+                    url: { type: String, required: true },
+                    publicId: { type: String, required: true },
+                },
+            ],
             required: true,
         },
         variants: {
@@ -127,10 +133,7 @@ const productSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-productSchema.index(
-    { sellerProfileId: 1, "variants.sku": 1 },
-    { unique: true }
-);
+productSchema.index({ sellerProfileId: 1, "variants.sku": 1 }, { unique: true });
 productSchema.index({ sellerProfileId: 1, status: 1, createdAt: -1 });
 productSchema.index({ categoryId: 1, status: 1 });
 

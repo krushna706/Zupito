@@ -12,9 +12,7 @@ const createLimiter = (limit, windowMs, options = {}) =>
 
         handler: (req, res) => {
             const resetTime = req.rateLimit?.resetTime;
-            const remaining = resetTime
-                ? Number(resetTime) - Date.now()
-                : windowMs;
+            const remaining = resetTime ? Number(resetTime) - Date.now() : windowMs;
 
             const retryAfter = Math.max(1, Math.ceil(remaining / 1000));
 
@@ -39,14 +37,12 @@ exports.loginAccountLimiter = createLimiter(10, 15 * 60 * 1000, {
         const { identifier } = req.body;
 
         const user = await User.findOne(
-            identifier.includes("@")
-                ? { email: identifier }
-                : { phone: identifier }
-        ).select("_id").lean();
+            identifier.includes("@") ? { email: identifier } : { phone: identifier }
+        )
+            .select("_id")
+            .lean();
 
-        const key = user
-            ? `account:${user._id}`
-            : `identifier:${identifier}`;
+        const key = user ? `account:${user._id}` : `identifier:${identifier}`;
 
         return createHash("sha256").update(key).digest("hex");
     },

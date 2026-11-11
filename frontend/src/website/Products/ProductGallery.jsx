@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 function ProductGallery({ productId, name = "Product", image, images = [] }) {
-    const sources = [...new Set([image, ...images].filter((src) => typeof src === "string" && src.trim()))];
+    const sources = [
+        ...new Set([image, ...images].filter((src) => typeof src === "string" && src.trim())),
+    ];
 
     return <Gallery key={JSON.stringify([productId, sources])} name={name} images={sources} />;
 }
@@ -145,7 +147,7 @@ function Gallery({ name, images }) {
         lastInteractionRef.current = Date.now();
         touchRef.current = {
             x: event.touches[0].clientX,
-            y: event.touches[0].clientY
+            y: event.touches[0].clientY,
         };
     };
 
@@ -200,7 +202,11 @@ function Gallery({ name, images }) {
             }}
         >
             {multiple && (
-                <div className="product-gallery-thumbnails" role="group" aria-label="Choose product image">
+                <div
+                    className="product-gallery-thumbnails"
+                    role="group"
+                    aria-label="Choose product image"
+                >
                     {images.map((source, index) => (
                         <button
                             key={source}
@@ -252,7 +258,10 @@ function Gallery({ name, images }) {
                         ref={trackRef}
                         className={`product-gallery-track ${instant || reducedMotion ? "is-instant" : ""}`}
                         onTransitionEnd={(event) => {
-                            if (event.target === event.currentTarget && event.propertyName === "transform")
+                            if (
+                                event.target === event.currentTarget &&
+                                event.propertyName === "transform"
+                            )
                                 finishSlide();
                         }}
                     >

@@ -1,6 +1,14 @@
-import { useRef, useState } from "react";
+import { getComplaints, submitComplaint } from "../services/supportService";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from "@mui/material";
+import {
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    MenuItem,
+    TextField,
+} from "@mui/material";
 import { toast } from "react-toastify";
 
 const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
@@ -12,37 +20,37 @@ const complaintCategories = [
     { value: "product", label: "Product Issue" },
     { value: "replacement", label: "Replacement Request" },
     { value: "account", label: "Account Issue" },
-    { value: "other", label: "Other" }
+    { value: "other", label: "Other" },
 ];
 
 const supportTopics = [
     {
         icon: "fa-box",
         title: "Orders & Delivery",
-        description: "Delivery delays, tracking or order concerns."
+        description: "Delivery delays, tracking or order concerns.",
     },
     {
         icon: "fa-credit-card",
         title: "Payments",
-        description: "Payment failures or transaction-related issues."
+        description: "Payment failures or transaction-related issues.",
     },
     {
         icon: "fa-rotate",
         title: "Replacements",
-        description: "Questions about eligible replacement requests."
+        description: "Questions about eligible replacement requests.",
     },
     {
         icon: "fa-user-shield",
         title: "Account Support",
-        description: "Help with your account or personal information."
-    }
+        description: "Help with your account or personal information.",
+    },
 ];
 
 const initialForm = {
     category: "",
     orderId: "",
     subject: "",
-    description: ""
+    description: "",
 };
 
 function validateComplaint(form) {
@@ -73,10 +81,19 @@ function validateComplaint(form) {
 
 function ComplaintsContent({ prefillOrderId }) {
     const fileInputRef = useRef(null);
+    const sending = useRef(false);
+    const [complaints, setComplaints] = useState([]);
+    useEffect(() => {
+        getComplaints()
+            .then(setComplaints)
+            .catch((error) => toast.error(error.message));
+    }, []);
 
     const [dialogOpen, setDialogOpen] = useState(Boolean(prefillOrderId));
     const [formData, setFormData] = useState(() =>
-        prefillOrderId ? { ...initialForm, category: "order", orderId: prefillOrderId } : initialForm
+        prefillOrderId
+            ? { ...initialForm, category: "order", orderId: prefillOrderId }
+            : initialForm
     );
     const [formErrors, setFormErrors] = useState({});
     const [attachment, setAttachment] = useState(null);
@@ -106,13 +123,13 @@ function ComplaintsContent({ prefillOrderId }) {
 
         setFormData((previous) => ({
             ...previous,
-            [name]: value
+            [name]: value,
         }));
 
         if (formErrors[name]) {
             setFormErrors((previous) => ({
                 ...previous,
-                [name]: ""
+                [name]: "",
             }));
         }
     };
@@ -136,7 +153,7 @@ function ComplaintsContent({ prefillOrderId }) {
         setAttachment(file);
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         const errors = validateComplaint(formData);
@@ -146,8 +163,18 @@ function ComplaintsContent({ prefillOrderId }) {
             return;
         }
 
-        // Complaint creation will connect to the backend later.
-        toast.info("Complaint submissions will be available after account integration.");
+        if (sending.current) return;
+        sending.current = true;
+        try {
+            await submitComplaint(formData, attachment);
+            setComplaints(await getComplaints());
+            closeDialog();
+            toast.success("Complaint submitted.");
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            sending.current = false;
+        }
     };
 
     return (
@@ -159,10 +186,16 @@ function ComplaintsContent({ prefillOrderId }) {
 
                     <h2>My Complaints</h2>
 
-                    <p>Submit your concerns and keep track of your support requests in one place.</p>
+                    <p>
+                        Submit your concerns and keep track of your support requests in one place.
+                    </p>
                 </div>
 
-                <button type="button" className="customer-complaints-add-button" onClick={openDialog}>
+                <button
+                    type="button"
+                    className="customer-complaints-add-button"
+                    onClick={openDialog}
+                >
                     <i className="fa-solid fa-plus" aria-hidden="true" />
                     Raise a Complaint
                 </button>
@@ -178,7 +211,10 @@ function ComplaintsContent({ prefillOrderId }) {
 
                     <h3>Need help with something?</h3>
 
-                    <p>We're here to help with shopping, delivery, payment and account-related concerns.</p>
+                    <p>
+                        We're here to help with shopping, delivery, payment and account-related
+                        concerns.
+                    </p>
 
                     <button type="button" onClick={openDialog}>
                         Create Support Request
@@ -202,28 +238,54 @@ function ComplaintsContent({ prefillOrderId }) {
                             <p>View your submitted complaints and their current status.</p>
                         </div>
 
-                        <span className="customer-complaints-count">0 Requests</span>
+                        <span className="customer-complaints-count">
+                            {complaints.length} Requests
+                        </span>
                     </div>
 
                     {/* Empty State */}
-                    <div className="customer-complaints-empty">
-                        <div className="customer-complaints-empty-art">
-                            <span>
-                                <i className="fa-regular fa-clipboard" aria-hidden="true" />
-                            </span>
+                    {complaints.length ? (
+                        complaints.map((ticket) => (
+                            <article className="customer-complaints-topic p-3" key={ticket.id}>
+                                <div>
+                                    <h4>{ticket.subject}</h4>
+                                    <p>{ticket.description}</p>
+                                    <strong>{ticket.status}</strong>
+                                    {ticket.replies.map((reply) => (
+                                        <p key={reply._id}>
+                                            <strong>{reply.author}: </strong>
+                                            {reply.message}
+                                        </p>
+                                    ))}
+                                </div>
+                            </article>
+                        ))
+                    ) : (
+                        <>
+                            {" "}
+                            <div className="customer-complaints-empty">
+                                <div className="customer-complaints-empty-art">
+                                    <span>
+                                        <i className="fa-regular fa-clipboard" aria-hidden="true" />
+                                    </span>
 
-                            <i className="fa-solid fa-circle-check" aria-hidden="true" />
-                        </div>
+                                    <i className="fa-solid fa-circle-check" aria-hidden="true" />
+                                </div>
 
-                        <h4>No complaints yet</h4>
+                                <h4>No complaints yet</h4>
 
-                        <p>Your support requests will appear here once you've submitted a complaint.</p>
+                                <p>
+                                    Your support requests will appear here once you've submitted a
+                                    complaint.
+                                </p>
 
-                        <button type="button" onClick={openDialog}>
-                            <i className="fa-solid fa-plus" aria-hidden="true" />
-                            Raise Your First Complaint
-                        </button>
-                    </div>
+                                <button type="button" onClick={openDialog}>
+                                    <i className="fa-solid fa-plus" aria-hidden="true" />
+                                    Raise Your First Complaint
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </section>
 
                 {/* Support Information */}
@@ -259,7 +321,9 @@ function ComplaintsContent({ prefillOrderId }) {
                     <div className="customer-complaints-support-note">
                         <i className="fa-solid fa-lightbulb" aria-hidden="true" />
 
-                        <p>For order-related issues, include your Order ID and a clear description.</p>
+                        <p>
+                            For order-related issues, include your Order ID and a clear description.
+                        </p>
                     </div>
                 </aside>
             </div>
@@ -268,7 +332,10 @@ function ComplaintsContent({ prefillOrderId }) {
             <div className="customer-complaints-info">
                 <i className="fa-solid fa-shield-halved" aria-hidden="true" />
 
-                <p>Please avoid sharing passwords, OTPs or sensitive payment details in support requests.</p>
+                <p>
+                    Please avoid sharing passwords, OTPs or sensitive payment details in support
+                    requests.
+                </p>
             </div>
 
             {/* New Complaint Dialog */}
@@ -323,13 +390,16 @@ function ComplaintsContent({ prefillOrderId }) {
                                 value={formData.orderId}
                                 onChange={handleInputChange}
                                 error={Boolean(formErrors.orderId)}
-                                helperText={formErrors.orderId || "Recommended for order-related complaints."}
+                                helperText={
+                                    formErrors.orderId ||
+                                    "Recommended for order-related complaints."
+                                }
                                 size="small"
                                 fullWidth
                                 slotProps={{
                                     htmlInput: {
-                                        maxLength: 60
-                                    }
+                                        maxLength: 60,
+                                    },
                                 }}
                             />
 
@@ -346,8 +416,8 @@ function ComplaintsContent({ prefillOrderId }) {
                                 required
                                 slotProps={{
                                     htmlInput: {
-                                        maxLength: 100
-                                    }
+                                        maxLength: 100,
+                                    },
                                 }}
                             />
 
@@ -366,8 +436,8 @@ function ComplaintsContent({ prefillOrderId }) {
                                 required
                                 slotProps={{
                                     htmlInput: {
-                                        maxLength: 1500
-                                    }
+                                        maxLength: 1500,
+                                    },
                                 }}
                             />
 
@@ -420,7 +490,11 @@ function ComplaintsContent({ prefillOrderId }) {
                 </DialogContent>
 
                 <DialogActions className="customer-complaint-dialog-actions">
-                    <button type="button" className="customer-complaint-cancel" onClick={closeDialog}>
+                    <button
+                        type="button"
+                        className="customer-complaint-cancel"
+                        onClick={closeDialog}
+                    >
                         Cancel
                     </button>
 

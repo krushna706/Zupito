@@ -12,13 +12,7 @@ function Profile() {
         return account;
     };
 
-    return (
-        <ProfileForm
-            key={user?._id}
-            user={user}
-            onSave={handleSave}
-        />
-    );
+    return <ProfileForm key={user?._id} user={user} onSave={handleSave} />;
 }
 
 export default Profile;

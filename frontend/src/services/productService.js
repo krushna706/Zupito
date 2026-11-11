@@ -39,8 +39,8 @@ function mapProduct(product) {
             },
         ],
 
-        rating: null,
-        ratingCount: 0,
+        rating: product.rating,
+        ratingCount: product.ratingCount || 0,
         reviews: [],
     };
 }
@@ -55,12 +55,13 @@ export async function getPublicProducts(params = {}) {
 }
 
 export async function getPublicProduct(productId) {
-    const { data } = await api.get(
-        `/products/${encodeURIComponent(productId)}`
-    );
+    const { data } = await api.get(`/products/${encodeURIComponent(productId)}`);
 
+    const feedback = await api
+        .get(`/reviews/products/${encodeURIComponent(productId)}`)
+        .catch(() => ({ data: { reviews: [] } }));
     return {
-        product: mapProduct(data.product),
+        product: { ...mapProduct(data.product), reviews: feedback.data.reviews },
         related: data.related.map(mapProduct),
     };
 }

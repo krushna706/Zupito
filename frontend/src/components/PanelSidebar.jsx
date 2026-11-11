@@ -1,4 +1,4 @@
-import { Link, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { Drawer, IconButton, useMediaQuery } from "@mui/material";
 
 import { getPanelNavigation } from "../config/panelConfig";
@@ -32,7 +32,9 @@ function SidebarContent({ navigationItems, isMobile = false, collapsed = false, 
                                 end={item.end}
                                 onClick={onClose}
                                 tabIndex={collapsed ? -1 : undefined}
-                                className={({ isActive }) => `panel-nav-link ${isActive ? "is-active" : ""}`}
+                                className={({ isActive }) =>
+                                    `panel-nav-link ${isActive ? "is-active" : ""}`
+                                }
                             >
                                 <span className="panel-nav-icon" aria-hidden="true">
                                     <i className={item.icon} />
@@ -40,13 +42,15 @@ function SidebarContent({ navigationItems, isMobile = false, collapsed = false, 
 
                                 <span className="panel-nav-text">{item.label}</span>
 
-                                <i className="fa-solid fa-chevron-right panel-nav-arrow" aria-hidden="true" />
+                                <i
+                                    className="fa-solid fa-chevron-right panel-nav-arrow"
+                                    aria-hidden="true"
+                                />
                             </NavLink>
                         </li>
                     ))}
                 </ul>
             </nav>
-
         </>
     );
 }
@@ -66,8 +70,8 @@ function PanelSidebar({ user, isMobile, mobileOpen, collapsed, onClose }) {
                     paper: {
                         id: "panel-sidebar",
                         className: "panel-sidebar panel-sidebar-drawer",
-                        "aria-label": "Panel navigation"
-                    }
+                        "aria-label": "Panel navigation",
+                    },
                 }}
             >
                 <SidebarContent navigationItems={navigationItems} isMobile onClose={onClose} />

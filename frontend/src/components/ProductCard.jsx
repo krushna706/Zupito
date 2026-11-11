@@ -5,13 +5,13 @@ import {
     getCartProduct,
     getDisplayVariant,
     getProductPath,
-    getProductView
+    getProductView,
 } from "../utils/productVariants";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
 });
 
 function ProductRating({ rating, ratingCount }) {
@@ -23,11 +23,7 @@ function ProductRating({ rating, ratingCount }) {
         ratingCount > 0;
 
     if (!hasRating) {
-        return (
-            <div className="product-card-rating product-card-rating-empty">
-                Not rated yet
-            </div>
-        );
+        return <div className="product-card-rating product-card-rating-empty">Not rated yet</div>;
     }
 
     return (
@@ -38,19 +34,13 @@ function ProductRating({ rating, ratingCount }) {
         >
             <span className="product-card-stars" aria-hidden="true">
                 {Array.from({ length: 5 }, (_, index) => {
-                    const fill = Math.min(
-                        100,
-                        Math.max(0, (rating - index) * 100)
-                    );
+                    const fill = Math.min(100, Math.max(0, (rating - index) * 100));
 
                     return (
                         <span className="product-card-star" key={index}>
                             <i className="fa-solid fa-star" />
 
-                            <span
-                                className="product-card-star-fill"
-                                style={{ width: `${fill}%` }}
-                            >
+                            <span className="product-card-star-fill" style={{ width: `${fill}%` }}>
                                 <i className="fa-solid fa-star" />
                             </span>
                         </span>
@@ -70,7 +60,7 @@ function ProductCard({ product, variantId, preferredVariantId }) {
 
     const selectedVariant = getDisplayVariant(product, {
         variantId: variantId ?? product.variantId,
-        preferredVariantId
+        preferredVariantId,
     });
 
     const view = getProductView(product, selectedVariant);
@@ -88,7 +78,7 @@ function ProductCard({ product, variantId, preferredVariantId }) {
         ratingCount,
         variantLabel,
         packLabel,
-        availableForPurchase
+        availableForPurchase,
     } = view;
 
     // Cards use the product cover; variant images remain available separately.
@@ -98,26 +88,17 @@ function ProductCard({ product, variantId, preferredVariantId }) {
 
     const productPath = getProductPath(view.productId, view.variantId);
 
-    const productDetail = [
-        ...new Set([variantLabel, packLabel].filter(Boolean))
-    ].join(" · ");
+    const productDetail = [...new Set([variantLabel, packLabel].filter(Boolean))].join(" · ");
 
-    const accessibleName = productDetail
-        ? `${name}, ${productDetail}`
-        : name;
+    const accessibleName = productDetail ? `${name}, ${productDetail}` : name;
 
     const hasValidPrice = Number.isFinite(price) && price >= 0;
 
     const canPurchase = availableForPurchase && hasValidPrice;
 
-    const hasDiscount =
-        hasValidPrice &&
-        Number.isFinite(mrp) &&
-        mrp > price;
+    const hasDiscount = hasValidPrice && Number.isFinite(mrp) && mrp > price;
 
-    const discountPercent = hasDiscount
-        ? Math.floor(((mrp - price) / mrp) * 100)
-        : 0;
+    const discountPercent = hasDiscount ? Math.floor(((mrp - price) / mrp) * 100) : 0;
 
     return (
         <article className="product-card">
@@ -140,18 +121,13 @@ function ProductCard({ product, variantId, preferredVariantId }) {
                         />
                     ) : (
                         <span className="product-card-placeholder">
-                            <i
-                                className="fa-regular fa-image"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-regular fa-image" aria-hidden="true" />
                             <span>Image unavailable</span>
                         </span>
                     )}
 
                     {discountPercent > 0 && (
-                        <span className="product-card-discount">
-                            {discountPercent}% off
-                        </span>
+                        <span className="product-card-discount">{discountPercent}% off</span>
                     )}
                 </div>
 
@@ -160,25 +136,17 @@ function ProductCard({ product, variantId, preferredVariantId }) {
                         {name}
                     </h3>
 
-                    <div
-                        className="product-card-detail"
-                        title={productDetail || undefined}
-                    >
+                    <div className="product-card-detail" title={productDetail || undefined}>
                         {productDetail || "\u00A0"}
                     </div>
 
-                    <ProductRating
-                        rating={rating}
-                        ratingCount={ratingCount}
-                    />
+                    <ProductRating rating={rating} ratingCount={ratingCount} />
 
                     <div className="product-card-pricing">
                         <span className="product-card-price">
                             {hasValidPrice ? (
                                 <>
-                                    <span className="visually-hidden">
-                                        Price:
-                                    </span>
+                                    <span className="visually-hidden">Price:</span>
                                     {currencyFormatter.format(price)}
                                 </>
                             ) : (
@@ -188,9 +156,7 @@ function ProductCard({ product, variantId, preferredVariantId }) {
 
                         {hasDiscount && (
                             <del className="product-card-mrp">
-                                <span className="visually-hidden">
-                                    MRP:
-                                </span>
+                                <span className="visually-hidden">MRP:</span>
                                 {currencyFormatter.format(mrp)}
                             </del>
                         )}
@@ -210,16 +176,11 @@ function ProductCard({ product, variantId, preferredVariantId }) {
                             onClick={() => changeQuantity(cartProduct, -1)}
                             aria-label={`Decrease quantity of ${accessibleName}`}
                         >
-                            <i
-                                className="fa-solid fa-minus"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-solid fa-minus" aria-hidden="true" />
                         </button>
 
                         <span aria-live="polite" aria-atomic="true">
-                            <span className="visually-hidden">
-                                Quantity:
-                            </span>
+                            <span className="visually-hidden">Quantity:</span>
                             {quantity}
                         </span>
 
@@ -229,10 +190,7 @@ function ProductCard({ product, variantId, preferredVariantId }) {
                             disabled={!canPurchase || quantity >= stock}
                             aria-label={`Increase quantity of ${accessibleName}`}
                         >
-                            <i
-                                className="fa-solid fa-plus"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-solid fa-plus" aria-hidden="true" />
                         </button>
                     </div>
                 ) : (
@@ -249,10 +207,7 @@ function ProductCard({ product, variantId, preferredVariantId }) {
                     >
                         {canPurchase ? (
                             <>
-                                <i
-                                    className="fa-solid fa-plus"
-                                    aria-hidden="true"
-                                />
+                                <i className="fa-solid fa-plus" aria-hidden="true" />
                                 Add to Cart
                             </>
                         ) : availableForPurchase ? (

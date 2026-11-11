@@ -18,20 +18,15 @@ const password = Joi.string()
     .min(6)
     .max(72)
     .custom((value, helpers) =>
-        Buffer.byteLength(value, "utf8") > 72
-            ? helpers.error("any.invalid")
-            : value
+        Buffer.byteLength(value, "utf8") > 72 ? helpers.error("any.invalid") : value
     )
     .required();
 
 const identifier = Joi.alternatives().try(email, phone).required();
 
-const confirmPassword = Joi.string()
-    .valid(Joi.ref("password"))
-    .required()
-    .messages({
-        "any.only": "Passwords do not match.",
-    });
+const confirmPassword = Joi.string().valid(Joi.ref("password")).required().messages({
+    "any.only": "Passwords do not match.",
+});
 
 const token = Joi.string().hex().length(64).required();
 
@@ -63,7 +58,9 @@ exports.sellerRegisterSchema = Joi.object({
     locality: Joi.string().trim().min(2).max(100).required(),
     city: name,
     state: name,
-    pincode: Joi.string().pattern(/^[1-9]\d{5}$/).required(),
+    pincode: Joi.string()
+        .pattern(/^[1-9]\d{5}$/)
+        .required(),
 });
 
 exports.forgotPasswordRequestSchema = Joi.object({
@@ -72,7 +69,9 @@ exports.forgotPasswordRequestSchema = Joi.object({
 
 exports.forgotPasswordVerifySchema = Joi.object({
     requestId: token,
-    otp: Joi.string().pattern(/^\d{6}$/).required(),
+    otp: Joi.string()
+        .pattern(/^\d{6}$/)
+        .required(),
 });
 
 exports.forgotPasswordResetSchema = Joi.object({
@@ -82,22 +81,12 @@ exports.forgotPasswordResetSchema = Joi.object({
 });
 
 exports.profileUpdateSchema = Joi.object({
-    name: Joi.string()
-        .replace(/\s+/g, " ")
-        .trim()
-        .min(2)
-        .max(100)
-        .required(),
+    name: Joi.string().replace(/\s+/g, " ").trim().min(2).max(100).required(),
 });
 
 // Categories
 const categoryFields = {
-    name: Joi.string()
-        .replace(/\s+/g, " ")
-        .trim()
-        .min(2)
-        .max(70)
-        .required(),
+    name: Joi.string().replace(/\s+/g, " ").trim().min(2).max(70).required(),
 
     parentId: Joi.string().hex().length(24).allow(null).required(),
     description: Joi.string().trim().max(240).allow("").default(""),
@@ -106,9 +95,7 @@ const categoryFields = {
     attributes: Joi.array()
         .items(Joi.string().trim().min(1).max(40))
         .max(12)
-        .unique((first, second) =>
-            first.toLowerCase() === second.toLowerCase()
-        )
+        .unique((first, second) => first.toLowerCase() === second.toLowerCase())
         .required(),
 
     showOnHome: Joi.boolean().default(false),
@@ -117,9 +104,7 @@ const categoryFields = {
     filterAttributes: Joi.array()
         .items(Joi.string().trim().min(1).max(40))
         .max(12)
-        .unique((first, second) =>
-            first.toLowerCase() === second.toLowerCase()
-        )
+        .unique((first, second) => first.toLowerCase() === second.toLowerCase())
         .default([]),
 
     replacementAllowed: Joi.boolean().required(),
@@ -129,12 +114,10 @@ const categoryFields = {
 const categoryRules = (value, helpers) => {
     if (
         !value.parentId &&
-        (
-            value.attributes.length ||
+        (value.attributes.length ||
             value.filterAttributes.length ||
             value.replacementAllowed ||
-            value.replacementDays !== 0
-        )
+            value.replacementDays !== 0)
     ) {
         return helpers.message(
             "Attributes, attribute filters and replacement rules apply only to subcategories."
@@ -142,35 +125,21 @@ const categoryRules = (value, helpers) => {
     }
 
     if (value.parentId && value.showOnHome) {
-        return helpers.message(
-            "Only main categories can appear in the Home category section."
-        );
+        return helpers.message("Only main categories can appear in the Home category section.");
     }
 
-    const attributes = new Set(
-        value.attributes.map((attribute) => attribute.toLowerCase())
-    );
+    const attributes = new Set(value.attributes.map((attribute) => attribute.toLowerCase()));
 
-    if (
-        value.filterAttributes.some(
-            (attribute) => !attributes.has(attribute.toLowerCase())
-        )
-    ) {
-        return helpers.message(
-            "Choose filter attributes from the category specifications."
-        );
+    if (value.filterAttributes.some((attribute) => !attributes.has(attribute.toLowerCase()))) {
+        return helpers.message("Choose filter attributes from the category specifications.");
     }
 
     if (value.replacementAllowed && value.replacementDays < 1) {
-        return helpers.message(
-            "Replacement request window must be between 1 and 30 days."
-        );
+        return helpers.message("Replacement request window must be between 1 and 30 days.");
     }
 
     if (!value.replacementAllowed && value.replacementDays !== 0) {
-        return helpers.message(
-            "Replacement days must be zero when replacement is disabled."
-        );
+        return helpers.message("Replacement days must be zero when replacement is disabled.");
     }
 
     return value;
@@ -216,9 +185,7 @@ exports.adminSellerListSchema = Joi.object({
 });
 
 exports.adminSellerStatusSchema = Joi.object({
-    action: Joi.string()
-        .valid("Approve", "Reject", "Suspend", "Reactivate")
-        .required(),
+    action: Joi.string().valid("Approve", "Reject", "Suspend", "Reactivate").required(),
 
     reason: Joi.when("action", {
         is: Joi.valid("Reject", "Suspend"),
@@ -239,7 +206,9 @@ exports.storeProfileSchema = Joi.object({
     locality: Joi.string().trim().min(2).max(100).required(),
     city: name,
     state: name,
-    pincode: Joi.string().pattern(/^[1-9]\d{5}$/).required(),
+    pincode: Joi.string()
+        .pattern(/^[1-9]\d{5}$/)
+        .required(),
     pickupNotes: Joi.string().trim().max(200).allow("").default(""),
     removeLogo: Joi.boolean().default(false),
     version: Joi.number().integer().min(0).required(),
@@ -252,10 +221,7 @@ const productFields = {
     categoryId: Joi.string().hex().length(24).required(),
     description: Joi.string().trim().min(20).max(5000).required(),
 
-    highlights: Joi.array()
-        .items(Joi.string().trim().min(1).max(200))
-        .max(10)
-        .required(),
+    highlights: Joi.array().items(Joi.string().trim().min(1).max(200)).max(10).required(),
 
     specifications: Joi.array()
         .items(
@@ -265,9 +231,7 @@ const productFields = {
             })
         )
         .max(30)
-        .unique((first, second) =>
-            first.label.toLowerCase() === second.label.toLowerCase()
-        )
+        .unique((first, second) => first.label.toLowerCase() === second.label.toLowerCase())
         .required(),
 
     imageKeys: Joi.array()
@@ -280,9 +244,7 @@ const productFields = {
     variants: Joi.array()
         .items(
             Joi.object({
-                variantId: Joi.string()
-                    .guid({ version: "uuidv4" })
-                    .required(),
+                variantId: Joi.string().guid({ version: "uuidv4" }).required(),
 
                 sku: Joi.string()
                     .trim()
@@ -301,9 +263,7 @@ const productFields = {
         .max(50)
         .required(),
 
-    stockReason: Joi.string()
-        .valid("", "Restock", "Adjustment", "Damage/Loss")
-        .default(""),
+    stockReason: Joi.string().valid("", "Restock", "Adjustment", "Damage/Loss").default(""),
 
     stockNote: Joi.string().trim().max(300).allow("").default(""),
 };
@@ -319,9 +279,8 @@ const productRules = (value, helpers) => {
     }
 
     if (
-        variants.some((item) =>
-            item.mrpPaise < item.pricePaise ||
-            item.imageIndex >= value.imageKeys.length
+        variants.some(
+            (item) => item.mrpPaise < item.pricePaise || item.imageIndex >= value.imageKeys.length
         )
     ) {
         return helpers.message("Check variant MRP and image selection.");
@@ -415,9 +374,7 @@ exports.inventoryCsvRowSchema = Joi.object({
 
 // Admin product review
 const productReviewFields = {
-    action: Joi.string()
-        .valid("Approve", "Reject", "Suspend", "Reactivate")
-        .required(),
+    action: Joi.string().valid("Approve", "Reject", "Suspend", "Reactivate").required(),
 
     reason: Joi.string()
         .trim()
@@ -436,12 +393,7 @@ exports.adminProductListSchema = Joi.object({
         .valid("All", "Pending", "Approved", "Rejected", "Suspended")
         .default("All"),
 
-    categoryId: Joi.string()
-        .hex()
-        .length(24)
-        .lowercase()
-        .allow("")
-        .default(""),
+    categoryId: Joi.string().hex().length(24).lowercase().allow("").default(""),
 
     page: Joi.number().integer().min(1).max(100000).default(1),
     limit: Joi.number().valid(10, 20, 50).default(10),
@@ -450,11 +402,7 @@ exports.adminProductListSchema = Joi.object({
 exports.adminProductDecisionSchema = Joi.object({
     ...productReviewFields,
 
-    version: Joi.number()
-        .integer()
-        .min(0)
-        .max(Number.MAX_SAFE_INTEGER)
-        .required(),
+    version: Joi.number().integer().min(0).max(Number.MAX_SAFE_INTEGER).required(),
 });
 
 exports.adminProductBulkSchema = Joi.object({
@@ -464,17 +412,9 @@ exports.adminProductBulkSchema = Joi.object({
     items: Joi.array()
         .items(
             Joi.object({
-                productId: Joi.string()
-                    .hex()
-                    .length(24)
-                    .lowercase()
-                    .required(),
+                productId: Joi.string().hex().length(24).lowercase().required(),
 
-                version: Joi.number()
-                    .integer()
-                    .min(0)
-                    .max(Number.MAX_SAFE_INTEGER)
-                    .required(),
+                version: Joi.number().integer().min(0).max(Number.MAX_SAFE_INTEGER).required(),
             })
         )
         .min(1)
@@ -494,20 +434,12 @@ exports.publicProductListSchema = Joi.object({
         .allow("")
         .default("")
         .custom((value, helpers) =>
-            value.split(",").length <= 20
-                ? value
-                : helpers.error("any.invalid")
+            value.split(",").length <= 20 ? value : helpers.error("any.invalid")
         ),
 
-    sort: Joi.string()
-        .valid("newest", "price-asc", "price-desc")
-        .default("newest"),
+    sort: Joi.string().valid("newest", "price-asc", "price-desc").default("newest"),
 
-    minPricePaise: Joi.number()
-        .integer()
-        .min(0)
-        .max(1000000000)
-        .default(0),
+    minPricePaise: Joi.number().integer().min(0).max(1000000000).default(0),
 
     maxPricePaise: Joi.number()
         .integer()
@@ -522,20 +454,12 @@ exports.publicProductListSchema = Joi.object({
     limit: Joi.number().valid(12, 30).default(30),
 });
 
-exports.brandsSchema = Joi.array()
-    .items(Joi.string().trim().min(1).max(80))
-    .max(20)
-    .unique();
+exports.brandsSchema = Joi.array().items(Joi.string().trim().min(1).max(80)).max(20).unique();
 
 exports.attributesSchema = Joi.array()
     .items(
         Joi.object({
-            key: Joi.string()
-                .trim()
-                .lowercase()
-                .min(1)
-                .max(40)
-                .required(),
+            key: Joi.string().trim().lowercase().min(1).max(40).required(),
 
             values: Joi.array()
                 .items(Joi.string().trim().min(1).max(500))
@@ -547,3 +471,59 @@ exports.attributesSchema = Joi.array()
     )
     .max(12)
     .unique("key");
+// Promotional campaigns use rupees at the management boundary.
+exports.couponSchema = Joi.object({
+    code: Joi.string()
+        .uppercase()
+        .pattern(/^[A-Z0-9][A-Z0-9_-]{3,19}$/)
+        .required(),
+    name: Joi.string().trim().min(3).max(80).required(),
+    description: Joi.string().trim().max(500).allow("").default(""),
+    type: Joi.string().valid("Fixed", "Percentage").required(),
+    value: Joi.number().positive().max(500000).precision(2).required(),
+    maxDiscount: Joi.number().min(0).max(500000).precision(2).required(),
+    minOrder: Joi.number().min(0).max(500000).precision(2).required(),
+    scope: Joi.string().valid("All Categories").required(),
+    usageLimit: Joi.number().integer().min(1).max(1000000).required(),
+    perCustomerLimit: Joi.number().integer().min(1).max(1000).required(),
+    validFrom: Joi.string()
+        .pattern(/^\d{4}-\d{2}-\d{2}$/)
+        .required(),
+    validUntil: Joi.string()
+        .pattern(/^\d{4}-\d{2}-\d{2}$/)
+        .required(),
+});
+exports.couponStatusSchema = Joi.object({
+    enabled: Joi.boolean().required(),
+    reason: Joi.string().trim().min(5).max(300).required(),
+});
+
+exports.reviewSchema = Joi.object({
+    orderId: Joi.string().hex().length(24).required(),
+    orderItemId: Joi.string()
+        .pattern(/^[a-f0-9]{24}-\d+$/i)
+        .required(),
+    productId: Joi.string().hex().length(24),
+    variantId: Joi.string().allow(null, ""),
+    rating: Joi.number().integer().min(1).max(5).required(),
+    comment: Joi.string().trim().max(800).allow("").default(""),
+});
+exports.reviewModerationSchema = Joi.object({
+    status: Joi.string().valid("Published", "Flagged", "Hidden").required(),
+    reason: Joi.string().trim().min(5).max(300).required(),
+});
+
+exports.complaintSchema = Joi.object({
+    name: Joi.string().trim().min(2).max(100),
+    email: Joi.string().email().max(254),
+    phone: Joi.string()
+        .pattern(/^[6-9]\d{9}$/)
+        .allow(""),
+    orderId: Joi.string().hex().length(24).allow(""),
+    category: Joi.string()
+        .valid("order", "payment", "product", "replacement", "account", "other")
+        .default("other"),
+    subject: Joi.string().trim().min(5).max(100).required(),
+    description: Joi.string().trim().min(20).max(1500),
+    message: Joi.string().trim().min(20).max(1500),
+}).or("description", "message");

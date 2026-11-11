@@ -18,10 +18,9 @@ api.interceptors.response.use(
         const failure = new Error(message);
 
         failure.status = error.response?.status;
+        failure.response = error.response;
         failure.retryAfter = Number(
-            error.response?.headers?.["retry-after"] ||
-                error.response?.data?.retryAfter ||
-                0
+            error.response?.headers?.["retry-after"] || error.response?.data?.retryAfter || 0
         );
 
         return Promise.reject(failure);

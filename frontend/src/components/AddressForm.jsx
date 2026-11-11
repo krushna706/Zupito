@@ -7,68 +7,60 @@ const addressFields = [
         name: "name",
         label: "Full Name",
         autoComplete: "name",
-        maxLength: 80
+        maxLength: 80,
     },
     {
         name: "phone",
         label: "Mobile Number",
         autoComplete: "tel",
         maxLength: 10,
-        numeric: true
+        numeric: true,
     },
     {
         name: "pincode",
         label: "PIN Code",
         autoComplete: "postal-code",
         maxLength: 6,
-        numeric: true
+        numeric: true,
     },
     {
         name: "house",
         label: "House / Flat / Building",
         autoComplete: "address-line1",
-        full: true
+        full: true,
     },
     {
         name: "area",
         label: "Street / Area / Locality",
         autoComplete: "address-line2",
-        full: true
+        full: true,
     },
     {
         name: "city",
         label: "City",
         autoComplete: "address-level2",
-        maxLength: 80
+        maxLength: 80,
     },
     {
         name: "state",
         label: "State",
         autoComplete: "address-level1",
-        maxLength: 80
+        maxLength: 80,
     },
     {
         name: "landmark",
         label: "Landmark (Optional)",
-        full: true
-    }
+        full: true,
+    },
 ];
 
-function AddressForm({
-    address,
-    onChange,
-    errors = {},
-    submitted = false,
-    disabled = false
-}) {
+function AddressForm({ address, onChange, errors = {}, submitted = false, disabled = false }) {
     const handleChange = (event) => {
         const { name, value } = event.target;
 
         onChange({
             ...address,
-            [name]: ["phone", "pincode"].includes(name)
-                ? value.replace(/\D/g, "")
-                : value
+            [name]: ["phone", "pincode"].includes(name) ? value.replace(/\D/g, "") : value,
         });
     };
 
@@ -102,8 +94,8 @@ function AddressForm({
                             slotProps={{
                                 htmlInput: {
                                     maxLength: field.maxLength || 150,
-                                    inputMode: field.numeric ? "numeric" : "text"
-                                }
+                                    inputMode: field.numeric ? "numeric" : "text",
+                                },
                             }}
                         />
                     </div>

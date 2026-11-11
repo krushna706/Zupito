@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -46,28 +45,28 @@ const initials = (name) =>
 const formatDate = (value) =>
     value
         ? new Date(value).toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-        })
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+          })
         : "—";
 
 const getAvailability = (agent) =>
-    agent.status !== "Active" ||
-    agent.availability !== "Available"
+    agent.status !== "Active" || agent.availability !== "Available"
         ? "Unavailable"
         : agent.activeTasks >= agent.capacity
-            ? "At Capacity"
-            : "Available";
+          ? "At Capacity"
+          : "Available";
 
 function StatusBadge({ value }) {
-    const theme = {
-        Active: "success",
-        Available: "success",
-        Suspended: "danger",
-        Unavailable: "neutral",
-        "At Capacity": "warning",
-    }[value] || "neutral";
+    const theme =
+        {
+            Active: "success",
+            Available: "success",
+            Suspended: "danger",
+            Unavailable: "neutral",
+            "At Capacity": "warning",
+        }[value] || "neutral";
 
     return (
         <span className={`da-badge da-badge--${theme}`}>
@@ -111,20 +110,13 @@ function DeliveryAgents() {
     const [reason, setReason] = useState("");
     const [actionError, setActionError] = useState("");
 
-    const selectedAgent = agents.find(
-        (agent) => agent.id === selectedId
-    );
+    const selectedAgent = agents.find((agent) => agent.id === selectedId);
 
-    const editingAgent = agents.find(
-        (agent) => agent.id === editingId
-    );
+    const editingAgent = agents.find((agent) => agent.id === editingId);
 
-    const actionAgent = agents.find(
-        (agent) => agent.id === statusAction?.agentId
-    );
+    const actionAgent = agents.find((agent) => agent.id === statusAction?.agentId);
 
     // ================== DATABASE DATA ==================
-    // No demo agents or browser-storage writes.
     const loadAgents = async () => {
         const { data } = await api.get("/delivery/admin/agents");
 
@@ -148,28 +140,21 @@ function DeliveryAgents() {
         },
         {
             label: "Available Agents",
-            value: agents.filter(
-                (agent) => getAvailability(agent) === "Available"
-            ).length,
+            value: agents.filter((agent) => getAvailability(agent) === "Available").length,
             description: "Ready for new assignments",
             icon: "fa-user-check",
             theme: "green",
         },
         {
             label: "Active Deliveries",
-            value: agents.reduce(
-                (total, agent) => total + agent.activeTasks,
-                0
-            ),
+            value: agents.reduce((total, agent) => total + agent.activeTasks, 0),
             description: "Currently assigned tasks",
             icon: "fa-box",
             theme: "orange",
         },
         {
             label: "Suspended Agents",
-            value: agents.filter(
-                (agent) => agent.status === "Suspended"
-            ).length,
+            value: agents.filter((agent) => agent.status === "Suspended").length,
             description: "Accounts with restricted access",
             icon: "fa-user-lock",
             theme: "red",
@@ -193,24 +178,17 @@ function DeliveryAgents() {
                     .includes(query)
             );
 
-            return matchesSearch &&
-                (
-                    statusFilter === "All" ||
-                    agent.status === statusFilter
-                ) &&
-                (
-                    availabilityFilter === "All" ||
-                    getAvailability(agent) === availabilityFilter
-                );
+            return (
+                matchesSearch &&
+                (statusFilter === "All" || agent.status === statusFilter) &&
+                (availabilityFilter === "All" || getAvailability(agent) === availabilityFilter)
+            );
         })
     );
 
     const safePage = Math.min(
         page,
-        Math.max(
-            0,
-            Math.ceil(filteredAgents.length / rowsPerPage) - 1
-        )
+        Math.max(0, Math.ceil(filteredAgents.length / rowsPerPage) - 1)
     );
 
     const visibleAgents = filteredAgents.slice(
@@ -218,10 +196,7 @@ function DeliveryAgents() {
         (safePage + 1) * rowsPerPage
     );
 
-    const hasFilters =
-        search.trim() ||
-        statusFilter !== "All" ||
-        availabilityFilter !== "All";
+    const hasFilters = search.trim() || statusFilter !== "All" || availabilityFilter !== "All";
 
     // ================== FILTER ACTIONS ==================
     const resetFilters = () => {
@@ -250,13 +225,13 @@ function DeliveryAgents() {
         setForm(
             agent
                 ? {
-                    name: agent.name,
-                    email: agent.email,
-                    mobile: agent.mobile,
-                    pincodes: agent.pincodes.join(", "),
-                    capacity: String(agent.capacity),
-                    availability: agent.availability,
-                }
+                      name: agent.name,
+                      email: agent.email,
+                      mobile: agent.mobile,
+                      pincodes: agent.pincodes.join(", "),
+                      capacity: String(agent.capacity),
+                      availability: agent.availability,
+                  }
                 : { ...emptyForm }
         );
 
@@ -281,9 +256,7 @@ function DeliveryAgents() {
 
         setForm((previous) => ({
             ...previous,
-            [name]: name === "mobile"
-                ? value.replace(/\D/g, "")
-                : value,
+            [name]: name === "mobile" ? value.replace(/\D/g, "") : value,
         }));
 
         setFormError("");
@@ -296,28 +269,17 @@ function DeliveryAgents() {
             name: form.name.trim(),
             email: form.email.trim().toLowerCase(),
             mobile: form.mobile.trim(),
-            pincodes: [
-                ...new Set(
-                    form.pincodes
-                        .split(/[\s,]+/)
-                        .filter(Boolean)
-                ),
-            ],
+            pincodes: [...new Set(form.pincodes.split(/[\s,]+/).filter(Boolean))],
             capacity: Number(form.capacity),
             availability: form.availability,
         };
 
-        if (
-            body.name.length < 2 ||
-            body.name.length > 100
-        ) {
+        if (body.name.length < 2 || body.name.length > 100) {
             setFormError("Enter a name of 2–100 characters.");
             return;
         }
 
-        if (
-            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)
-        ) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
             setFormError("Enter a valid email address.");
             return;
         }
@@ -330,30 +292,19 @@ function DeliveryAgents() {
         if (
             !body.pincodes.length ||
             body.pincodes.length > 15 ||
-            body.pincodes.some(
-                (pin) => !/^[1-9]\d{5}$/.test(pin)
-            )
+            body.pincodes.some((pin) => !/^[1-9]\d{5}$/.test(pin))
         ) {
             setFormError("Enter 1–15 valid 6-digit pincodes.");
             return;
         }
 
-        if (
-            !Number.isInteger(body.capacity) ||
-            body.capacity < 1 ||
-            body.capacity > 20
-        ) {
+        if (!Number.isInteger(body.capacity) || body.capacity < 1 || body.capacity > 20) {
             setFormError("Capacity must be between 1 and 20.");
             return;
         }
 
-        if (
-            editingAgent &&
-            body.capacity < editingAgent.activeTasks
-        ) {
-            setFormError(
-                "Capacity cannot be lower than active workload."
-            );
+        if (editingAgent && body.capacity < editingAgent.activeTasks) {
+            setFormError("Capacity cannot be lower than active workload.");
             return;
         }
 
@@ -361,15 +312,9 @@ function DeliveryAgents() {
 
         try {
             if (editingId) {
-                await api.patch(
-                    `/delivery/admin/agents/${editingId}`,
-                    body
-                );
+                await api.patch(`/delivery/admin/agents/${editingId}`, body);
             } else {
-                await api.post(
-                    "/delivery/admin/agents",
-                    body
-                );
+                await api.post("/delivery/admin/agents", body);
             }
 
             await loadAgents();
@@ -399,15 +344,9 @@ function DeliveryAgents() {
         setBusy(true);
 
         try {
-            await api.patch(
-                `/delivery/admin/agents/${agent.id}/status`,
-                {
-                    availability:
-                        agent.availability === "Available"
-                            ? "Unavailable"
-                            : "Available",
-                }
-            );
+            await api.patch(`/delivery/admin/agents/${agent.id}/status`, {
+                availability: agent.availability === "Available" ? "Unavailable" : "Available",
+            });
 
             await loadAgents();
 
@@ -426,9 +365,7 @@ function DeliveryAgents() {
         setStatusAction({
             agentId: agent.id,
             previousStatus: agent.status,
-            nextStatus: agent.status === "Active"
-                ? "Suspended"
-                : "Active",
+            nextStatus: agent.status === "Active" ? "Suspended" : "Active",
         });
 
         setReason("");
@@ -442,19 +379,13 @@ function DeliveryAgents() {
     };
 
     const updateStatus = async () => {
-        if (
-            !actionAgent ||
-            actionAgent.status !== statusAction.previousStatus
-        ) {
+        if (!actionAgent || actionAgent.status !== statusAction.previousStatus) {
             toast.error("Agent status changed. Refresh the page.");
             closeStatusAction();
             return;
         }
 
-        if (
-            statusAction.nextStatus === "Suspended" &&
-            reason.trim().length < 5
-        ) {
+        if (statusAction.nextStatus === "Suspended" && reason.trim().length < 5) {
             setActionError("Enter at least 5 characters.");
             return;
         }
@@ -462,13 +393,10 @@ function DeliveryAgents() {
         setBusy(true);
 
         try {
-            await api.patch(
-                `/delivery/admin/agents/${statusAction.agentId}/status`,
-                {
-                    status: statusAction.nextStatus,
-                    reason: reason.trim(),
-                }
-            );
+            await api.patch(`/delivery/admin/agents/${statusAction.agentId}/status`, {
+                status: statusAction.nextStatus,
+                reason: reason.trim(),
+            });
 
             await loadAgents();
 
@@ -497,9 +425,8 @@ function DeliveryAgents() {
                     </span>
 
                     <p>
-                        Manage delivery agent accounts, serviceable
-                        locations, availability and active delivery
-                        workload.
+                        Manage delivery agent accounts, serviceable locations, availability and
+                        active delivery workload.
                     </p>
                 </div>
 
@@ -508,9 +435,7 @@ function DeliveryAgents() {
                         variant="outlined"
                         className="da-button da-button--outline"
                         onClick={refresh}
-                        startIcon={
-                            <i className="fa-solid fa-arrows-rotate" />
-                        }
+                        startIcon={<i className="fa-solid fa-arrows-rotate" />}
                     >
                         Refresh
                     </Button>
@@ -518,15 +443,9 @@ function DeliveryAgents() {
                     <Button
                         variant="contained"
                         className="da-button da-button--primary"
-                        onClick={() =>
-                            showForm ? closeForm() : openForm()
-                        }
+                        onClick={() => (showForm ? closeForm() : openForm())}
                         startIcon={
-                            <i
-                                className={`fa-solid ${
-                                    showForm ? "fa-xmark" : "fa-plus"
-                                }`}
-                            />
+                            <i className={`fa-solid ${showForm ? "fa-xmark" : "fa-plus"}`} />
                         }
                     >
                         {showForm ? "Close Form" : "Add Agent"}
@@ -544,25 +463,14 @@ function DeliveryAgents() {
                             </span>
 
                             <div>
-                                <h2>
-                                    {editingId
-                                        ? "Edit Delivery Agent"
-                                        : "Add Delivery Agent"}
-                                </h2>
+                                <h2>{editingId ? "Edit Delivery Agent" : "Add Delivery Agent"}</h2>
 
-                                <p>
-                                    Enter the agent account and
-                                    serviceable locations.
-                                </p>
+                                <p>Enter the agent account and serviceable locations.</p>
                             </div>
                         </div>
                     </div>
 
-                    <form
-                        className="da-form"
-                        onSubmit={saveAgent}
-                        noValidate
-                    >
+                    <form className="da-form" onSubmit={saveAgent} noValidate>
                         <div className="da-form-grid">
                             <TextField
                                 required
@@ -643,38 +551,26 @@ function DeliveryAgents() {
                                 value={form.availability}
                                 onChange={updateForm}
                             >
-                                <MenuItem value="Available">
-                                    Available
-                                </MenuItem>
+                                <MenuItem value="Available">Available</MenuItem>
 
-                                <MenuItem value="Unavailable">
-                                    Unavailable
-                                </MenuItem>
+                                <MenuItem value="Unavailable">Unavailable</MenuItem>
                             </TextField>
 
                             {formError && (
                                 <div className="da-form-full">
-                                    <Alert severity="error">
-                                        {formError}
-                                    </Alert>
+                                    <Alert severity="error">{formError}</Alert>
                                 </div>
                             )}
                         </div>
 
                         <div className="da-form-footer">
                             <span>
-                                <i className="fa-solid fa-circle-info" />
-                                {" "}
-                                New agents set their password with
-                                Forgot Password OTP.
+                                <i className="fa-solid fa-circle-info" /> New agents set their
+                                password with Forgot Password OTP.
                             </span>
 
                             <div className="da-form-buttons">
-                                <Button
-                                    variant="outlined"
-                                    color="inherit"
-                                    onClick={closeForm}
-                                >
+                                <Button variant="outlined" color="inherit" onClick={closeForm}>
                                     Cancel
                                 </Button>
 
@@ -684,11 +580,8 @@ function DeliveryAgents() {
                                     className="da-button--primary"
                                     disabled={busy}
                                 >
-                                    <i className="fa-solid fa-check" />
-                                    {" "}
-                                    {editingId
-                                        ? "Save Changes"
-                                        : "Add Agent"}
+                                    <i className="fa-solid fa-check" />{" "}
+                                    {editingId ? "Save Changes" : "Add Agent"}
                                 </Button>
                             </div>
                         </div>
@@ -697,28 +590,18 @@ function DeliveryAgents() {
             )}
 
             {/* ================== STATISTICS ================== */}
-            <section
-                className="da-stats"
-                aria-label="Delivery agent overview"
-            >
+            <section className="da-stats" aria-label="Delivery agent overview">
                 {statistics.map((item) => (
-                    <article
-                        key={item.label}
-                        className={`da-stat da-stat--${item.theme}`}
-                    >
+                    <article key={item.label} className={`da-stat da-stat--${item.theme}`}>
                         <div className="da-stat-heading">
                             <span>{item.label}</span>
 
                             <span className="da-stat-icon">
-                                <i
-                                    className={`fa-solid ${item.icon}`}
-                                />
+                                <i className={`fa-solid ${item.icon}`} />
                             </span>
                         </div>
 
-                        <strong className="da-stat-value">
-                            {item.value}
-                        </strong>
+                        <strong className="da-stat-value">{item.value}</strong>
 
                         <p>{item.description}</p>
                     </article>
@@ -735,16 +618,11 @@ function DeliveryAgents() {
 
                         <div>
                             <h2>Delivery Agents</h2>
-                            <p>
-                                Monitor availability, serviceability
-                                and workload.
-                            </p>
+                            <p>Monitor availability, serviceability and workload.</p>
                         </div>
                     </div>
 
-                    <span className="da-record-count">
-                        {filteredAgents.length} Records
-                    </span>
+                    <span className="da-record-count">{filteredAgents.length} Records</span>
                 </div>
 
                 {/* ================== SEARCH AND FILTERS ================== */}
@@ -783,18 +661,11 @@ function DeliveryAgents() {
                             setPage(0);
                         }}
                     >
-                        {["All", "Active", "Suspended"].map(
-                            (value) => (
-                                <MenuItem
-                                    key={value}
-                                    value={value}
-                                >
-                                    {value === "All"
-                                        ? "All Statuses"
-                                        : value}
-                                </MenuItem>
-                            )
-                        )}
+                        {["All", "Active", "Suspended"].map((value) => (
+                            <MenuItem key={value} value={value}>
+                                {value === "All" ? "All Statuses" : value}
+                            </MenuItem>
+                        ))}
                     </TextField>
 
                     <TextField
@@ -808,19 +679,9 @@ function DeliveryAgents() {
                             setPage(0);
                         }}
                     >
-                        {[
-                            "All",
-                            "Available",
-                            "Unavailable",
-                            "At Capacity",
-                        ].map((value) => (
-                            <MenuItem
-                                key={value}
-                                value={value}
-                            >
-                                {value === "All"
-                                    ? "All Availability"
-                                    : value}
+                        {["All", "Available", "Unavailable", "At Capacity"].map((value) => (
+                            <MenuItem key={value} value={value}>
+                                {value === "All" ? "All Availability" : value}
                             </MenuItem>
                         ))}
                     </TextField>
@@ -830,9 +691,7 @@ function DeliveryAgents() {
                         className="da-button da-reset-button"
                         disabled={!hasFilters}
                         onClick={resetFilters}
-                        startIcon={
-                            <i className="fa-solid fa-rotate-left" />
-                        }
+                        startIcon={<i className="fa-solid fa-rotate-left" />}
                     >
                         Reset
                     </Button>
@@ -840,10 +699,7 @@ function DeliveryAgents() {
 
                 {/* ================== TABLE ================== */}
                 <TableContainer className="da-table-container">
-                    <Table
-                        className="da-table"
-                        aria-label="Delivery agents"
-                    >
+                    <Table className="da-table" aria-label="Delivery agents">
                         <TableHead>
                             <TableRow>
                                 {[
@@ -854,14 +710,10 @@ function DeliveryAgents() {
                                     "Availability",
                                     "Account Status",
                                 ].map((heading) => (
-                                    <TableCell key={heading}>
-                                        {heading}
-                                    </TableCell>
+                                    <TableCell key={heading}>{heading}</TableCell>
                                 ))}
 
-                                <TableCell align="right">
-                                    Actions
-                                </TableCell>
+                                <TableCell align="right">Actions</TableCell>
                             </TableRow>
                         </TableHead>
 
@@ -869,18 +721,11 @@ function DeliveryAgents() {
                             {visibleAgents.map((agent) => {
                                 const workload = Math.min(
                                     100,
-                                    Math.round(
-                                        100 *
-                                        agent.activeTasks /
-                                        agent.capacity
-                                    )
+                                    Math.round((100 * agent.activeTasks) / agent.capacity)
                                 );
 
                                 return (
-                                    <TableRow
-                                        key={agent.id}
-                                        hover
-                                    >
+                                    <TableRow key={agent.id} hover>
                                         <TableCell>
                                             <div className="da-agent">
                                                 <span className="da-avatar">
@@ -888,26 +733,18 @@ function DeliveryAgents() {
                                                 </span>
 
                                                 <div>
-                                                    <strong>
-                                                        {agent.name}
-                                                    </strong>
+                                                    <strong>{agent.name}</strong>
 
-                                                    <span>
-                                                        {agent.id}
-                                                    </span>
+                                                    <span>{agent.id}</span>
                                                 </div>
                                             </div>
                                         </TableCell>
 
                                         <TableCell>
                                             <div className="da-contact">
-                                                <span>
-                                                    {agent.email}
-                                                </span>
+                                                <span>{agent.email}</span>
 
-                                                <small>
-                                                    {agent.mobile}
-                                                </small>
+                                                <small>{agent.mobile}</small>
                                             </div>
                                         </TableCell>
 
@@ -915,9 +752,7 @@ function DeliveryAgents() {
                                             <div className="da-service-area">
                                                 <i className="fa-solid fa-location-dot" />
 
-                                                <span>
-                                                    {agent.pincodes.join(", ")}
-                                                </span>
+                                                <span>{agent.pincodes.join(", ")}</span>
                                             </div>
                                         </TableCell>
 
@@ -925,22 +760,15 @@ function DeliveryAgents() {
                                             <div className="da-workload">
                                                 <div className="da-workload-heading">
                                                     <strong>
-                                                        {agent.activeTasks}/
-                                                        {agent.capacity}
+                                                        {agent.activeTasks}/{agent.capacity}
                                                     </strong>
 
-                                                    <small>
-                                                        {workload}%
-                                                    </small>
+                                                    <small>{workload}%</small>
                                                 </div>
 
                                                 <div className="da-progress">
                                                     <span
-                                                        className={
-                                                            workload >= 100
-                                                                ? "is-full"
-                                                                : ""
-                                                        }
+                                                        className={workload >= 100 ? "is-full" : ""}
                                                         style={{
                                                             width: `${workload}%`,
                                                         }}
@@ -950,15 +778,11 @@ function DeliveryAgents() {
                                         </TableCell>
 
                                         <TableCell>
-                                            <StatusBadge
-                                                value={getAvailability(agent)}
-                                            />
+                                            <StatusBadge value={getAvailability(agent)} />
                                         </TableCell>
 
                                         <TableCell>
-                                            <StatusBadge
-                                                value={agent.status}
-                                            />
+                                            <StatusBadge value={agent.status} />
                                         </TableCell>
 
                                         <TableCell align="right">
@@ -966,12 +790,9 @@ function DeliveryAgents() {
                                                 variant="outlined"
                                                 size="small"
                                                 className="da-view-button"
-                                                onClick={() =>
-                                                    setSelectedId(agent.id)
-                                                }
+                                                onClick={() => setSelectedId(agent.id)}
                                             >
-                                                View Details
-                                                {" "}
+                                                View Details{" "}
                                                 <i className="fa-solid fa-arrow-up-right-from-square" />
                                             </Button>
                                         </TableCell>
@@ -1000,10 +821,7 @@ function DeliveryAgents() {
                                             </p>
 
                                             {hasFilters && (
-                                                <Button
-                                                    variant="outlined"
-                                                    onClick={resetFilters}
-                                                >
+                                                <Button variant="outlined" onClick={resetFilters}>
                                                     Clear Filters
                                                 </Button>
                                             )}
@@ -1023,9 +841,7 @@ function DeliveryAgents() {
                     page={safePage}
                     rowsPerPage={rowsPerPage}
                     rowsPerPageOptions={[10, 20, 50]}
-                    onPageChange={(_, nextPage) =>
-                        setPage(nextPage)
-                    }
+                    onPageChange={(_, nextPage) => setPage(nextPage)}
                     onRowsPerPageChange={(event) => {
                         setRowsPerPage(Number(event.target.value));
                         setPage(0);
@@ -1051,10 +867,7 @@ function DeliveryAgents() {
                             Delivery Agent Details
                         </DialogTitle>
 
-                        <DialogContent
-                            dividers
-                            className="da-dialog-content"
-                        >
+                        <DialogContent dividers className="da-dialog-content">
                             <div className="da-detail-profile">
                                 <span className="da-avatar da-avatar--large">
                                     {initials(selectedAgent.name)}
@@ -1065,19 +878,14 @@ function DeliveryAgents() {
                                     <p>{selectedAgent.id}</p>
                                 </div>
 
-                                <StatusBadge
-                                    value={selectedAgent.status}
-                                />
+                                <StatusBadge value={selectedAgent.status} />
                             </div>
 
                             <div className="da-detail-section">
                                 <h4>Account Information</h4>
 
                                 <dl className="da-detail-grid">
-                                    <DetailItem
-                                        label="Email Address"
-                                        value={selectedAgent.email}
-                                    />
+                                    <DetailItem label="Email Address" value={selectedAgent.email} />
 
                                     <DetailItem
                                         label="Mobile Number"
@@ -1086,16 +894,12 @@ function DeliveryAgents() {
 
                                     <DetailItem
                                         label="Registered On"
-                                        value={formatDate(
-                                            selectedAgent.createdAt
-                                        )}
+                                        value={formatDate(selectedAgent.createdAt)}
                                     />
 
                                     <DetailItem
                                         label="Availability"
-                                        value={getAvailability(
-                                            selectedAgent
-                                        )}
+                                        value={getAvailability(selectedAgent)}
                                     />
                                 </dl>
                             </div>
@@ -1127,20 +931,14 @@ function DeliveryAgents() {
                             </div>
 
                             {selectedAgent.remarks && (
-                                <Alert
-                                    severity="warning"
-                                    className="da-detail-alert"
-                                >
+                                <Alert severity="warning" className="da-detail-alert">
                                     Admin Remarks: {selectedAgent.remarks}
                                 </Alert>
                             )}
                         </DialogContent>
 
                         <DialogActions className="da-dialog-actions">
-                            <Button
-                                color="inherit"
-                                onClick={() => setSelectedId(null)}
-                            >
+                            <Button color="inherit" onClick={() => setSelectedId(null)}>
                                 Close
                             </Button>
 
@@ -1148,9 +946,7 @@ function DeliveryAgents() {
                                 <Button
                                     variant="outlined"
                                     disabled={busy}
-                                    onClick={() =>
-                                        toggleAvailability(selectedAgent)
-                                    }
+                                    onClick={() => toggleAvailability(selectedAgent)}
                                 >
                                     {selectedAgent.availability === "Available"
                                         ? "Mark Unavailable"
@@ -1158,28 +954,17 @@ function DeliveryAgents() {
                                 </Button>
                             )}
 
-                            <Button
-                                variant="outlined"
-                                onClick={() => openForm(selectedAgent)}
-                            >
+                            <Button variant="outlined" onClick={() => openForm(selectedAgent)}>
                                 Edit
                             </Button>
 
                             <Button
                                 variant="contained"
                                 disabled={busy}
-                                color={
-                                    selectedAgent.status === "Active"
-                                        ? "error"
-                                        : "primary"
-                                }
-                                onClick={() =>
-                                    openStatusAction(selectedAgent)
-                                }
+                                color={selectedAgent.status === "Active" ? "error" : "primary"}
+                                onClick={() => openStatusAction(selectedAgent)}
                             >
-                                {selectedAgent.status === "Active"
-                                    ? "Suspend"
-                                    : "Reactivate"}
+                                {selectedAgent.status === "Active" ? "Suspend" : "Reactivate"}
                             </Button>
                         </DialogActions>
                     </>
@@ -1213,13 +998,9 @@ function DeliveryAgents() {
 
                     {statusAction?.nextStatus === "Suspended" && (
                         <>
-                            <Alert
-                                severity="warning"
-                                className="da-detail-alert"
-                            >
-                                Suspension revokes login sessions and
-                                blocks new assignments. Existing deliveries
-                                remain assigned until Admin reassigns them.
+                            <Alert severity="warning" className="da-detail-alert">
+                                Suspension revokes login sessions and blocks new assignments.
+                                Existing deliveries remain assigned until Admin reassigns them.
                             </Alert>
 
                             <TextField
@@ -1230,9 +1011,7 @@ function DeliveryAgents() {
                                 fullWidth
                                 required
                                 error={Boolean(actionError)}
-                                helperText={
-                                    actionError || "A reason is required."
-                                }
+                                helperText={actionError || "A reason is required."}
                                 slotProps={{
                                     htmlInput: {
                                         maxLength: 300,
@@ -1246,30 +1025,20 @@ function DeliveryAgents() {
                         </>
                     )}
 
-                    {actionError &&
-                        statusAction?.nextStatus !== "Suspended" && (
-                        <Alert severity="error">
-                            {actionError}
-                        </Alert>
+                    {actionError && statusAction?.nextStatus !== "Suspended" && (
+                        <Alert severity="error">{actionError}</Alert>
                     )}
                 </DialogContent>
 
                 <DialogActions className="da-dialog-actions">
-                    <Button
-                        color="inherit"
-                        onClick={closeStatusAction}
-                    >
+                    <Button color="inherit" onClick={closeStatusAction}>
                         Cancel
                     </Button>
 
                     <Button
                         variant="contained"
                         disabled={busy}
-                        color={
-                            statusAction?.nextStatus === "Suspended"
-                                ? "error"
-                                : "primary"
-                        }
+                        color={statusAction?.nextStatus === "Suspended" ? "error" : "primary"}
                         onClick={updateStatus}
                     >
                         Confirm

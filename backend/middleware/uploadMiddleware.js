@@ -29,21 +29,14 @@ function createImageUpload(fieldName, fields, maxFiles = 1) {
             const extension = path.extname(file.originalname).toLowerCase();
 
             if (imageTypes[extension] !== file.mimetype) {
-                return callback(
-                    new ExpressError(
-                        400,
-                        "Upload JPG, JPEG, PNG or WebP images."
-                    )
-                );
+                return callback(new ExpressError(400, "Upload JPG, JPEG, PNG or WebP images."));
             }
 
             callback(null, true);
         },
     });
 
-    const upload = maxFiles === 1
-        ? parser.single(fieldName)
-        : parser.array(fieldName, maxFiles);
+    const upload = maxFiles === 1 ? parser.single(fieldName) : parser.array(fieldName, maxFiles);
 
     return (req, res, next) => {
         upload(req, res, async (error) => {
@@ -152,3 +145,5 @@ exports.uploadStockCsv = (req, res, next) => {
         next();
     });
 };
+exports.uploadComplaintImage = createImageUpload("attachment", 5);
+exports.uploadReplacementImages = createImageUpload("images", 5, 3);

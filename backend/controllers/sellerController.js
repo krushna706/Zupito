@@ -6,10 +6,7 @@ const AuthSession = require("../models/AuthSession");
 const cloudinary = require("../config/cloudinary");
 const ExpressError = require("../utils/ExpressError");
 const inventoryService = require("../services/inventoryService");
-const {
-    inventoryListSchema,
-    inventoryHistorySchema,
-} = require("../validations/schema");
+const { inventoryListSchema, inventoryHistorySchema } = require("../validations/schema");
 
 function storeResponse(seller) {
     return {
@@ -42,17 +39,12 @@ function uploadLogo(file, sellerProfileId) {
                 allowed_formats: ["jpg", "jpeg", "png", "webp"],
                 overwrite: false,
                 timeout: 45000,
-                transformation: [
-                    { width: 512, height: 512, crop: "limit" },
-                ],
+                transformation: [{ width: 512, height: 512, crop: "limit" }],
             },
             (error, result) => {
                 if (error || !result?.secure_url) {
                     return reject(
-                        new ExpressError(
-                            502,
-                            "Unable to upload the store logo. Please try again."
-                        )
+                        new ExpressError(502, "Unable to upload the store logo. Please try again.")
                     );
                 }
 
@@ -105,16 +97,22 @@ exports.updateStoreProfile = async (req, res, next) => {
 
     try {
         const {
-            storeName, storeEmail, storePhone, description,
-            street, locality, city, state, pincode, pickupNotes,
-            version, removeLogo: shouldRemoveLogo,
+            storeName,
+            storeEmail,
+            storePhone,
+            description,
+            street,
+            locality,
+            city,
+            state,
+            pincode,
+            pickupNotes,
+            version,
+            removeLogo: shouldRemoveLogo,
         } = req.body;
 
         if (req.file && shouldRemoveLogo) {
-            throw new ExpressError(
-                400,
-                "Choose either a new logo or logo removal."
-            );
+            throw new ExpressError(400, "Choose either a new logo or logo removal.");
         }
 
         const current = await SellerProfile.findOne({
@@ -127,10 +125,7 @@ exports.updateStoreProfile = async (req, res, next) => {
         }
 
         if (current.__v !== version) {
-            throw new ExpressError(
-                409,
-                "Store details changed. Refresh and edit again."
-            );
+            throw new ExpressError(409, "Store details changed. Refresh and edit again.");
         }
 
         const changes = {
@@ -257,10 +252,7 @@ exports.getInventoryHistory = async (req, res, next) => {
             throw new ExpressError(400, error.details[0].message);
         }
 
-        const result = await inventoryService.getInventoryHistory(
-            req.user._id,
-            value
-        );
+        const result = await inventoryService.getInventoryHistory(req.user._id, value);
 
         res.json({ success: true, ...result });
     } catch (error) {
@@ -270,16 +262,14 @@ exports.getInventoryHistory = async (req, res, next) => {
 
 exports.changeInventoryStock = async (req, res, next) => {
     try {
-        const result = await inventoryService.changeInventoryStock(
-            req.user._id,
-            req.body
-        );
+        const result = await inventoryService.changeInventoryStock(req.user._id, req.body);
 
         res.json({
             success: true,
-            message: result.outcome === "Skipped"
-                ? "This stock update was already processed."
-                : "Inventory saved successfully.",
+            message:
+                result.outcome === "Skipped"
+                    ? "This stock update was already processed."
+                    : "Inventory saved successfully.",
             ...result,
         });
     } catch (error) {

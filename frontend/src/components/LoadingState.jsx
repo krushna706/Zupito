@@ -24,8 +24,8 @@ export default function LoadingState({ title, description }) {
                     <p>This is a temporary page for testing the Zupito staff panel layout.</p>
 
                     <p>
-                        Header, sidebar, navigation and responsive design can be tested here. The actual page
-                        functionality will be implemented next.
+                        Header, sidebar, navigation and responsive design can be tested here. The
+                        actual page functionality will be implemented next.
                     </p>
                 </div>
             </div>

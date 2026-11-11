@@ -15,13 +15,39 @@ router.use((req, res, next) => {
 });
 
 router.post("/signup", limits.signupLimiter, validate(schema.signupSchema), auth.signup);
-router.post("/seller-register", limits.signupLimiter, validate(schema.sellerRegisterSchema), auth.registerSeller);
-router.post("/login", limits.loginIpLimiter, validate(schema.loginSchema), limits.loginAccountLimiter, auth.login);
+router.post(
+    "/seller-register",
+    limits.signupLimiter,
+    validate(schema.sellerRegisterSchema),
+    auth.registerSeller
+);
+router.post(
+    "/login",
+    limits.loginIpLimiter,
+    validate(schema.loginSchema),
+    limits.loginAccountLimiter,
+    auth.login
+);
 router.get("/me", authMiddleware, auth.getCurrentUser);
 router.post("/logout", authMiddleware, auth.logout);
 
-router.post("/forgot-password/request", limits.resetRequestLimiter, validate(schema.forgotPasswordRequestSchema), reset.requestPasswordResetOtp);
-router.post("/forgot-password/verify", limits.resetVerifyLimiter, validate(schema.forgotPasswordVerifySchema), reset.verifyPasswordResetOtp);
-router.post("/forgot-password/reset", limits.resetPasswordLimiter, validate(schema.forgotPasswordResetSchema), reset.resetPassword);
+router.post(
+    "/forgot-password/request",
+    limits.resetRequestLimiter,
+    validate(schema.forgotPasswordRequestSchema),
+    reset.requestPasswordResetOtp
+);
+router.post(
+    "/forgot-password/verify",
+    limits.resetVerifyLimiter,
+    validate(schema.forgotPasswordVerifySchema),
+    reset.verifyPasswordResetOtp
+);
+router.post(
+    "/forgot-password/reset",
+    limits.resetPasswordLimiter,
+    validate(schema.forgotPasswordResetSchema),
+    reset.resetPassword
+);
 
 module.exports = router;

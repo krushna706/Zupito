@@ -23,12 +23,7 @@ async function authMiddleware(req, res, next) {
             audience: "zupito-web",
         });
     } catch {
-        return next(
-            new ExpressError(
-                401,
-                "Your session has expired. Please sign in again."
-            )
-        );
+        return next(new ExpressError(401, "Your session has expired. Please sign in again."));
     }
 
     if (
@@ -42,9 +37,7 @@ async function authMiddleware(req, res, next) {
         payload.version < 0 ||
         !Number.isInteger(payload.exp)
     ) {
-        return next(
-            new ExpressError(401, "Invalid session. Please sign in again.")
-        );
+        return next(new ExpressError(401, "Invalid session. Please sign in again."));
     }
 
     try {
@@ -64,10 +57,7 @@ async function authMiddleware(req, res, next) {
             user.status !== "Active" ||
             user.tokenVersion !== payload.version
         ) {
-            throw new ExpressError(
-                401,
-                "Your session is no longer active. Please sign in again."
-            );
+            throw new ExpressError(401, "Your session is no longer active. Please sign in again.");
         }
 
         req.user = user;
@@ -80,7 +70,7 @@ async function authMiddleware(req, res, next) {
 }
 
 // Enforce role and seller approval.
-function authorize(...roles) {
+function roleGuard(roles, fulfilment = false) {
     return async (req, res, next) => {
         try {
             if (!req.user) {
@@ -94,14 +84,11 @@ function authorize(...roles) {
             if (req.user.role === "seller") {
                 const approved = await SellerProfile.exists({
                     userId: req.user._id,
-                    status: "Approved",
+                    status: fulfilment ? { $in: ["Approved", "Suspended"] } : "Approved",
                 });
 
                 if (!approved) {
-                    throw new ExpressError(
-                        403,
-                        "Your seller account must be approved first."
-                    );
+                    throw new ExpressError(403, "Your seller account must be approved first.");
                 }
             }
 
@@ -112,4 +99,6 @@ function authorize(...roles) {
     };
 }
 
-module.exports = { authMiddleware, authorize };
+const authorize = (...roles) => roleGuard(roles);
+const authorizeFulfilment = (...roles) => roleGuard(roles, true);
+module.exports = { authMiddleware, authorize, authorizeFulfilment };

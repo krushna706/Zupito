@@ -6,8 +6,12 @@ const ExpressError = require("../utils/ExpressError");
 
 const fields = {
     name: Joi.string().trim().min(2).max(80).required(),
-    phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
-    pincode: Joi.string().pattern(/^[1-9]\d{5}$/).required(),
+    phone: Joi.string()
+        .pattern(/^[6-9]\d{9}$/)
+        .required(),
+    pincode: Joi.string()
+        .pattern(/^[1-9]\d{5}$/)
+        .required(),
     house: Joi.string().trim().min(2).max(150).required(),
     area: Joi.string().trim().min(2).max(150).required(),
     city: Joi.string().trim().min(2).max(80).required(),
@@ -19,21 +23,19 @@ const fields = {
 const signature = (address) =>
     Object.keys(fields)
         .map((key) =>
-            String(address[key] || "").trim().toLowerCase()
+            String(address[key] || "")
+                .trim()
+                .toLowerCase()
         )
         .join("|");
 
 function response(book, addressId = null) {
     return {
         addresses: book.addresses.map((entry) => ({
-            ...Object.fromEntries(
-                Object.keys(fields).map((key) => [key, entry[key]])
-            ),
+            ...Object.fromEntries(Object.keys(fields).map((key) => [key, entry[key]])),
             id: String(entry._id),
         })),
-        selectedId: book.selectedId
-            ? String(book.selectedId)
-            : null,
+        selectedId: book.selectedId ? String(book.selectedId) : null,
         version: book.__v,
         addressId: addressId ? String(addressId) : null,
     };
@@ -90,20 +92,14 @@ exports.changeAddress = (action) => async (req, res, next) => {
 
         const id = req.params.addressId;
 
-        if (
-            action !== "create" &&
-            !mongoose.isObjectIdOrHexString(id)
-        ) {
+        if (action !== "create" && !mongoose.isObjectIdOrHexString(id)) {
             throw new ExpressError(400, "Invalid address ID.");
         }
 
         const book = await getBook(req.user._id);
 
         if (book.__v !== value.version) {
-            throw new ExpressError(
-                409,
-                "Your addresses changed. Refresh and try again."
-            );
+            throw new ExpressError(409, "Your addresses changed. Refresh and try again.");
         }
 
         const { version, select, ...details } = value;
@@ -112,18 +108,14 @@ exports.changeAddress = (action) => async (req, res, next) => {
         let addresses = book.addresses;
         let selectedId = book.selectedId;
 
-        const index = addresses.findIndex(
-            (entry) => String(entry._id) === id
-        );
+        const index = addresses.findIndex((entry) => String(entry._id) === id);
 
         if (action !== "create" && index < 0) {
             throw new ExpressError(404, "Address not found.");
         }
 
         if (action === "create") {
-            const duplicate = addresses.find(
-                (entry) => signature(entry) === signature(details)
-            );
+            const duplicate = addresses.find((entry) => signature(entry) === signature(details));
 
             if (duplicate) {
                 if (!select) {
@@ -136,31 +128,21 @@ exports.changeAddress = (action) => async (req, res, next) => {
                 changedId = duplicate._id;
             } else {
                 if (addresses.length >= 20) {
-                    throw new ExpressError(
-                        400,
-                        "You can save up to 20 addresses."
-                    );
+                    throw new ExpressError(400, "You can save up to 20 addresses.");
                 }
 
                 changedId = new mongoose.Types.ObjectId();
 
-                addresses = [
-                    ...addresses,
-                    { _id: changedId, ...details },
-                ];
+                addresses = [...addresses, { _id: changedId, ...details }];
 
                 if (!selectedId) selectedId = changedId;
             }
         } else if (action === "update") {
             addresses = addresses.map((entry, position) =>
-                position === index
-                    ? { ...entry, ...details }
-                    : entry
+                position === index ? { ...entry, ...details } : entry
             );
         } else if (action === "delete") {
-            addresses = addresses.filter(
-                (_, position) => position !== index
-            );
+            addresses = addresses.filter((_, position) => position !== index);
 
             if (String(selectedId) === id) {
                 selectedId = addresses[0]?._id || null;
@@ -182,17 +164,14 @@ exports.changeAddress = (action) => async (req, res, next) => {
                 $set: { addresses, selectedId },
                 $inc: { __v: 1 },
             },
-            { 
-                new: true, 
-                runValidators: true 
+            {
+                returnDocument: "after",
+                runValidators: true,
             }
         ).lean();
 
         if (!updated) {
-            throw new ExpressError(
-                409,
-                "Your addresses changed. Refresh and try again."
-            );
+            throw new ExpressError(409, "Your addresses changed. Refresh and try again.");
         }
 
         res.json({

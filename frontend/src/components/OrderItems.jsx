@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { getProductImage, getProductName } from "../utils/orderStatus";
 
-export default function OrderItemImage({ item }) {
+export default function OrderItemImage({ item, className = "customer-detail-product-image" }) {
     const image = getProductImage(item);
     const [failedImage, setFailedImage] = useState(null);
     const failed = failedImage === image;
 
     return (
-        <div className="customer-detail-product-image">
+        <div className={className}>
             {image && !failed ? (
                 <img
                     src={image}

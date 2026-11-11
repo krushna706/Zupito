@@ -15,17 +15,12 @@ function uploadAvatar(file, userId) {
                 allowed_formats: ["jpg", "jpeg", "png", "webp"],
                 overwrite: false,
                 timeout: 45000,
-                transformation: [
-                    { width: 512, height: 512, crop: "limit" },
-                ],
+                transformation: [{ width: 512, height: 512, crop: "limit" }],
             },
             (error, result) => {
                 if (error || !result?.secure_url) {
                     return reject(
-                        new ExpressError(
-                            502,
-                            "Unable to upload your picture. Please try again."
-                        )
+                        new ExpressError(502, "Unable to upload your picture. Please try again.")
                     );
                 }
 
@@ -86,10 +81,7 @@ exports.updateProfile = async (req, res, next) => {
         });
 
         if (!sessionActive) {
-            throw new ExpressError(
-                401,
-                "Your session has expired. Please sign in again."
-            );
+            throw new ExpressError(401, "Your session has expired. Please sign in again.");
         }
 
         // Avoid overwriting another simultaneous profile update.

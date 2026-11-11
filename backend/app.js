@@ -1,4 +1,3 @@
-
 const express = require("express");
 const path = require("path");
 const helmet = require("helmet");
@@ -19,17 +18,23 @@ const cartRoutes = require("./routes/cartRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const refundRoutes = require("./routes/refundRoutes");
 const deliveryRoutes = require("./routes/deliveryRoutes");
+
+const reportRoutes = require("./routes/reportRoutes");
+const settlementRoutes = require("./routes/settlementRoutes");
+const replacementRoutes = require("./routes/replacementRoutes");
+const complaintRoutes = require("./routes/complaintRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
+const couponRoutes = require("./routes/couponRoutes");
 
 const paymentController = require("./controllers/paymentController");
 
 const app = express();
 
 app.disable("x-powered-by");
-app.set(
-    "trust proxy",
-    Number(process.env.TRUST_PROXY_HOPS || 0)
-);
+
+app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 0));
 
 // ================== SECURITY HEADERS ==================
 app.use(
@@ -37,34 +42,22 @@ app.use(
         contentSecurityPolicy:
             process.env.NODE_ENV === "production"
                 ? {
-                    directives: {
-                        "script-src": [
-                            "'self'",
-                            "https://checkout.razorpay.com",
-                        ],
-                        "frame-src": [
-                            "'self'",
-                            "https://api.razorpay.com",
-                            "https://checkout.razorpay.com",
-                        ],
-                        "connect-src": [
-                            "'self'",
-                            "https://api.razorpay.com",
-                            "https://lumberjack.razorpay.com",
-                        ],
-                        "img-src": [
-                            "'self'",
-                            "data:",
-                            "blob:",
-                            "https:",
-                        ],
-                        "style-src": [
-                            "'self'",
-                            "'unsafe-inline'",
-                            "https:",
-                        ],
-                    },
-                }
+                      directives: {
+                          "script-src": ["'self'", "https://checkout.razorpay.com"],
+                          "frame-src": [
+                              "'self'",
+                              "https://api.razorpay.com",
+                              "https://checkout.razorpay.com",
+                          ],
+                          "connect-src": [
+                              "'self'",
+                              "https://api.razorpay.com",
+                              "https://lumberjack.razorpay.com",
+                          ],
+                          "img-src": ["'self'", "data:", "blob:", "https:"],
+                          "style-src": ["'self'", "'unsafe-inline'", "https:"],
+                      },
+                  }
                 : false,
     })
 );
@@ -78,7 +71,7 @@ app.use(
     })
 );
 
-// Razorpay signature verification uses the original raw body.
+// Razorpay webhook needs the original request body.
 app.post(
     "/api/payments/webhook",
     express.raw({
@@ -89,7 +82,11 @@ app.post(
 );
 
 app.use("/api", csrfMiddleware);
-app.use(express.json({ limit: "100kb" }));
+app.use(
+    express.json({
+        limit: "100kb",
+    })
+);
 app.use(cookieParser());
 
 // ================== HEALTH ==================
@@ -98,6 +95,11 @@ app.get("/api/health", (req, res) => {
         success: true,
         message: "Zupito API is running.",
     });
+});
+
+app.use("/api", (req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    next();
 });
 
 // ================== API ROUTES ==================
@@ -111,6 +113,13 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/checkout", checkoutRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/refunds", refundRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/settlements", settlementRoutes);
+app.use("/api/replacements", replacementRoutes);
+app.use("/api/complaints", complaintRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/coupons", couponRoutes);
 app.use("/api/delivery", deliveryRoutes);
 
 // ================== API NOT FOUND ==================
@@ -120,10 +129,7 @@ app.use("/api", (req, res, next) => {
 
 // ================== FRONTEND DEPLOYMENT ==================
 if (process.env.SERVE_FRONTEND === "true") {
-    const dist = path.join(
-        __dirname,
-        "../frontend/dist"
-    );
+    const dist = path.join(__dirname, "../frontend/dist");
 
     app.use(express.static(dist));
 
@@ -132,12 +138,11 @@ if (process.env.SERVE_FRONTEND === "true") {
             return next();
         }
 
-        res.sendFile(
-            path.join(dist, "index.html")
-        );
+        res.sendFile(path.join(dist, "index.html"));
     });
 }
 
+// ================== NOT FOUND ==================
 app.use((req, res, next) => {
     next(new ExpressError(404, "Route not found."));
 });

@@ -9,8 +9,8 @@ const footerGroups = [
             { label: "Shop All", path: "/products" },
             { label: "About Zupito", path: "/about" },
             { label: "Contact Us", path: "/contact" },
-            { label: "Become a Seller", path: "/manage/seller-register" }
-        ]
+            { label: "Become a Seller", path: "/manage/seller-register" },
+        ],
     },
     {
         title: "Your Account",
@@ -18,17 +18,17 @@ const footerGroups = [
             { label: "My Profile", path: "/account" },
             { label: "My Orders", path: "/account/orders" },
             { label: "Shopping Cart", path: "/cart" },
-            { label: "Create Account", path: "/manage/signup" }
-        ]
+            { label: "Create Account", path: "/manage/signup" },
+        ],
     },
     {
         title: "Customer Care",
         links: [
             { label: "Contact Us", path: "/contact" },
             { label: "My Complaints", path: "/account/complaints" },
-            { label: "Delivery & Replacements", path: "/policies" }
-        ]
-    }
+            { label: "Delivery & Replacements", path: "/policies" },
+        ],
+    },
 ];
 
 function WebsiteFooter() {
@@ -39,7 +39,11 @@ function WebsiteFooter() {
             <div className="container-fluid website-shell">
                 <div className="website-footer-grid">
                     <div className="website-footer-brand">
-                        <Link to="/" className="website-brand" aria-label={`${appConfig.name} home`}>
+                        <Link
+                            to="/"
+                            className="website-brand"
+                            aria-label={`${appConfig.name} home`}
+                        >
                             <img
                                 src={appConfig.logo}
                                 alt={appConfig.name}

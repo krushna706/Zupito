@@ -5,14 +5,18 @@ export default function formatDate(value) {
         const [year, month, day] = value.split("-").map(Number);
         const date = new Date(year, month - 1, day);
 
-        if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+        if (
+            date.getFullYear() !== year ||
+            date.getMonth() !== month - 1 ||
+            date.getDate() !== day
+        ) {
             return "Unavailable";
         }
 
         return new Intl.DateTimeFormat("en-IN", {
             day: "2-digit",
             month: "short",
-            year: "numeric"
+            year: "numeric",
         }).format(date);
     }
 
@@ -26,6 +30,6 @@ export default function formatDate(value) {
         day: "2-digit",
         month: "short",
         year: "numeric",
-        timeZone: "Asia/Kolkata"
+        timeZone: "Asia/Kolkata",
     }).format(date);
 }

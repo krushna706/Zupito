@@ -1,190 +1,100 @@
-import { getOrderId, getOrderTotal, getProductName } from "../utils/orderStatus";
+import {
+    getOrderId,
+    getOrderTotal,
+    getProductName,
+    getOrderStatus,
+    getStatusCategory,
+    getStatusLabel,
+    getDeliveryInfo,
+} from "../utils/orderStatus";
+import OrderItemImage from "../components/OrderItems";
 import formatDate from "../utils/formatDate";
 import formatAmount from "../utils/formatCurrency";
-
 import { useMemo, useState } from "react";
 import { useOrderResource } from "../services/orderService";
 import { Link } from "react-router-dom";
-
 const PAGE_SIZE = 5;
-import { SHOW_DEMO_ORDERS, demoOrders } from "../data/orderPreview";
-
 const statusFilters = [
-    { value: "all", label: "All Orders" },
-    { value: "progress", label: "In Progress" },
-    { value: "delivered", label: "Delivered" },
-    { value: "cancelled", label: "Cancelled" }
+    {
+        value: "all",
+        label: "All Orders",
+    },
+    {
+        value: "progress",
+        label: "In Progress",
+    },
+    {
+        value: "delivered",
+        label: "Delivered",
+    },
+    {
+        value: "cancelled",
+        label: "Cancelled",
+    },
 ];
-
-function getStatus(order) {
-    return String(order?.orderStatus || order?.status || "");
-}
-
-function getStatusGroup(status) {
-    const value = status.toLowerCase().replace(/[\s-]+/g, "_");
-
-    if (value === "delivered") return "delivered";
-
-    if (value.includes("cancel") || value.includes("refund")) {
-        return "cancelled";
-    }
-
-    const progressStatuses = [
-        "placed",
-        "confirmed",
-        "processing",
-        "packing",
-        "packed",
-        "ready_for_pickup",
-        "picked_up",
-        "shipped",
-        "in_transit",
-        "out_for_delivery",
-        "partially_delivered"
-    ];
-
-    return progressStatuses.includes(value) ? "progress" : "other";
-}
-
-function formatStatus(status) {
-    if (!status) return "Status Unavailable";
-
-    return status.replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function getProductImage(item) {
-    const image =
-        item?.productSnapshot?.image || item?.product?.images?.[0] || item?.product?.image || item?.image;
-
-    return typeof image === "string" ? image : image?.url || image?.secure_url || "";
-}
-
-function getDeliveryInfo(order) {
-    const statusGroup = getStatusGroup(getStatus(order));
-
-    if (statusGroup === "cancelled") {
-        return {
-            label: "Delivery",
-            value: "Cancelled",
-            type: "cancelled"
-        };
-    }
-
-    if (statusGroup === "delivered") {
-        const deliveredAt = order?.deliveredAt ?? order?.deliveryDate ?? order?.delivery?.deliveredAt ?? null;
-
-        return {
-            label: "Delivered On",
-            value: deliveredAt ? formatDate(deliveredAt) : "Date unavailable",
-            type: "delivered"
-        };
-    }
-
-    const expectedDeliveryAt =
-        order?.expectedDeliveryAt ??
-        order?.expectedDeliveryDate ??
-        order?.estimatedDeliveryAt ??
-        order?.delivery?.expectedDeliveryAt ??
-        null;
-
-    return {
-        label: "Expected Delivery",
-        value: expectedDeliveryAt ? formatDate(expectedDeliveryAt) : "Awaiting estimate",
-        type: "expected"
-    };
-}
-
-function OrderThumbnail({ item }) {
-    const image = getProductImage(item);
-    const [failedImage, setFailedImage] = useState(null);
-    const imageError = failedImage === image;
-
-    return (
-        <div className="customer-order-product-image">
-            {image && !imageError ? (
-                <img
-                    src={image}
-                    alt={getProductName(item)}
-                    loading="lazy"
-                    onError={() => setFailedImage(image)}
-                />
-            ) : (
-                <i className="fa-solid fa-box-open" aria-hidden="true" />
-            )}
-        </div>
-    );
-}
-
 function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
     const [activeFilter, setActiveFilter] = useState("all");
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
 
-    // Actual orders take priority over demo data.
-    const isDemo = SHOW_DEMO_ORDERS && !Array.isArray(orders);
-    const hasData = Array.isArray(orders) || isDemo;
-
-    const orderList = useMemo(
-        () => (Array.isArray(orders) ? orders : isDemo ? demoOrders : []),
-        [orders, isDemo]
-    );
-
+    const hasData = Array.isArray(orders);
+    const orderList = useMemo(() => (Array.isArray(orders) ? orders : []), [orders]);
     const counts = useMemo(
         () => ({
             all: orderList.length,
-            progress: orderList.filter((order) => getStatusGroup(getStatus(order)) === "progress").length,
-            delivered: orderList.filter((order) => getStatusGroup(getStatus(order)) === "delivered").length,
-            cancelled: orderList.filter((order) => getStatusGroup(getStatus(order)) === "cancelled").length
+            progress: orderList.filter(
+                (order) => getStatusCategory(getOrderStatus(order)) === "progress"
+            ).length,
+            delivered: orderList.filter(
+                (order) => getStatusCategory(getOrderStatus(order)) === "delivered"
+            ).length,
+            cancelled: orderList.filter(
+                (order) => getStatusCategory(getOrderStatus(order)) === "cancelled"
+            ).length,
         }),
         [orderList]
     );
-
     const filteredOrders = useMemo(() => {
         const query = search.trim().toLowerCase();
-
         return orderList
-            .filter((order) => activeFilter === "all" || getStatusGroup(getStatus(order)) === activeFilter)
+            .filter(
+                (order) =>
+                    activeFilter === "all" ||
+                    getStatusCategory(getOrderStatus(order)) === activeFilter
+            )
             .filter((order) => {
                 if (!query) return true;
-
                 const orderId = getOrderId(order).toLowerCase();
-
                 const productNames = Array.isArray(order.items)
                     ? order.items.map(getProductName).join(" ").toLowerCase()
                     : "";
-
                 return orderId.includes(query) || productNames.includes(query);
             })
             .sort((a, b) => {
                 const first = Date.parse(a.createdAt || "") || 0;
                 const second = Date.parse(b.createdAt || "") || 0;
-
                 return second - first;
             });
     }, [orderList, activeFilter, search]);
-
     const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
-
     const currentPage = Math.min(page, totalPages);
-
-    const visibleOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
+    const visibleOrders = filteredOrders.slice(
+        (currentPage - 1) * PAGE_SIZE,
+        currentPage * PAGE_SIZE
+    );
     const changeFilter = (value) => {
         setActiveFilter(value);
         setPage(1);
     };
-
     const changeSearch = (value) => {
         setSearch(value);
         setPage(1);
     };
-
     const clearFilters = () => {
         setActiveFilter("all");
         setSearch("");
         setPage(1);
     };
-
     return (
         <div className="customer-orders-page">
             {/* Page Heading */}
@@ -193,13 +103,6 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
                     <span className="customer-orders-eyebrow">ORDER HISTORY</span>
 
                     <h2>My Orders</h2>
-
-                    {isDemo && (
-                        <span className="customer-orders-demo-label">
-                            <i className="fa-solid fa-flask" aria-hidden="true" />
-                            Demo Preview — Sample orders, not real purchases
-                        </span>
-                    )}
 
                     <p>View your purchases, track delivery progress and manage your orders.</p>
                 </div>
@@ -264,7 +167,11 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
 
                 {/* Filters & Search */}
                 <div className="customer-orders-toolbar">
-                    <div className="customer-orders-filters" role="group" aria-label="Order status filters">
+                    <div
+                        className="customer-orders-filters"
+                        role="group"
+                        aria-label="Order status filters"
+                    >
                         {statusFilters.map((filter) => (
                             <button
                                 key={filter.value}
@@ -353,7 +260,10 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
 
                             <h3>No orders yet</h3>
 
-                            <p>You haven't placed an order yet. Explore our products to get started.</p>
+                            <p>
+                                You haven't placed an order yet. Explore our products to get
+                                started.
+                            </p>
 
                             <Link to="/products" className="customer-orders-empty-button">
                                 Start Shopping
@@ -384,16 +294,16 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
                             <div className="customer-orders-list">
                                 {visibleOrders.map((order, index) => {
                                     const orderId = getOrderId(order);
-                                    const status = getStatus(order);
-                                    const statusGroup = getStatusGroup(status);
-                                    const deliveryInfo = getDeliveryInfo(order);
-
+                                    const status = getOrderStatus(order);
+                                    const statusGroup = getStatusCategory(status);
+                                    const deliveryInfo = getDeliveryInfo(order, status, order);
                                     const items = Array.isArray(order.items) ? order.items : [];
-
                                     const firstItem = items[0];
-
                                     return (
-                                        <article key={orderId || index} className="customer-order-card">
+                                        <article
+                                            key={orderId || index}
+                                            className="customer-order-card"
+                                        >
                                             {/* Order Header */}
                                             <div className="customer-order-card-top">
                                                 <div>
@@ -404,10 +314,15 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
                                                     </strong>
                                                 </div>
 
-                                                <span className={`customer-order-status is-${statusGroup}`}>
-                                                    <i className="fa-solid fa-circle" aria-hidden="true" />
+                                                <span
+                                                    className={`customer-order-status is-${statusGroup}`}
+                                                >
+                                                    <i
+                                                        className="fa-solid fa-circle"
+                                                        aria-hidden="true"
+                                                    />
 
-                                                    {formatStatus(status)}
+                                                    {getStatusLabel(status)}
                                                 </span>
                                             </div>
 
@@ -415,7 +330,10 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
                                             <div className="customer-order-card-body">
                                                 <div className="customer-order-product">
                                                     {firstItem ? (
-                                                        <OrderThumbnail item={firstItem} />
+                                                        <OrderItemImage
+                                                            item={firstItem}
+                                                            className="customer-order-product-image"
+                                                        />
                                                     ) : (
                                                         <div className="customer-order-product-image">
                                                             <i
@@ -444,7 +362,9 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
                                                     <div>
                                                         <span>Order Date</span>
 
-                                                        <strong>{formatDate(order.createdAt)}</strong>
+                                                        <strong>
+                                                            {formatDate(order.createdAt)}
+                                                        </strong>
                                                     </div>
 
                                                     <div>
@@ -508,7 +428,10 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
                                             onClick={() => setPage(currentPage - 1)}
                                             aria-label="Previous page"
                                         >
-                                            <i className="fa-solid fa-chevron-left" aria-hidden="true" />
+                                            <i
+                                                className="fa-solid fa-chevron-left"
+                                                aria-hidden="true"
+                                            />
                                         </button>
 
                                         <button
@@ -517,7 +440,10 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
                                             onClick={() => setPage(currentPage + 1)}
                                             aria-label="Next page"
                                         >
-                                            <i className="fa-solid fa-chevron-right" aria-hidden="true" />
+                                            <i
+                                                className="fa-solid fa-chevron-right"
+                                                aria-hidden="true"
+                                            />
                                         </button>
                                     </div>
                                 </div>
@@ -536,7 +462,9 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
                 <div>
                     <h3>Need help with an order?</h3>
 
-                    <p>For delivery, payment or product-related issues, contact our support team.</p>
+                    <p>
+                        For delivery, payment or product-related issues, contact our support team.
+                    </p>
                 </div>
 
                 <Link to="/account/complaints">
@@ -547,21 +475,7 @@ function MyOrders({ orders = null, loading = false, error = "", onRetry }) {
         </div>
     );
 }
-
 export default function MyOrdersPage() {
-    const {
-        data,
-        loading,
-        error,
-        refresh,
-    } = useOrderResource("customer-list");
-
-    return (
-        <MyOrders
-            orders={data || []}
-            loading={loading}
-            error={error}
-            onRetry={refresh}
-        />
-    );
+    const { data, loading, error, refresh } = useOrderResource("customer-list");
+    return <MyOrders orders={data || []} loading={loading} error={error} onRetry={refresh} />;
 }

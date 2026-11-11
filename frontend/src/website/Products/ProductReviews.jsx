@@ -1,209 +1,113 @@
-import { useMemo, useState } from "react";
+import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+import ReviewForm from "../../components/ReviewForm";
+import { toast } from "react-toastify";
+import formatDate from "../../utils/formatDate";
+import { useEffect, useMemo, useState } from "react";
 import { Button, MenuItem, Pagination, Rating, TextField } from "@mui/material";
-
 const PAGE_SIZE = 3;
-
-// Sample feedback for product previews.
-const sampleComments = {
-    "preview-smartphone": [
-        "Storage options are clearly listed and the phone is great for everyday tasks.",
-        "I liked the clean design and the available colour options.",
-        "The selected configuration matched the product details.",
-        "A practical choice for regular use and entertainment.",
-        "More colours would be nice, but the existing options are good."
-    ],
-    "preview-laptop": [
-        "The RAM options helped me select a configuration for work.",
-        "A good choice for documents and everyday browsing.",
-        "The SSD storage details were clearly mentioned.",
-        "Simple design that fits well into my desk setup.",
-        "More configuration options would be helpful."
-    ],
-    "preview-headphones": [
-        "The over-ear design feels comfortable for everyday listening.",
-        "The black finish looks clean and stylish.",
-        "Good option for music and podcasts.",
-        "The padded ear cushions are a useful feature.",
-        "More colour options would improve the selection."
-    ],
-    "preview-shirt": [
-        "The navy colour is versatile and easy to style.",
-        "The regular fit works well for casual outfits.",
-        "Size selection was simple and clear.",
-        "Looks great with jeans and casual trousers.",
-        "Additional colours would be a nice improvement."
-    ],
-    "preview-dress": [
-        "A lovely design for everyday outfits.",
-        "The available size options were easy to understand.",
-        "The style looks suitable for casual occasions.",
-        "I really liked the overall appearance.",
-        "More colour options would make the range better."
-    ],
-    "preview-kids": [
-        "The size selection was easy to understand.",
-        "A practical outfit for everyday activities.",
-        "The design looks cheerful and comfortable.",
-        "The description helped when selecting a size.",
-        "A wider size range would be useful."
-    ],
-    "preview-shoes": [
-        "The design looks great for daily casual wear.",
-        "The size options were easy to compare.",
-        "They look good with everyday outfits.",
-        "The overall design is neat and stylish.",
-        "More colours would make the selection better."
-    ],
-    "preview-watch": [
-        "The watch face looks clean and easy to read.",
-        "The classic design works with different outfits.",
-        "The product images show the details clearly.",
-        "A stylish accessory for everyday use.",
-        "More strap options would be welcome."
-    ],
-    "preview-personal-care": [
-        "The pack details were clear and easy to compare.",
-        "A useful product for everyday essentials.",
-        "The description helped me select the right option.",
-        "Simple packaging and clear information.",
-        "More pack options would be helpful."
-    ],
-    "preview-pantry": [
-        "The available pack sizes are clearly listed.",
-        "A useful everyday item for the kitchen.",
-        "Comparing different quantities was easy.",
-        "The product information is straightforward.",
-        "More pack sizes would make shopping easier."
-    ],
-    "preview-snacks": [
-        "A convenient snack option for regular grocery orders.",
-        "The available packs are easy to compare.",
-        "Good for keeping quick snacks at home.",
-        "Pack details and images are helpful.",
-        "More varieties would improve the selection."
-    ],
-    "preview-beauty": [
-        "The product details helped me compare the options.",
-        "The packaging and presentation look good.",
-        "A nice addition to an everyday routine.",
-        "The available variations are easy to understand.",
-        "More shades and options would be welcome."
-    ],
-    "preview-kitchen": [
-        "A practical product for everyday kitchen tasks.",
-        "The size and specifications are clearly described.",
-        "The design fits nicely into a regular kitchen.",
-        "The product details were helpful.",
-        "Additional size options would be useful."
-    ],
-    "preview-backpack": [
-        "A useful bag for work and daily essentials.",
-        "The design looks practical for regular travel.",
-        "Product images show the overall shape clearly.",
-        "I like the simple and versatile styling.",
-        "More colour options would be great."
-    ],
-    "preview-trolley": [
-        "The luggage design looks practical for travelling.",
-        "The details helped when comparing sizes.",
-        "A smart-looking option for travel essentials.",
-        "The product photos show the design clearly.",
-        "More sizes and colours would improve the range."
-    ],
-    "preview-travel": [
-        "A convenient addition to everyday travel essentials.",
-        "The product design looks practical and easy to use.",
-        "The specifications were helpful while comparing options.",
-        "A useful accessory for regular journeys.",
-        "More size options would be useful."
-    ]
-};
-
-const sampleReviewers = [
-    { name: "Aditi S.", rating: 5, title: "Great choice", date: "2026-10-28" },
-    { name: "Rahul P.", rating: 4, title: "Good overall", date: "2026-10-23" },
-    { name: "Sneha R.", rating: 5, title: "As described", date: "2026-10-18" },
-    { name: "Aman K.", rating: 4, title: "Happy with it", date: "2026-10-12" },
-    { name: "Priya M.", rating: 3, title: "Room for improvement", date: "2026-10-05" }
-];
-
-const formatDate = (value) => {
-    if (!value) return "";
-
-    const date = new Date(value);
-
-    return Number.isNaN(date.getTime())
-        ? ""
-        : date.toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric"
-          });
-};
-
 function ProductReviewsContent({ product }) {
     const [ratingFilter, setRatingFilter] = useState(0);
     const [sort, setSort] = useState("recent");
     const [page, setPage] = useState(1);
-
-    const isPreview = !Array.isArray(product?.reviews);
-
+    const { user } = useAuth();
+    const [purchase, setPurchase] = useState(null);
+    const [reviewOpen, setReviewOpen] = useState(false);
+    const [feedback, setFeedback] = useState(null);
+    const [eligibility, setEligibility] = useState("Available after a delivered purchase");
+    const productId = product?.productId || product?._id;
+    useEffect(() => {
+        let active = true;
+        if (user?.role !== "customer" || !productId) return;
+        api.get(`/reviews/products/${productId}/eligibility`)
+            .then(({ data }) => {
+                if (!active) return;
+                setPurchase(data.purchase);
+                setEligibility(
+                    data.reviewed && !data.purchase
+                        ? "You have already reviewed your purchase"
+                        : "Available after a delivered purchase"
+                );
+            })
+            .catch((error) => {
+                if (active) toast.error(error.message);
+            });
+        return () => {
+            active = false;
+        };
+    }, [user, productId]);
+    const submitReview = async (payload) => {
+        const { data } = await api.post("/reviews", payload);
+        setPurchase(null);
+        setEligibility("Your review has been submitted");
+        try {
+            const response = await api.get(`/reviews/products/${productId}`);
+            setFeedback(response.data.reviews);
+        } catch {
+            toast.info("Review saved. Refresh the page to see the latest feedback.");
+        }
+        return data;
+    };
     const reviews = useMemo(() => {
-        if (Array.isArray(product?.reviews)) {
-            return product.reviews.filter(
+        if (Array.isArray(feedback || product?.reviews)) {
+            return (feedback || product.reviews).filter(
                 (review) =>
                     Number.isInteger(Number(review.rating)) &&
                     Number(review.rating) >= 1 &&
                     Number(review.rating) <= 5
             );
         }
-
-        return (sampleComments[product?._id] || []).map((comment, index) => ({
-            id: `${product._id}-${index}`,
-            author: sampleReviewers[index].name,
-            rating: sampleReviewers[index].rating,
-            title: sampleReviewers[index].title,
-            comment,
-            createdAt: sampleReviewers[index].date
-        }));
-    }, [product]);
-
+        return [];
+    }, [product, feedback]);
     const filteredReviews = useMemo(() => {
         const result = reviews.filter(
             (review) => ratingFilter === 0 || Number(review.rating) === ratingFilter
         );
-
         return [...result].sort((a, b) => {
             if (sort === "highest") return Number(b.rating) - Number(a.rating);
             if (sort === "lowest") return Number(a.rating) - Number(b.rating);
-
             return (new Date(b.createdAt).getTime() || 0) - (new Date(a.createdAt).getTime() || 0);
         });
     }, [reviews, ratingFilter, sort]);
-
-    const catalogRating = Number(product?.rating);
+    const catalogRating = Number(
+        feedback
+            ? reviews.reduce((sum, row) => sum + Number(row.rating), 0) / (reviews.length || 1)
+            : product?.rating
+    );
     const catalogCount = Number(product?.ratingCount);
-
-    const totalRatings = Number.isInteger(catalogCount) && catalogCount > 0 ? catalogCount : reviews.length;
-
+    const totalRatings = feedback
+        ? feedback.length
+        : Number.isInteger(catalogCount) && catalogCount > 0
+          ? catalogCount
+          : reviews.length;
     const averageRating =
-        Number.isFinite(catalogRating) && catalogRating >= 0 && catalogRating <= 5 && catalogCount > 0
+        Number.isFinite(catalogRating) &&
+        catalogRating >= 0 &&
+        catalogRating <= 5 &&
+        catalogCount > 0
             ? catalogRating
             : reviews.length
               ? reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length
               : 0;
-
     const totalPages = Math.ceil(filteredReviews.length / PAGE_SIZE);
     const currentPage = Math.min(page, Math.max(1, totalPages));
-    const visibleReviews = filteredReviews.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
+    const visibleReviews = filteredReviews.slice(
+        (currentPage - 1) * PAGE_SIZE,
+        currentPage * PAGE_SIZE
+    );
     const changeRatingFilter = (stars) => {
         setRatingFilter((current) => (current === stars ? 0 : stars));
         setPage(1);
     };
-
     return (
         <section className="product-reviews" aria-labelledby="product-reviews-title">
+            <ReviewForm
+                open={reviewOpen}
+                onClose={() => setReviewOpen(false)}
+                orderId={purchase?.orderId}
+                item={purchase?.item}
+                onSubmit={submitReview}
+            />
             <div className="product-reviews-header">
                 <div>
                     <h2 id="product-reviews-title">Ratings & Reviews</h2>
@@ -213,12 +117,15 @@ function ProductReviewsContent({ product }) {
                 <div className="product-reviews-write">
                     <Button
                         variant="outlined"
-                        disabled
+                        disabled={!purchase}
+                        onClick={() => setReviewOpen(true)}
                         startIcon={<i className="fa-regular fa-pen-to-square" aria-hidden="true" />}
                     >
                         Write a Review
                     </Button>
-                    <small>Available after a delivered purchase</small>
+                    <small>
+                        {purchase ? "Share your experience with this purchase" : eligibility}
+                    </small>
                 </div>
             </div>
 
@@ -238,16 +145,18 @@ function ProductReviewsContent({ product }) {
                     />
 
                     <p>
-                        {totalRatings.toLocaleString("en-IN")} {totalRatings === 1 ? "Rating" : "Ratings"}
+                        {totalRatings.toLocaleString("en-IN")}{" "}
+                        {totalRatings === 1 ? "Rating" : "Ratings"}
                     </p>
                 </div>
 
                 <div className="product-reviews-distribution">
-                    <h3>{isPreview ? "Sample Review Distribution" : "Rating Distribution"}</h3>
+                    <h3>{"Rating Distribution"}</h3>
 
                     {[5, 4, 3, 2, 1].map((stars) => {
-                        const count = reviews.filter((review) => Number(review.rating) === stars).length;
-
+                        const count = reviews.filter(
+                            (review) => Number(review.rating) === stars
+                        ).length;
                         return (
                             <button
                                 key={stars}
@@ -283,8 +192,6 @@ function ProductReviewsContent({ product }) {
                         <span> ({filteredReviews.length})</span>
                     </h3>
 
-                    {isPreview && <p>Sample feedback for product preview</p>}
-
                     {ratingFilter > 0 && (
                         <button
                             type="button"
@@ -318,17 +225,19 @@ function ProductReviewsContent({ product }) {
                 <ul className="product-reviews-list">
                     {visibleReviews.map((review, index) => {
                         const author = review.author || "Customer";
-                        const initials = author
-                            .split(" ")
-                            .filter(Boolean)
-                            .slice(0, 2)
-                            .map((name) => name[0].toUpperCase())
-                            .join("");
-
                         return (
                             <li key={review.id ?? review._id ?? `${author}-${index}`}>
                                 <div className="product-reviews-avatar" aria-hidden="true">
-                                    {initials}
+                                    {review.avatar ? (
+                                        <img
+                                            src={review.avatar}
+                                            alt=""
+                                            onError={(event) => {
+                                                event.currentTarget.hidden = true;
+                                            }}
+                                        />
+                                    ) : null}
+                                    <span>{author.trim().charAt(0).toUpperCase() || "C"}</span>
                                 </div>
 
                                 <div className="product-reviews-content">
@@ -348,6 +257,14 @@ function ProductReviewsContent({ product }) {
 
                                     {review.title && <h4>{review.title}</h4>}
                                     <p>{review.comment}</p>
+                                    {review.sellerReply?.text && (
+                                        <blockquote className="product-review-reply">
+                                            <strong>
+                                                {review.sellerReply.storeName || "Seller"}
+                                            </strong>
+                                            <p>{review.sellerReply.text}</p>
+                                        </blockquote>
+                                    )}
                                 </div>
                             </li>
                         );
@@ -357,7 +274,9 @@ function ProductReviewsContent({ product }) {
                 <div className="product-reviews-empty">
                     <i className="fa-regular fa-comment-dots" aria-hidden="true" />
                     <p>
-                        {ratingFilter ? `No ${ratingFilter}-star reviews found.` : "No customer reviews yet."}
+                        {ratingFilter
+                            ? `No ${ratingFilter}-star reviews found.`
+                            : "No customer reviews yet."}
                     </p>
                 </div>
             )}
@@ -377,7 +296,11 @@ function ProductReviewsContent({ product }) {
         </section>
     );
 }
-
 export default function ProductReviews(props) {
-    return <ProductReviewsContent key={props.product?._id} {...props} />;
+    return (
+        <ProductReviewsContent
+            key={`${props.product?.productId || props.product?._id || "product"}`}
+            {...props}
+        />
+    );
 }

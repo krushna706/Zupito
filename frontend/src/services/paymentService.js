@@ -20,9 +20,7 @@ export async function getActiveCheckout(accountId) {
 
     try {
         attemptId = JSON.parse(
-            sessionStorage.getItem(
-                `zupito:checkout-attempt:${accountId}`
-            ) || "null"
+            sessionStorage.getItem(`zupito:checkout-attempt:${accountId}`) || "null"
         )?.attemptId;
     } catch {
         // The backend can still recover an active checkout.
@@ -37,21 +35,14 @@ export async function getActiveCheckout(accountId) {
 
 export function forgetCheckoutAttempt(accountId) {
     try {
-        sessionStorage.removeItem(
-            `zupito:checkout-attempt:${accountId}`
-        );
+        sessionStorage.removeItem(`zupito:checkout-attempt:${accountId}`);
     } catch {
         // Orders remain available from the backend.
     }
 }
 
 export const getPaymentStatus = async (id) =>
-    (
-        await api.get(
-            `/payments/${encodeURIComponent(id)}`,
-            { timeout: 45000 }
-        )
-    ).data;
+    (await api.get(`/payments/${encodeURIComponent(id)}`, { timeout: 45000 })).data;
 
 let scriptPromise;
 
@@ -70,9 +61,7 @@ function loadRazorpay() {
             script.remove();
             scriptPromise = null;
 
-            reject(
-                new Error("Unable to load Razorpay. Please retry.")
-            );
+            reject(new Error("Unable to load Razorpay. Please retry."));
         };
 
         const timer = setTimeout(fail, 15000);
@@ -107,11 +96,9 @@ export async function openPayment(data) {
                 verifying = true;
 
                 try {
-                    await api.post(
-                        `/payments/${data.order.orderId}/verify`,
-                        response,
-                        { timeout: 45000 }
-                    );
+                    await api.post(`/payments/${data.order.orderId}/verify`, response, {
+                        timeout: 45000,
+                    });
                 } catch {
                     // Status page and backend worker recover uncertain results.
                 }
@@ -129,11 +116,7 @@ export async function openPayment(data) {
         try {
             checkout.open();
         } catch {
-            reject(
-                new Error(
-                    "Unable to open payment. You can resume this checkout."
-                )
-            );
+            reject(new Error("Unable to open payment. You can resume this checkout."));
         }
     });
 }
@@ -142,9 +125,7 @@ export function getCheckoutAttempt(accountId, quoteToken) {
     const key = `zupito:checkout-attempt:${accountId}`;
 
     try {
-        const saved = JSON.parse(
-            sessionStorage.getItem(key) || "null"
-        );
+        const saved = JSON.parse(sessionStorage.getItem(key) || "null");
 
         if (saved?.quoteToken === quoteToken) {
             return saved.attemptId;
@@ -156,10 +137,7 @@ export function getCheckoutAttempt(accountId, quoteToken) {
     const attemptId = crypto.randomUUID();
 
     try {
-        sessionStorage.setItem(
-            key,
-            JSON.stringify({ quoteToken, attemptId })
-        );
+        sessionStorage.setItem(key, JSON.stringify({ quoteToken, attemptId }));
     } catch {
         // Continue with this attempt in memory.
     }

@@ -4,10 +4,9 @@ import {
     statusProgress,
     trackingSteps,
     getStepTimestamp,
-    formatDateTime
+    formatDateTime,
 } from "../utils/orderStatus";
-
-export default function OrderTimeline({ parcel, order, isDemo }) {
+export default function OrderTimeline({ parcel, order }) {
     const status = getParcelStatus(parcel);
     const isCancelled = getStatusCategory(status) === "cancelled";
     const currentStep = statusProgress[status] ?? -1;
@@ -15,73 +14,43 @@ export default function OrderTimeline({ parcel, order, isDemo }) {
     // Packing remains internal to seller fulfilment.
     const visibleSteps = isCancelled
         ? [
-            trackingSteps[0],
-            {
-                key: "cancelled",
-                label: "Order Cancelled",
-                description: "This package has been cancelled.",
-                dateKey: "cancelledAt"
-            }
-        ]
+              trackingSteps[0],
+              {
+                  key: "cancelled",
+                  label: "Order Cancelled",
+                  description: "This package has been cancelled.",
+                  dateKey: "cancelledAt",
+              },
+          ]
         : trackingSteps.filter((step) => step.key !== "packed");
 
     // Use actual status ranks, not the shortened timeline indexes.
     const currentVisibleStep = isCancelled
         ? visibleSteps.length - 1
-        : visibleSteps.findLastIndex(
-            (step) => statusProgress[step.key] <= currentStep
-        );
-
+        : visibleSteps.findLastIndex((step) => statusProgress[step.key] <= currentStep);
     return (
         <div className="customer-detail-tracking">
             {visibleSteps.map((step, index) => {
-                const isCompleted = isCancelled
-                    ? true
-                    : statusProgress[step.key] <= currentStep;
-
+                const isCompleted = isCancelled ? true : statusProgress[step.key] <= currentStep;
                 const isCurrent = isCancelled
                     ? index === visibleSteps.length - 1
-                    : index === currentVisibleStep &&
-                      status !== "delivered";
-
-                const timestamp = getStepTimestamp(
-                    parcel,
-                    order,
-                    step,
-                    isDemo
-                );
-
-                const formattedTimestamp = isCompleted
-                    ? formatDateTime(timestamp, isDemo)
-                    : null;
-
+                    : index === currentVisibleStep && status !== "delivered";
+                const timestamp = getStepTimestamp(parcel, order, step);
+                const formattedTimestamp = isCompleted ? formatDateTime(timestamp) : null;
                 return (
                     <div
                         key={step.key}
-                        className={`customer-detail-step ${
-                            isCompleted ? "is-completed" : ""
-                        } ${
-                            isCurrent ? "is-current" : ""
-                        } ${
-                            step.key === "cancelled" ? "is-cancelled" : ""
-                        }`}
+                        className={`customer-detail-step ${isCompleted ? "is-completed" : ""} ${isCurrent ? "is-current" : ""} ${step.key === "cancelled" ? "is-cancelled" : ""}`}
                     >
                         <div className="customer-detail-step-marker">
                             <span>
                                 {isCompleted ? (
                                     <i
-                                        className={`fa-solid ${
-                                            step.key === "cancelled"
-                                                ? "fa-xmark"
-                                                : "fa-check"
-                                        }`}
+                                        className={`fa-solid ${step.key === "cancelled" ? "fa-xmark" : "fa-check"}`}
                                         aria-hidden="true"
                                     />
                                 ) : (
-                                    <i
-                                        className="fa-solid fa-circle"
-                                        aria-hidden="true"
-                                    />
+                                    <i className="fa-solid fa-circle" aria-hidden="true" />
                                 )}
                             </span>
                         </div>
@@ -94,9 +63,7 @@ export default function OrderTimeline({ parcel, order, isDemo }) {
                                     <time>{formattedTimestamp}</time>
                                 ) : (
                                     <span className="customer-detail-step-time">
-                                        {isCompleted
-                                            ? "Time not recorded"
-                                            : "Pending"}
+                                        {isCompleted ? "Time not recorded" : "Pending"}
                                     </span>
                                 )}
                             </div>

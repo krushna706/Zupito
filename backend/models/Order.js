@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema(
     {
+        couponReserved: { type: Boolean, default: false },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
@@ -71,10 +72,7 @@ const orderSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-orderSchema.index(
-    { userId: 1, attemptId: 1 },
-    { unique: true }
-);
+orderSchema.index({ userId: 1, attemptId: 1 }, { unique: true });
 
 orderSchema.index(
     { userId: 1 },

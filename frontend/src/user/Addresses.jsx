@@ -5,7 +5,7 @@ import {
     DialogContent,
     DialogTitle,
     MenuItem,
-    TextField
+    TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
 
@@ -17,19 +17,25 @@ import {
     removeAddress,
     saveAddress,
     setDefaultAddress,
-    validateAddress
+    validateAddress,
 } from "../services/userService";
 
 const addressFields = [
     { name: "name", label: "Full Name", autoComplete: "name", maxLength: 80 },
     { name: "phone", label: "Mobile Number", autoComplete: "tel", maxLength: 10, numeric: true },
-    { name: "pincode", label: "PIN Code", autoComplete: "postal-code", maxLength: 6, numeric: true },
+    {
+        name: "pincode",
+        label: "PIN Code",
+        autoComplete: "postal-code",
+        maxLength: 6,
+        numeric: true,
+    },
     { name: "type", label: "Address Type", select: true },
     { name: "house", label: "House / Flat / Building", autoComplete: "address-line1", full: true },
     { name: "area", label: "Street / Area / Locality", autoComplete: "address-line2", full: true },
     { name: "city", label: "City", autoComplete: "address-level2", maxLength: 80 },
     { name: "state", label: "State", autoComplete: "address-level1", maxLength: 80 },
-    { name: "landmark", label: "Landmark (Optional)", full: true }
+    { name: "landmark", label: "Landmark (Optional)", full: true },
 ];
 
 function getAddressIcon(type) {
@@ -43,7 +49,7 @@ function Addresses() {
     const [addressData, setAddressData] = useState({
         addresses: [],
         selectedId: null,
-        version: 0
+        version: 0,
     });
 
     const [loading, setLoading] = useState(true);
@@ -63,9 +69,7 @@ function Addresses() {
     const { addresses, selectedId } = addressData;
 
     const sortedAddresses = [...addresses].sort(
-        (a, b) =>
-            Number(b.id === selectedId) -
-            Number(a.id === selectedId)
+        (a, b) => Number(b.id === selectedId) - Number(a.id === selectedId)
     );
 
     const refresh = useCallback(async () => {
@@ -170,12 +174,12 @@ function Addresses() {
 
         setFormData((previous) => ({
             ...previous,
-            [name]: nextValue
+            [name]: nextValue,
         }));
 
         setFormErrors((previous) => ({
             ...previous,
-            [name]: ""
+            [name]: "",
         }));
     };
 
@@ -191,19 +195,12 @@ function Addresses() {
         }
 
         const result = await mutate(() =>
-            saveAddress(
-                { ...normalized, id: editingId },
-                addressData.version
-            )
+            saveAddress({ ...normalized, id: editingId }, addressData.version)
         );
 
         if (!result) return;
 
-        toast.success(
-            editingId
-                ? "Address updated successfully."
-                : "Address added successfully."
-        );
+        toast.success(editingId ? "Address updated successfully." : "Address added successfully.");
 
         closeForm();
     };
@@ -211,9 +208,7 @@ function Addresses() {
     const handleSetDefault = async (addressId) => {
         if (addressId === selectedId) return;
 
-        const result = await mutate(() =>
-            setDefaultAddress(addressId, addressData.version)
-        );
+        const result = await mutate(() => setDefaultAddress(addressId, addressData.version));
 
         if (result) {
             toast.success("Default delivery address updated.");
@@ -223,9 +218,7 @@ function Addresses() {
     const handleDeleteAddress = async () => {
         if (!deleteAddress) return;
 
-        const result = await mutate(() =>
-            removeAddress(deleteAddress.id, addressData.version)
-        );
+        const result = await mutate(() => removeAddress(deleteAddress.id, addressData.version));
 
         if (!result) return;
 
@@ -238,13 +231,9 @@ function Addresses() {
             {/* Page Heading */}
             <div className="customer-addresses-heading">
                 <div>
-                    <span className="customer-addresses-eyebrow">
-                        DELIVERY LOCATIONS
-                    </span>
+                    <span className="customer-addresses-eyebrow">DELIVERY LOCATIONS</span>
                     <h2>Saved Addresses</h2>
-                    <p>
-                        Add and manage delivery addresses for a faster checkout experience.
-                    </p>
+                    <p>Add and manage delivery addresses for a faster checkout experience.</p>
                 </div>
 
                 <button
@@ -282,11 +271,11 @@ function Addresses() {
 
                 <div>
                     <strong>
-                        {addresses.length} Saved{" "}
-                        {addresses.length === 1 ? "Address" : "Addresses"}
+                        {addresses.length} Saved {addresses.length === 1 ? "Address" : "Addresses"}
                     </strong>
                     <p>
-                        Choose your preferred delivery location and keep your address details updated.
+                        Choose your preferred delivery location and keep your address details
+                        updated.
                     </p>
                 </div>
 
@@ -296,8 +285,9 @@ function Addresses() {
             </div>
 
             {/* Saved Address Cards */}
-            {!loading && !error && (
-                addresses.length === 0 ? (
+            {!loading &&
+                !error &&
+                (addresses.length === 0 ? (
                     <div className="customer-addresses-empty">
                         <span className="customer-addresses-empty-icon">
                             <i className="fa-solid fa-map-location-dot" aria-hidden="true" />
@@ -305,7 +295,8 @@ function Addresses() {
 
                         <h3>No saved addresses yet</h3>
                         <p>
-                            Add your first delivery address to make checkout faster and more convenient.
+                            Add your first delivery address to make checkout faster and more
+                            convenient.
                         </p>
 
                         <button
@@ -342,7 +333,10 @@ function Addresses() {
 
                                         {isDefault && (
                                             <span className="customer-address-default-badge">
-                                                <i className="fa-solid fa-circle-check" aria-hidden="true" />
+                                                <i
+                                                    className="fa-solid fa-circle-check"
+                                                    aria-hidden="true"
+                                                />
                                                 Default Address
                                             </span>
                                         )}
@@ -357,7 +351,10 @@ function Addresses() {
                                         </p>
 
                                         <div className="customer-address-card-location">
-                                            <i className="fa-solid fa-location-dot" aria-hidden="true" />
+                                            <i
+                                                className="fa-solid fa-location-dot"
+                                                aria-hidden="true"
+                                            />
 
                                             <p>
                                                 {address.house}, {address.area}
@@ -388,7 +385,10 @@ function Addresses() {
                                                 className="customer-address-delete"
                                                 onClick={() => setDeleteAddress(address)}
                                             >
-                                                <i className="fa-solid fa-trash-can" aria-hidden="true" />
+                                                <i
+                                                    className="fa-solid fa-trash-can"
+                                                    aria-hidden="true"
+                                                />
                                                 Delete
                                             </button>
                                         </div>
@@ -401,7 +401,10 @@ function Addresses() {
                                                 onClick={() => handleSetDefault(address.id)}
                                             >
                                                 Set as Default
-                                                <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                                                <i
+                                                    className="fa-solid fa-arrow-right"
+                                                    aria-hidden="true"
+                                                />
                                             </button>
                                         )}
                                     </div>
@@ -409,15 +412,14 @@ function Addresses() {
                             );
                         })}
                     </div>
-                )
-            )}
+                ))}
 
             {/* Important Information */}
             <div className="customer-addresses-info">
                 <i className="fa-solid fa-circle-info" aria-hidden="true" />
                 <p>
-                    Your default address is preselected at checkout. Updating a saved address
-                    will not change delivery details on an existing order.
+                    Your default address is preselected at checkout. Updating a saved address will
+                    not change delivery details on an existing order.
                 </p>
             </div>
 
@@ -451,11 +453,7 @@ function Addresses() {
                 </DialogTitle>
 
                 <DialogContent dividers>
-                    <form
-                        id="customer-address-form"
-                        onSubmit={handleSaveAddress}
-                        noValidate
-                    >
+                    <form id="customer-address-form" onSubmit={handleSaveAddress} noValidate>
                         <div className="customer-address-form-grid">
                             {addressFields.map((field) => (
                                 <TextField
@@ -478,15 +476,16 @@ function Addresses() {
                                     slotProps={{
                                         htmlInput: {
                                             maxLength: field.maxLength || 150,
-                                            inputMode: field.numeric ? "numeric" : "text"
-                                        }
+                                            inputMode: field.numeric ? "numeric" : "text",
+                                        },
                                     }}
                                 >
-                                    {field.select && addressTypes.map((type) => (
-                                        <MenuItem key={type} value={type}>
-                                            {type}
-                                        </MenuItem>
-                                    ))}
+                                    {field.select &&
+                                        addressTypes.map((type) => (
+                                            <MenuItem key={type} value={type}>
+                                                {type}
+                                            </MenuItem>
+                                        ))}
                                 </TextField>
                             ))}
                         </div>
@@ -526,14 +525,12 @@ function Addresses() {
                 className="customer-address-delete-dialog"
                 aria-labelledby="customer-address-delete-title"
             >
-                <DialogTitle id="customer-address-delete-title">
-                    Delete Address?
-                </DialogTitle>
+                <DialogTitle id="customer-address-delete-title">Delete Address?</DialogTitle>
 
                 <DialogContent>
                     <p className="customer-address-delete-message">
-                        Are you sure you want to delete this saved address?
-                        This action cannot be undone.
+                        Are you sure you want to delete this saved address? This action cannot be
+                        undone.
                     </p>
                 </DialogContent>
 

@@ -20,7 +20,13 @@ router.use((req, res, next) => {
     next();
 });
 
-router.patch("/profile", profileUpdateLimiter, uploadProfileImage, validate(profileUpdateSchema), user.updateProfile);
+router.patch(
+    "/profile",
+    profileUpdateLimiter,
+    uploadProfileImage,
+    validate(profileUpdateSchema),
+    user.updateProfile
+);
 
 router.use(
     "/addresses",

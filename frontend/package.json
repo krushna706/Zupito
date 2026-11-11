@@ -1,36 +1,42 @@
 {
-  "name": "frontend",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@fortawesome/fontawesome-free": "^7.3.1",
-    "@mui/material": "^9.5.0",
-    "axios": "^1.21.0",
-    "bootstrap": "^5.3.8",
-    "jspdf": "^4.2.1",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "react-router-dom": "^7.18.5",
-    "react-toastify": "^11.2.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
-    "eslint": "^10.13.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.7",
-    "globals": "^17.13.0",
-    "vite": "^8.3.5"
-  }
+    "name": "zupito-frontend",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Zupito multi-seller marketplace frontend",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "lint": "eslint .",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.1",
+        "@fortawesome/fontawesome-free": "^7.3.1",
+        "@mui/material": "^9.5.0",
+        "axios": "^1.21.0",
+        "bootstrap": "^5.3.8",
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1",
+        "react-router-dom": "^7.18.5",
+        "react-toastify": "^11.2.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "@vitejs/plugin-react": "^6.1.2",
+        "eslint": "^10.13.0",
+        "eslint-plugin-react-hooks": "^7.1.1",
+        "eslint-plugin-react-refresh": "^0.5.7",
+        "globals": "^17.13.0",
+        "vite": "^8.3.5"
+    },
+    "engines": {
+        "node": ">=24 <25"
+    },
+    "overrides": {
+        "minimatch": "^11.0.1"
+    }
 }

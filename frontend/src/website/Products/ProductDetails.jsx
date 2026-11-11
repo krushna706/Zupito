@@ -1,3 +1,5 @@
+import { seoPages } from "../../config/seoConfig";
+import usePageSEO from "../../hooks/usePageSEO";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Rating } from "@mui/material";
@@ -9,7 +11,7 @@ import {
     getDisplayVariant,
     getProductPath,
     getProductView,
-    resolveProductVariant
+    resolveProductVariant,
 } from "../../utils/productVariants";
 
 import ProductGallery from "./ProductGallery";
@@ -20,7 +22,7 @@ import ProductSections from "../Home/ProductSections";
 const formatPrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
 }).format;
 
 function ProductUnavailable({ product }) {
@@ -63,6 +65,13 @@ function ProductDetails() {
         unavailable: false,
     });
 
+    usePageSEO({
+        ...seoPages.productDetails,
+        title: state.product?.name || seoPages.productDetails.title,
+        description:
+            state.product?.description?.slice(0, 155) || seoPages.productDetails.description,
+    });
+
     useEffect(() => {
         let active = true;
 
@@ -99,7 +108,8 @@ function ProductDetails() {
                     product: null,
                     related: [],
                     unavailable: status === 404 || status === 400,
-                    error: requestError.response?.data?.message ||
+                    error:
+                        requestError.response?.data?.message ||
                         "Unable to load this product. Please try again.",
                 });
             });
@@ -178,13 +188,13 @@ function ProductContent({ product, selectedVariant, related = [] }) {
 
         return relatedProducts.length
             ? [
-                {
-                    key: `similar-${product._id}`,
-                    title: "Similar Products",
-                    viewAllPath: `/products?category=${encodeURIComponent(product.category)}`,
-                    products: relatedProducts,
-                },
-            ]
+                  {
+                      key: `similar-${product._id}`,
+                      title: "Similar Products",
+                      viewAllPath: `/products?category=${encodeURIComponent(product.category)}`,
+                      products: relatedProducts,
+                  },
+              ]
             : [];
     }, [related, product._id, product.category]);
 
@@ -211,14 +221,14 @@ function ProductContent({ product, selectedVariant, related = [] }) {
     const description = Array.isArray(product.description)
         ? product.description
         : product.description
-            ? [{ title: "", text: product.description }]
-            : [];
+          ? [{ title: "", text: product.description }]
+          : [];
 
     const visibleDescription = expanded ? description : description.slice(0, 2);
 
     const specifications = [
         ...(product.brand ? [{ label: "Brand", value: product.brand }] : []),
-        ...(product.specifications ?? []).filter((item) => item.label?.toLowerCase() !== "brand")
+        ...(product.specifications ?? []).filter((item) => item.label?.toLowerCase() !== "brand"),
     ];
 
     const addToCart = () => {
@@ -253,8 +263,13 @@ function ProductContent({ product, selectedVariant, related = [] }) {
                         />
                     </div>
 
-                    <section className="product-details-info" aria-labelledby="product-details-title">
-                        {product.brand && <span className="product-details-brand">{product.brand}</span>}
+                    <section
+                        className="product-details-info"
+                        aria-labelledby="product-details-title"
+                    >
+                        {product.brand && (
+                            <span className="product-details-brand">{product.brand}</span>
+                        )}
 
                         <h1 id="product-details-title">{product.name}</h1>
 
@@ -268,7 +283,9 @@ function ProductContent({ product, selectedVariant, related = [] }) {
                                         getLabelText={(value) => `${value} out of 5 stars`}
                                     />
                                     <strong>{product.rating.toFixed(1)}</strong>
-                                    <span>({product.ratingCount.toLocaleString("en-IN")} ratings)</span>
+                                    <span>
+                                        ({product.ratingCount.toLocaleString("en-IN")} ratings)
+                                    </span>
                                 </>
                             ) : (
                                 <span>Not rated yet</span>
@@ -276,7 +293,11 @@ function ProductContent({ product, selectedVariant, related = [] }) {
                         </div>
 
                         {/* Product Price */}
-                        <div className="product-details-price-panel" aria-live="polite" aria-atomic="true">
+                        <div
+                            className="product-details-price-panel"
+                            aria-live="polite"
+                            aria-atomic="true"
+                        >
                             <div className="product-details-pricing">
                                 <span className="product-details-price">
                                     {hasValidPrice ? (
@@ -295,13 +316,17 @@ function ProductContent({ product, selectedVariant, related = [] }) {
                                             <span className="visually-hidden">MRP:</span>
                                             {formatPrice(mrp)}
                                         </del>
-                                        <span className="product-details-discount">{discount}% off</span>
+                                        <span className="product-details-discount">
+                                            {discount}% off
+                                        </span>
                                     </>
                                 )}
                             </div>
 
                             {hasDiscount && (
-                                <p className="product-details-savings">You save {formatPrice(mrp - price)}</p>
+                                <p className="product-details-savings">
+                                    You save {formatPrice(mrp - price)}
+                                </p>
                             )}
                         </div>
 
@@ -317,8 +342,8 @@ function ProductContent({ product, selectedVariant, related = [] }) {
 
                         {quantity > stock && (
                             <p className="product-selection-note" role="status">
-                                Your cart quantity exceeds the current stock. Please reduce it before
-                                checkout.
+                                Your cart quantity exceeds the current stock. Please reduce it
+                                before checkout.
                             </p>
                         )}
 
@@ -394,7 +419,10 @@ function ProductContent({ product, selectedVariant, related = [] }) {
 
                 {/* Description */}
                 {description.length > 0 && (
-                    <section className="product-details-overview" aria-labelledby="product-description-title">
+                    <section
+                        className="product-details-overview"
+                        aria-labelledby="product-description-title"
+                    >
                         <h2 id="product-description-title">About this product</h2>
 
                         <div id={`description-${product._id}`}>

@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const { randomBytes } = require("node:crypto");
@@ -18,13 +17,17 @@ const assignmentService = require("../services/assignmentService");
 const agentSchema = Joi.object({
     name: Joi.string().trim().min(2).max(100).required(),
     email: Joi.string().trim().lowercase().email().max(254).required(),
-    mobile: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+    mobile: Joi.string()
+        .pattern(/^[6-9]\d{9}$/)
+        .required(),
     pincodes: Joi.array()
         .items(Joi.string().pattern(/^[1-9]\d{5}$/))
-        .min(1).max(15).unique().required(),
+        .min(1)
+        .max(15)
+        .unique()
+        .required(),
     capacity: Joi.number().integer().min(1).max(20).required(),
-    availability: Joi.string()
-        .valid("Available", "Unavailable").required(),
+    availability: Joi.string().valid("Available", "Unavailable").required(),
 });
 
 const statusSchema = Joi.object({
@@ -39,14 +42,9 @@ const assignmentSchema = Joi.object({
 });
 
 const actionSchema = Joi.object({
-    action: Joi.string().valid(
-        "pickup",
-        "start_delivery",
-        "regenerate_otp",
-        "deliver",
-        "failed",
-        "retry"
-    ).required(),
+    action: Joi.string()
+        .valid("pickup", "start_delivery", "regenerate_otp", "deliver", "failed", "retry")
+        .required(),
     confirmed: Joi.boolean(),
     otp: Joi.string().pattern(/^\d{6}$/),
     reason: Joi.string().valid(
@@ -68,10 +66,7 @@ function validate(schema, input) {
     });
 
     if (error) {
-        throw new ExpressError(
-            400,
-            error.details[0].message
-        );
+        throw new ExpressError(400, error.details[0].message);
     }
 
     return value;
@@ -85,9 +80,7 @@ function assertId(id) {
 
 // ================== AGENT RESPONSE ==================
 async function publicAgent(profile) {
-    const user = await User.findById(profile.userId)
-        .select("name email phone")
-        .lean();
+    const user = await User.findById(profile.userId).select("name email phone").lean();
 
     return {
         id: String(profile._id),
@@ -110,6 +103,10 @@ async function publicAgent(profile) {
 // ================== ORDERED PARCEL ITEMS ==================
 // Only return items belonging to this seller parcel.
 async function serializeTasks(tasks) {
+    const replacements = await require("../models/Replacement")
+        .find({ _id: { $in: tasks.map((task) => task.replacementId).filter(Boolean) } })
+        .lean();
+    const replacementMap = new Map(replacements.map((row) => [String(row._id), row]));
     if (!tasks.length) return [];
 
     const [orders, parcels] = await Promise.all([
@@ -123,40 +120,25 @@ async function serializeTasks(tasks) {
 
         SellerOrder.find({
             _id: {
-                $in: tasks.map(
-                    (task) => task.sellerOrderId
-                ),
+                $in: tasks.map((task) => task.sellerOrderId),
             },
         })
             .select("_id itemIndexes")
             .lean(),
     ]);
 
-    const orderById = new Map(
-        orders.map((order) => [
-            String(order._id),
-            order,
-        ])
-    );
+    const orderById = new Map(orders.map((order) => [String(order._id), order]));
 
-    const parcelById = new Map(
-        parcels.map((parcel) => [
-            String(parcel._id),
-            parcel,
-        ])
-    );
+    const parcelById = new Map(parcels.map((parcel) => [String(parcel._id), parcel]));
 
     return tasks.map((task) => {
-        const order = orderById.get(
-            String(task.orderId)
-        );
+        const order = orderById.get(String(task.orderId));
 
-        const parcel = parcelById.get(
-            String(task.sellerOrderId)
-        );
+        const parcel = parcelById.get(String(task.sellerOrderId));
 
         // Use the checkout snapshot, not current stock.
-        const items = (parcel?.itemIndexes || [])
+        const replacement = replacementMap.get(String(task.replacementId));
+        const items = (replacement ? [replacement.itemIndex] : parcel?.itemIndexes || [])
             .map((index) => {
                 const item = order?.items?.[index];
 
@@ -169,7 +151,7 @@ async function serializeTasks(tasks) {
                     image: item.image || "",
                     variantLabel: item.variantLabel || "",
                     sku: item.sku || "",
-                    quantity: Number(item.quantity || 0),
+                    quantity: Number(replacement?.quantity || item.quantity || 0),
                 };
             })
             .filter(Boolean);
@@ -178,11 +160,7 @@ async function serializeTasks(tasks) {
             ...deliveryService.taskResponse(task),
             items,
             productCount: items.length,
-            totalQuantity: items.reduce(
-                (total, item) =>
-                    total + item.quantity,
-                0
-            ),
+            totalQuantity: items.reduce((total, item) => total + item.quantity, 0),
         };
     });
 }
@@ -196,9 +174,7 @@ exports.agents = async (req, res, next) => {
             .lean();
 
         res.json({
-            agents: await Promise.all(
-                profiles.map(publicAgent)
-            ),
+            agents: await Promise.all(profiles.map(publicAgent)),
         });
     } catch (error) {
         next(error);
@@ -213,89 +189,80 @@ exports.saveAgent = async (req, res, next) => {
 
         if (agentId) assertId(agentId);
 
-        const profile = await mongoose.connection.transaction(
-            async (session) => {
-                if (!agentId) {
-                    // Password is set through existing Forgot Password OTP.
-                    const passwordHash = await bcrypt.hash(
-                        randomBytes(32).toString("hex"),
-                        12
-                    );
+        const profile = await mongoose.connection.transaction(async (session) => {
+            if (!agentId) {
+                // Password is set through existing Forgot Password OTP.
+                const passwordHash = await bcrypt.hash(randomBytes(32).toString("hex"), 12);
 
-                    const [user] = await User.create([{
-                        name: data.name,
-                        email: data.email,
-                        phone: data.mobile,
-                        passwordHash,
-                        role: "delivery",
-                        status: "Active",
-                    }], { session });
+                const [user] = await User.create(
+                    [
+                        {
+                            name: data.name,
+                            email: data.email,
+                            phone: data.mobile,
+                            passwordHash,
+                            role: "delivery",
+                            status: "Active",
+                        },
+                    ],
+                    { session }
+                );
 
-                    const [created] = await DeliveryAgentProfile.create(
-                        [{
+                const [created] = await DeliveryAgentProfile.create(
+                    [
+                        {
                             userId: user._id,
                             pincodes: data.pincodes,
                             capacity: data.capacity,
                             availability: data.availability,
-                        }],
-                        { session }
-                    );
-
-                    return created;
-                }
-
-                const existing = await DeliveryAgentProfile
-                    .findById(agentId)
-                    .session(session);
-
-                if (!existing) {
-                    throw new ExpressError(
-                        404,
-                        "Delivery agent not found."
-                    );
-                }
-
-                if (data.capacity < existing.activeTasks) {
-                    throw new ExpressError(
-                        409,
-                        "Capacity cannot be below the current workload."
-                    );
-                }
-
-                const updated = await User.updateOne(
-                    {
-                        _id: existing.userId,
-                        role: "delivery",
-                    },
-                    {
-                        $set: {
-                            name: data.name,
-                            email: data.email,
-                            phone: data.mobile,
                         },
-                    },
-                    {
-                        session,
-                        runValidators: true,
-                    }
+                    ],
+                    { session }
                 );
 
-                if (!updated.matchedCount) {
-                    throw new ExpressError(
-                        409,
-                        "Linked delivery account is unavailable."
-                    );
-                }
-
-                existing.pincodes = data.pincodes;
-                existing.capacity = data.capacity;
-                existing.availability = data.availability;
-
-                await existing.save({ session });
-
-                return existing;
+                return created;
             }
-        );
+
+            const existing = await DeliveryAgentProfile.findById(agentId).session(session);
+
+            if (!existing) {
+                throw new ExpressError(404, "Delivery agent not found.");
+            }
+
+            if (data.capacity < existing.activeTasks) {
+                throw new ExpressError(409, "Capacity cannot be below the current workload.");
+            }
+
+            const updated = await User.updateOne(
+                {
+                    _id: existing.userId,
+                    role: "delivery",
+                },
+                {
+                    $set: {
+                        name: data.name,
+                        email: data.email,
+                        phone: data.mobile,
+                    },
+                },
+                {
+                    session,
+                    runValidators: true,
+                }
+            );
+
+            if (!updated.matchedCount) {
+                throw new ExpressError(409, "Linked delivery account is unavailable.");
+            }
+
+            existing.pincodes = data.pincodes;
+            existing.capacity = data.capacity;
+            existing.availability = data.availability;
+
+            await existing.save({ session });
+
+            return existing;
+        });
 
         res.status(agentId ? 200 : 201).json({
             agent: await publicAgent(profile),
@@ -312,87 +279,65 @@ exports.updateAgentStatus = async (req, res, next) => {
 
         const data = validate(statusSchema, req.body);
 
-        if (
-            data.status === "Suspended" &&
-            (!data.reason || data.reason.length < 5)
-        ) {
-            throw new ExpressError(
-                400,
-                "Suspension reason must contain at least 5 characters."
-            );
+        if (data.status === "Suspended" && (!data.reason || data.reason.length < 5)) {
+            throw new ExpressError(400, "Suspension reason must contain at least 5 characters.");
         }
 
-        const profile = await mongoose.connection.transaction(
-            async (session) => {
-                const agent = await DeliveryAgentProfile
-                    .findById(req.params.agentId)
-                    .session(session);
+        const profile = await mongoose.connection.transaction(async (session) => {
+            const agent = await DeliveryAgentProfile.findById(req.params.agentId).session(session);
 
-                if (!agent) {
-                    throw new ExpressError(
-                        404,
-                        "Delivery agent not found."
-                    );
-                }
-
-                if (data.availability) {
-                    agent.availability = data.availability;
-                }
-
-                if (data.status) {
-                    agent.status = data.status;
-                    agent.remarks =
-                        data.status === "Suspended"
-                            ? data.reason
-                            : "";
-
-                    const changed = await User.updateOne(
-                        {
-                            _id: agent.userId,
-                            role: "delivery",
-                        },
-                        {
-                            $set: {
-                                status:
-                                    data.status === "Active"
-                                        ? "Active"
-                                        : "Inactive",
-                            },
-                            $inc: {
-                                tokenVersion: 1,
-                            },
-                        },
-                        { session }
-                    );
-
-                    if (!changed.matchedCount) {
-                        throw new ExpressError(
-                            409,
-                            "Linked delivery account is unavailable."
-                        );
-                    }
-
-                    // Revoke sessions; preserve login history.
-                    await AuthSession.updateMany(
-                        {
-                            userId: agent.userId,
-                            revokedAt: null,
-                        },
-                        {
-                            $set: {
-                                revokedAt: new Date(),
-                                revokeReason: "admin_action",
-                            },
-                        },
-                        { session }
-                    );
-                }
-
-                await agent.save({ session });
-
-                return agent;
+            if (!agent) {
+                throw new ExpressError(404, "Delivery agent not found.");
             }
-        );
+
+            if (data.availability) {
+                agent.availability = data.availability;
+            }
+
+            if (data.status) {
+                agent.status = data.status;
+                agent.remarks = data.status === "Suspended" ? data.reason : "";
+
+                const changed = await User.updateOne(
+                    {
+                        _id: agent.userId,
+                        role: "delivery",
+                    },
+                    {
+                        $set: {
+                            status: data.status === "Active" ? "Active" : "Inactive",
+                        },
+                        $inc: {
+                            tokenVersion: 1,
+                        },
+                    },
+                    { session }
+                );
+
+                if (!changed.matchedCount) {
+                    throw new ExpressError(409, "Linked delivery account is unavailable.");
+                }
+
+                // Revoke sessions; preserve login history.
+                await AuthSession.updateMany(
+                    {
+                        userId: agent.userId,
+                        revokedAt: null,
+                    },
+                    {
+                        $set: {
+                            revokedAt: new Date(),
+                            revokeReason: "admin_action",
+                        },
+                    },
+                    { session }
+                );
+            }
+
+            await agent.save({ session });
+
+            return agent;
+        });
 
         res.json({
             agent: await publicAgent(profile),
@@ -405,10 +350,7 @@ exports.updateAgentStatus = async (req, res, next) => {
 // ================== ADMIN ASSIGNMENTS ==================
 exports.assignments = async (req, res, next) => {
     try {
-        const tasks = await DeliveryTask.find()
-            .sort({ createdAt: -1 })
-            .limit(500)
-            .lean();
+        const tasks = await DeliveryTask.find().sort({ createdAt: -1 }).limit(500).lean();
 
         res.json({
             tasks: await serializeTasks(tasks),
@@ -432,10 +374,7 @@ exports.assign = async (req, res, next) => {
     try {
         assertId(req.params.taskId);
 
-        const input = validate(
-            assignmentSchema,
-            req.body
-        );
+        const input = validate(assignmentSchema, req.body);
 
         const task = await assignmentService.assign(
             req.params.taskId,
@@ -460,10 +399,7 @@ async function activeAgent(userId) {
     });
 
     if (!profile) {
-        throw new ExpressError(
-            403,
-            "Active delivery-agent account required."
-        );
+        throw new ExpressError(403, "Active delivery-agent account required.");
     }
 
     return profile;
@@ -471,9 +407,7 @@ async function activeAgent(userId) {
 
 exports.me = async (req, res, next) => {
     try {
-        const profile = await activeAgent(
-            req.user._id
-        );
+        const profile = await activeAgent(req.user._id);
 
         res.json({
             agent: await publicAgent(profile),
@@ -486,9 +420,7 @@ exports.me = async (req, res, next) => {
 // ================== MY TASKS ==================
 exports.myTasks = async (req, res, next) => {
     try {
-        const agent = await activeAgent(
-            req.user._id
-        );
+        const agent = await activeAgent(req.user._id);
 
         const tasks = await DeliveryTask.find({
             agentProfileId: agent._id,
@@ -510,9 +442,7 @@ exports.myTask = async (req, res, next) => {
     try {
         assertId(req.params.taskId);
 
-        const agent = await activeAgent(
-            req.user._id
-        );
+        const agent = await activeAgent(req.user._id);
 
         const task = await DeliveryTask.findOne({
             _id: req.params.taskId,
@@ -520,10 +450,7 @@ exports.myTask = async (req, res, next) => {
         });
 
         if (!task) {
-            throw new ExpressError(
-                404,
-                "Assigned task not found."
-            );
+            throw new ExpressError(404, "Assigned task not found.");
         }
 
         res.json({
@@ -559,40 +486,71 @@ exports.changeAvailability = async (req, res, next) => {
     try {
         const { availability } = validate(
             Joi.object({
-                availability: Joi.string()
-                    .valid("Available", "Unavailable")
-                    .required(),
+                availability: Joi.string().valid("Available", "Unavailable").required(),
             }),
             req.body
         );
 
-        const agent =
-            await DeliveryAgentProfile.findOneAndUpdate(
-                {
-                    userId: req.user._id,
-                    status: "Active",
+        const agent = await DeliveryAgentProfile.findOneAndUpdate(
+            {
+                userId: req.user._id,
+                status: "Active",
+            },
+            {
+                $set: {
+                    availability,
                 },
-                {
-                    $set: {
-                        availability,
-                    },
-                },
-                {
-                    new: true,
-                    runValidators: true,
-                }
-            );
+            },
+            {
+                returnDocument: "after",
+                runValidators: true,
+            }
+        );
 
         if (!agent) {
-            throw new ExpressError(
-                403,
-                "Active delivery-agent account required."
-            );
+            throw new ExpressError(403, "Active delivery-agent account required.");
         }
 
         res.json({
             agent: await publicAgent(agent),
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Admin can recover an OTP lock without seeing the code or changing custody.
+exports.recoverOtp = async (req, res, next) => {
+    try {
+        assertId(req.params.taskId);
+        const { reason } = validate(
+            Joi.object({ reason: Joi.string().trim().min(5).max(200).required() }),
+            req.body
+        );
+        await mongoose.connection.transaction(async (session) => {
+            const task = await DeliveryTask.findOne({
+                _id: req.params.taskId,
+                stage: { $in: ["assigned", "out_for_delivery"] },
+            })
+                .select("+otpHash +otpCiphertext")
+                .session(session);
+            if (!task)
+                throw new ExpressError(
+                    409,
+                    "Only an active pickup or delivery code can be recovered."
+                );
+            if (task.otpIssuedAt && Date.now() - task.otpIssuedAt.getTime() < 60000) {
+                throw new ExpressError(429, "Wait 60 seconds before recovering the code.");
+            }
+            require("../services/deliveryOtpService").issue(
+                task,
+                task.stage === "assigned" ? "pickup" : "delivery"
+            );
+            task.otpRegenerations = 0;
+            task.events.push({ actorUserId: req.user._id, note: `Admin recovered OTP: ${reason}` });
+            await task.save({ session });
+        });
+        res.json({ success: true });
     } catch (error) {
         next(error);
     }

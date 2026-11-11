@@ -3,17 +3,13 @@ import api from "./api";
 export const login = async (identifier, password) =>
     (await api.post("/auth/login", { identifier, password })).data.user;
 
-export const register = async (form) =>
-    (await api.post("/auth/signup", form)).data;
+export const register = async (form) => (await api.post("/auth/signup", form)).data;
 
-export const registerSeller = async (form) =>
-    (await api.post("/auth/seller-register", form)).data;
+export const registerSeller = async (form) => (await api.post("/auth/seller-register", form)).data;
 
-export const getCurrentUser = async () =>
-    (await api.get("/auth/me")).data.user;
+export const getCurrentUser = async () => (await api.get("/auth/me")).data.user;
 
-export const logout = async () =>
-    (await api.post("/auth/logout")).data;
+export const logout = async () => (await api.post("/auth/logout")).data;
 
 export const requestPasswordReset = async (identifier) =>
     (await api.post("/auth/forgot-password/request", { identifier })).data;
@@ -21,11 +17,7 @@ export const requestPasswordReset = async (identifier) =>
 export const verifyPasswordReset = async (requestId, otp) =>
     (await api.post("/auth/forgot-password/verify", { requestId, otp })).data;
 
-export const resetPassword = async (
-    resetToken,
-    password,
-    confirmPassword
-) =>
+export const resetPassword = async (resetToken, password, confirmPassword) =>
     (
         await api.post("/auth/forgot-password/reset", {
             resetToken,

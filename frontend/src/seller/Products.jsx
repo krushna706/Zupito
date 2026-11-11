@@ -1,16 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-    Alert, Button, MenuItem, Table, TableBody, TableCell,
-    TableContainer, TableHead, TablePagination, TableRow, TextField,
+    Alert,
+    Button,
+    MenuItem,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TablePagination,
+    TableRow,
+    TextField,
 } from "@mui/material";
 
 import { fetchSellerProducts } from "../services/sellerService";
 
-const money = (paise) => new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-}).format((paise || 0) / 100);
+const money = (paise) =>
+    new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+    }).format((paise || 0) / 100);
 
 function Products() {
     const [data, setData] = useState({
@@ -70,11 +80,17 @@ function Products() {
         <main className="seller-product-page">
             <section className="sp-hero">
                 <div>
-                    <h1><i className="fa-solid fa-box-open" /> MANAGE PRODUCTS</h1>
+                    <h1>
+                        <i className="fa-solid fa-box-open" /> MANAGE PRODUCTS
+                    </h1>
                     <p>Create listings, manage product details and track approval decisions.</p>
                 </div>
                 <div className="sp-hero-actions">
-                    <Button variant="outlined" disabled={loading} onClick={() => setRevision((value) => value + 1)}>
+                    <Button
+                        variant="outlined"
+                        disabled={loading}
+                        onClick={() => setRevision((value) => value + 1)}
+                    >
                         Refresh
                     </Button>
                     <Button variant="contained" component={Link} to="/manage/products/new">
@@ -88,7 +104,10 @@ function Products() {
             <section className="sp-stats">
                 {stats.map(([label, key, color, icon]) => (
                     <div key={key} className={`sp-stat sp-stat-${color}`}>
-                        <div><span>{label}</span><i className={`fa-solid ${icon}`} /></div>
+                        <div>
+                            <span>{label}</span>
+                            <i className={`fa-solid ${icon}`} />
+                        </div>
                         <strong>{loading || error ? "—" : data.statistics[key]}</strong>
                         <small>Your store listings</small>
                     </div>
@@ -97,7 +116,9 @@ function Products() {
 
             <section className="sp-card sp-list-card">
                 <div className="sp-card-head">
-                    <span className="sp-section-icon"><i className="fa-solid fa-list-check" /></span>
+                    <span className="sp-section-icon">
+                        <i className="fa-solid fa-list-check" />
+                    </span>
                     <div>
                         <h2>Product Listings</h2>
                         <p>Only your seller account's products are displayed.</p>
@@ -111,20 +132,34 @@ function Products() {
                         label="Search Products"
                         value={search}
                         slotProps={{ htmlInput: { maxLength: 100 } }}
-                        onChange={(event) => { setSearch(event.target.value); setPage(0); }}
+                        onChange={(event) => {
+                            setSearch(event.target.value);
+                            setPage(0);
+                        }}
                     />
                     <TextField
                         select
                         size="small"
                         label="Approval Status"
                         value={status}
-                        onChange={(event) => { setStatus(event.target.value); setPage(0); }}
+                        onChange={(event) => {
+                            setStatus(event.target.value);
+                            setPage(0);
+                        }}
                     >
                         {["All", "Pending", "Approved", "Rejected", "Suspended"].map((item) => (
-                            <MenuItem key={item} value={item}>{item}</MenuItem>
+                            <MenuItem key={item} value={item}>
+                                {item}
+                            </MenuItem>
                         ))}
                     </TextField>
-                    <Button onClick={() => { setSearch(""); setStatus("All"); setPage(0); }}>
+                    <Button
+                        onClick={() => {
+                            setSearch("");
+                            setStatus("All");
+                            setPage(0);
+                        }}
+                    >
                         Reset
                     </Button>
                 </div>
@@ -141,41 +176,58 @@ function Products() {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {!loading && !error && data.products.map((product) => (
-                                <TableRow key={product._id}>
-                                    <TableCell>
-                                        <div className="sp-product-cell">
-                                            <img src={product.image} alt="" />
-                                            <div>
-                                                <strong>{product.name}</strong>
-                                                <p>{product.brand}</p>
-                                                <small>{product.productCode}</small>
+                            {!loading &&
+                                !error &&
+                                data.products.map((product) => (
+                                    <TableRow key={product._id}>
+                                        <TableCell>
+                                            <div className="sp-product-cell">
+                                                <img src={product.image} alt="" />
+                                                <div>
+                                                    <strong>{product.name}</strong>
+                                                    <p>{product.brand}</p>
+                                                    <small>{product.productCode}</small>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{product.variantCount}</TableCell>
-                                    <TableCell>
-                                        <strong>From {money(product.pricePaise)}</strong>
-                                        <p>Available: {product.stock - product.reserved}</p>
-                                        <small>On hand: {product.stock} · Reserved: {product.reserved}</small>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className={`sp-badge sp-badge-${product.status.toLowerCase()}`}>
-                                            {product.status}
-                                        </span>
-                                        {product.moderationReason && <p>{product.moderationReason}</p>}
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <Button component={Link} to={`/manage/products/${product._id}/edit`} variant="outlined">
-                                            Edit Product
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                        </TableCell>
+                                        <TableCell>{product.variantCount}</TableCell>
+                                        <TableCell>
+                                            <strong>From {money(product.pricePaise)}</strong>
+                                            <p>Available: {product.stock - product.reserved}</p>
+                                            <small>
+                                                On hand: {product.stock} · Reserved:{" "}
+                                                {product.reserved}
+                                            </small>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span
+                                                className={`sp-badge sp-badge-${product.status.toLowerCase()}`}
+                                            >
+                                                {product.status}
+                                            </span>
+                                            {product.moderationReason && (
+                                                <p>{product.moderationReason}</p>
+                                            )}
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <Button
+                                                component={Link}
+                                                to={`/manage/products/${product._id}/edit`}
+                                                variant="outlined"
+                                            >
+                                                Edit Product
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
                             {(loading || error || !data.products.length) && (
                                 <TableRow>
                                     <TableCell colSpan={5} align="center">
-                                        {loading ? "Loading products..." : error ? "Unable to load products." : "No products found."}
+                                        {loading
+                                            ? "Loading products..."
+                                            : error
+                                              ? "Unable to load products."
+                                              : "No products found."}
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -190,7 +242,10 @@ function Products() {
                     rowsPerPage={limit}
                     rowsPerPageOptions={[10, 20, 50]}
                     onPageChange={(_, value) => setPage(value)}
-                    onRowsPerPageChange={(event) => { setLimit(Number(event.target.value)); setPage(0); }}
+                    onRowsPerPageChange={(event) => {
+                        setLimit(Number(event.target.value));
+                        setPage(0);
+                    }}
                 />
             </section>
         </main>

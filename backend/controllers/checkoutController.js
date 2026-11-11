@@ -8,18 +8,11 @@ const ExpressError = require("../utils/ExpressError");
 function validate(body, starting = false) {
     const { value, error } = Joi.object({
         addressId: Joi.string().hex().length(24).required(),
-        couponCode: Joi.string()
-            .trim()
-            .uppercase()
-            .max(30)
-            .allow("")
-            .default(""),
+        couponCode: Joi.string().trim().uppercase().max(30).allow("").default(""),
         ...(starting
             ? {
                   quoteToken: Joi.string().hex().length(64).required(),
-                  attemptId: Joi.string()
-                      .guid({ version: "uuidv4" })
-                      .required(),
+                  attemptId: Joi.string().guid({ version: "uuidv4" }).required(),
               }
             : {}),
     }).validate(body);
@@ -33,12 +26,7 @@ function validate(body, starting = false) {
 
 exports.quote = async (req, res, next) => {
     try {
-        res.json(
-            await checkout.quoteCheckout(
-                req.user._id,
-                validate(req.body)
-            )
-        );
+        res.json(await checkout.quoteCheckout(req.user._id, validate(req.body)));
     } catch (error) {
         next(error);
     }
@@ -46,10 +34,7 @@ exports.quote = async (req, res, next) => {
 
 exports.start = async (req, res, next) => {
     try {
-        const order = await checkout.reserveCheckout(
-            req.user._id,
-            validate(req.body, true)
-        );
+        const order = await checkout.reserveCheckout(req.user._id, validate(req.body, true));
 
         try {
             await payment.synchronizePayment(order._id);
@@ -57,9 +42,7 @@ exports.start = async (req, res, next) => {
             // The saved attempt is recovered by reconciliation.
         }
 
-        res.json(
-            await payment.checkoutStatus(req.user._id, order._id)
-        );
+        res.json(await payment.checkoutStatus(req.user._id, order._id));
     } catch (error) {
         next(error);
     }
@@ -85,10 +68,7 @@ exports.active = async (req, res, next) => {
 
         res.json(
             order
-                ? await payment.checkoutStatus(
-                      req.user._id,
-                      order._id
-                  )
+                ? await payment.checkoutStatus(req.user._id, order._id)
                 : { order: null, checkout: null }
         );
     } catch (error) {

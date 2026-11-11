@@ -25,7 +25,7 @@ export const emptyAddress = {
     city: "",
     state: "",
     landmark: "",
-    type: "Home"
+    type: "Home",
 };
 
 export const addressTypes = ["Home", "Work", "Other"];
@@ -34,7 +34,7 @@ export function normalizeAddress(input) {
     return Object.fromEntries(
         Object.keys(emptyAddress).map((key) => [
             key,
-            String(input[key] ?? emptyAddress[key]).trim()
+            String(input[key] ?? emptyAddress[key]).trim(),
         ])
     );
 }
@@ -48,14 +48,11 @@ export function validateAddress(input = {}) {
         house: 150,
         area: 150,
         city: 80,
-        state: 80
+        state: 80,
     };
 
     for (const [key, maximum] of Object.entries(limits)) {
-        if (
-            address[key].length < 2 ||
-            address[key].length > maximum
-        ) {
+        if (address[key].length < 2 || address[key].length > maximum) {
             errors[key] = `Enter 2–${maximum} characters.`;
         }
     }
@@ -88,33 +85,28 @@ export async function saveAddress(input, version, select = false) {
     const body = {
         ...normalizeAddress(input),
         version,
-        select
+        select,
     };
 
     const { data } = input.id
-        ? await api.patch(
-              `/users/addresses/${encodeURIComponent(input.id)}`,
-              body
-          )
+        ? await api.patch(`/users/addresses/${encodeURIComponent(input.id)}`, body)
         : await api.post("/users/addresses", body);
 
     return data.addressBook;
 }
 
 export async function removeAddress(id, version) {
-    const { data } = await api.delete(
-        `/users/addresses/${encodeURIComponent(id)}`,
-        { data: { version } }
-    );
+    const { data } = await api.delete(`/users/addresses/${encodeURIComponent(id)}`, {
+        data: { version },
+    });
 
     return data.addressBook;
 }
 
 export async function setDefaultAddress(id, version) {
-    const { data } = await api.patch(
-        `/users/addresses/${encodeURIComponent(id)}/default`,
-        { version }
-    );
+    const { data } = await api.patch(`/users/addresses/${encodeURIComponent(id)}/default`, {
+        version,
+    });
 
     return data.addressBook;
 }

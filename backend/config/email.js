@@ -121,15 +121,11 @@ async function sendPasswordResetOtpEmail({ toEmail, otp, name = "" }) {
     }
 
     if (!process.env.BREVO_API_KEY || !process.env.BREVO_SENDER_EMAIL) {
-        throw new ExpressError(
-            503,
-            "Password recovery email is not configured yet."
-        );
+        throw new ExpressError(503, "Password recovery email is not configured yet.");
     }
 
     const company = process.env.COMPANY_NAME || "Zupito";
-    const senderName =
-        process.env.BREVO_SENDER_NAME || `${company} Support`;
+    const senderName = process.env.BREVO_SENDER_NAME || `${company} Support`;
 
     try {
         const response = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -167,10 +163,7 @@ async function sendPasswordResetOtpEmail({ toEmail, otp, name = "" }) {
             throw new Error("Email rejected");
         }
     } catch {
-        throw new ExpressError(
-            503,
-            "Unable to send the recovery email. Please try again later."
-        );
+        throw new ExpressError(503, "Unable to send the recovery email. Please try again later.");
     }
 }
 

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { sendEnquiry } from "../services/supportService";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { MenuItem, TextField } from "@mui/material";
 import { toast } from "react-toastify";
@@ -11,7 +12,7 @@ const initialForm = {
     phone: "",
     subject: "",
     orderId: "",
-    message: ""
+    message: "",
 };
 
 const subjects = [
@@ -21,7 +22,7 @@ const subjects = [
     "Account & Addresses",
     "Replacement Request",
     "Seller Enquiry",
-    "Other Enquiry"
+    "Other Enquiry",
 ];
 
 const contactMethods = [
@@ -30,14 +31,14 @@ const contactMethods = [
         value: "+91 7064341545",
         icon: "fa-phone",
         action: "Call Now",
-        href: "tel:+917064341545"
+        href: "tel:+917064341545",
     },
     {
         title: "Email us",
         value: "krushna@gmail.com",
         icon: "fa-envelope",
         action: "Send Email",
-        href: "mailto:krushna@gmail.com"
+        href: "mailto:krushna@gmail.com",
     },
     {
         title: "Our location",
@@ -47,43 +48,43 @@ const contactMethods = [
         href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
             "253R+8V3, Kakatpur-Astaranga Rd, Kakatpur, Odisha 752108"
         )}`,
-        external: true
-    }
+        external: true,
+    },
 ];
 
 const faqs = [
     {
         question: "How can I manage multiple delivery addresses?",
-        answer: "During checkout, you can select a saved delivery address, edit an existing one, delete an address you no longer use, or add a new location. Your selected address is displayed before you continue to payment."
+        answer: "During checkout, you can select a saved delivery address, edit an existing one, delete an address you no longer use, or add a new location. Your selected address is displayed before you continue to payment.",
     },
     {
         question: "How are delivery charges calculated?",
-        answer: "The current checkout preview offers free delivery on orders of ₹499 or more. Orders below ₹499 have a ₹40 delivery charge. The applicable charge and final total appear in your Order Summary before payment."
+        answer: "The checkout offers free delivery on orders of ₹499 or more. Orders below ₹499 have a ₹40 delivery charge. The applicable charge and final total appear in your Order Summary before payment.",
     },
     {
         question: "Where can I apply a coupon code?",
-        answer: "Open your cart and proceed to checkout. In the Order Summary, enter your coupon in the Apply Coupon field and click Apply. If the coupon meets the offer conditions, the discount will be reflected in your payable total."
+        answer: "Open your cart and proceed to checkout. In the Order Summary, enter your coupon in the Apply Coupon field and click Apply. If the coupon meets the offer conditions, the discount will be reflected in your payable total.",
     },
     {
         question: "What if my coupon code is not working?",
-        answer: "Check the coupon spelling, minimum order amount and offer conditions. If your cart does not meet the requirements, the coupon will not apply. You can remove an applied coupon and try another eligible offer."
+        answer: "Check the coupon spelling, minimum order amount and offer conditions. If your cart does not meet the requirements, the coupon will not apply. You can remove an applied coupon and try another eligible offer.",
     },
     {
         question: "What happens if my payment fails or is cancelled?",
-        answer: "You can return to checkout and review your details before trying again. Your cart items remain available during the current frontend payment simulation. Live payment processing will be connected during backend integration."
+        answer: "You can return to checkout and review your details before trying again. Your cart remains available after a cancelled or failed payment. Check payment status before starting a new attempt.",
     },
     {
         question: "Can I change my address before payment?",
-        answer: "Yes. On the payment review step, use Change Address or Edit to update the delivery location. You can also add a new address and select it without entering your previous address details again."
+        answer: "Yes. On the payment review step, use Change Address or Edit to update the delivery location. You can also add a new address and select it without entering your previous address details again.",
     },
     {
         question: "How can I ask a question about an order?",
-        answer: "You can call or email us using the contact details above. Include your order reference when available, along with a short explanation of your question. The enquiry form will support direct submissions after backend integration."
+        answer: "You can call or email us using the contact details above. Include your order reference when available, along with a short explanation of your question. Use My Complaints after signing in for order-related requests. General enquiries can be sent through this form.",
     },
     {
         question: "How can I enquire about a replacement?",
-        answer: "Select Replacement Request in the enquiry form or contact us by phone or email. Include your order reference and describe the product issue. Replacement eligibility and the applicable process will follow Zupito's policies."
-    }
+        answer: "Select Replacement Request in the enquiry form or contact us by phone or email. Include your order reference and describe the product issue. Replacement eligibility and the applicable process will follow Zupito's policies.",
+    },
 ];
 
 const faqColumns = [faqs.slice(0, 4), faqs.slice(4)];
@@ -94,7 +95,9 @@ function validateContact(form) {
     return {
         name: value("name").length >= 2 ? "" : "Enter a valid full name.",
 
-        email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value("email")) ? "" : "Enter a valid email address.",
+        email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value("email"))
+            ? ""
+            : "Enter a valid email address.",
 
         phone:
             !value("phone") || /^[6-9]\d{9}$/.test(value("phone"))
@@ -103,13 +106,14 @@ function validateContact(form) {
 
         subject: subjects.includes(value("subject")) ? "" : "Please select an enquiry type.",
 
-        message: value("message").length >= 15 ? "" : "Please enter at least 15 characters."
+        message: value("message").length >= 20 ? "" : "Please enter at least 20 characters.",
     };
 }
 
 function Contact() {
     const [form, setForm] = useState(initialForm);
     const [submitted, setSubmitted] = useState(false);
+    const submitting = useRef(false);
 
     const errors = validateContact(form);
 
@@ -118,12 +122,13 @@ function Contact() {
 
         setForm((current) => ({
             ...current,
-            [name]: name === "phone" ? value.replace(/\D/g, "") : value
+            [name]: name === "phone" ? value.replace(/\D/g, "") : value,
         }));
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
+        if (submitting.current) return;
         setSubmitted(true);
 
         const invalidField = Object.keys(errors).find((key) => errors[key]);
@@ -136,8 +141,17 @@ function Contact() {
             return;
         }
 
-        // Connect the enquiry API during backend implementation.
-        toast.info("Enquiry submissions will be available soon.");
+        try {
+            submitting.current = true;
+            await sendEnquiry(form);
+            setForm(initialForm);
+            setSubmitted(false);
+            toast.success("Your enquiry has been received.");
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            submitting.current = false;
+        }
     };
 
     return (
@@ -160,8 +174,8 @@ function Contact() {
                         </h1>
 
                         <p>
-                            Have questions about products, orders or delivery? Connect with {appConfig.name}{" "}
-                            using the option that's most convenient for you.
+                            Have questions about products, orders or delivery? Connect with{" "}
+                            {appConfig.name} using the option that's most convenient for you.
                         </p>
                     </div>
                 </div>
@@ -213,7 +227,7 @@ function Contact() {
                                         error={submitted && Boolean(errors.name)}
                                         helperText={submitted ? errors.name : ""}
                                         slotProps={{
-                                            htmlInput: { maxLength: 80 }
+                                            htmlInput: { maxLength: 80 },
                                         }}
                                     />
 
@@ -231,7 +245,7 @@ function Contact() {
                                         error={submitted && Boolean(errors.email)}
                                         helperText={submitted ? errors.email : ""}
                                         slotProps={{
-                                            htmlInput: { maxLength: 120 }
+                                            htmlInput: { maxLength: 120 },
                                         }}
                                     />
 
@@ -250,8 +264,8 @@ function Contact() {
                                         slotProps={{
                                             htmlInput: {
                                                 inputMode: "numeric",
-                                                maxLength: 10
-                                            }
+                                                maxLength: 10,
+                                            },
                                         }}
                                     />
 
@@ -285,7 +299,7 @@ function Contact() {
                                             value={form.orderId}
                                             onChange={handleChange}
                                             slotProps={{
-                                                htmlInput: { maxLength: 50 }
+                                                htmlInput: { maxLength: 50 },
                                             }}
                                         />
                                     </div>
@@ -305,7 +319,7 @@ function Contact() {
                                             error={submitted && Boolean(errors.message)}
                                             helperText={submitted ? errors.message : ""}
                                             slotProps={{
-                                                htmlInput: { maxLength: 1500 }
+                                                htmlInput: { maxLength: 1500 },
                                             }}
                                         />
                                     </div>
@@ -313,9 +327,12 @@ function Contact() {
 
                                 <div className="contact-form-bottom">
                                     <p>
-                                        <i className="fa-solid fa-shield-halved" aria-hidden="true" />
-                                        Please avoid sharing passwords or sensitive payment information in
-                                        your message.
+                                        <i
+                                            className="fa-solid fa-shield-halved"
+                                            aria-hidden="true"
+                                        />
+                                        Please avoid sharing passwords or sensitive payment
+                                        information in your message.
                                     </p>
 
                                     <button type="submit" className="contact-submit-button">
@@ -327,7 +344,10 @@ function Contact() {
                         </section>
 
                         {/* Direct Contact Details */}
-                        <aside className="contact-connect-panel" aria-labelledby="contact-connect-title">
+                        <aside
+                            className="contact-connect-panel"
+                            aria-labelledby="contact-connect-title"
+                        >
                             <div className="contact-connect-header">
                                 <span className="contact-section-label">LET'S CONNECT</span>
 
@@ -336,8 +356,8 @@ function Contact() {
                                 </h2>
 
                                 <p>
-                                    Reach us by phone, email or the enquiry form. Choose the way that works
-                                    best for you.
+                                    Reach us by phone, email or the enquiry form. Choose the way
+                                    that works best for you.
                                 </p>
                             </div>
 
@@ -351,7 +371,10 @@ function Contact() {
                                         rel={method.external ? "noopener noreferrer" : undefined}
                                     >
                                         <span className="contact-connect-icon">
-                                            <i className={`fa-solid ${method.icon}`} aria-hidden="true" />
+                                            <i
+                                                className={`fa-solid ${method.icon}`}
+                                                aria-hidden="true"
+                                            />
                                         </span>
 
                                         <span className="contact-connect-details">
@@ -373,7 +396,8 @@ function Contact() {
                                 <i className="fa-solid fa-circle-info" aria-hidden="true" />
 
                                 <p>
-                                    For order-related questions, please include your Order ID when available.
+                                    For order-related questions, please include your Order ID when
+                                    available.
                                 </p>
                             </div>
                         </aside>
@@ -382,7 +406,11 @@ function Contact() {
             </section>
 
             {/* FAQs */}
-            <section id="contact-faq" className="contact-faq-section" aria-labelledby="contact-faq-title">
+            <section
+                id="contact-faq"
+                className="contact-faq-section"
+                aria-labelledby="contact-faq-title"
+            >
                 <div className="container-fluid website-shell">
                     <div className="contact-faq-heading">
                         <span className="contact-section-label">HELP & ANSWERS</span>
@@ -392,8 +420,8 @@ function Contact() {
                         </h2>
 
                         <p>
-                            Find answers about delivery addresses, checkout, coupons, payments and order
-                            enquiries.
+                            Find answers about delivery addresses, checkout, coupons, payments and
+                            order enquiries.
                         </p>
                     </div>
 
@@ -404,7 +432,10 @@ function Contact() {
                                     <details className="contact-faq-item" key={faq.question}>
                                         <summary>
                                             <span className="contact-faq-number">
-                                                {String(columnIndex * 4 + index + 1).padStart(2, "0")}
+                                                {String(columnIndex * 4 + index + 1).padStart(
+                                                    2,
+                                                    "0"
+                                                )}
                                             </span>
 
                                             <strong>{faq.question}</strong>
@@ -433,8 +464,8 @@ function Contact() {
                             <h2>Ready to explore something new?</h2>
 
                             <p>
-                                Browse products across categories and find your everyday essentials in one
-                                place.
+                                Browse products across categories and find your everyday essentials
+                                in one place.
                             </p>
                         </div>
 

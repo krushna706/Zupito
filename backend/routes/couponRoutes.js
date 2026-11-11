@@ -1,0 +1,10 @@
+const router = require("express").Router();
+const { authMiddleware, authorize } = require("../middleware/authMiddleware");
+const limits = require("../middleware/rateLimiter");
+const coupon = require("../controllers/couponController");
+router.use(authMiddleware, authorize("admin"));
+router.get("/", limits.adminReadLimiter, coupon.list);
+router.post("/", limits.adminWriteLimiter, coupon.save);
+router.patch("/:id", limits.adminWriteLimiter, coupon.save);
+router.patch("/:id/status", limits.adminWriteLimiter, coupon.status);
+module.exports = router;

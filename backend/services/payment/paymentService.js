@@ -25,18 +25,12 @@ async function ensureProviderOrder(order, payment) {
 
     let remote;
 
-    if (
-        claimed &&
-        order.status === "AwaitingPayment" &&
-        order.expiresAt > new Date()
-    ) {
+    if (claimed && order.status === "AwaitingPayment" && order.expiresAt > new Date()) {
         remote = await provider.createOrder(order);
     } else {
         const found = await provider.findOrders(String(order._id));
 
-        remote = found.items.find(
-            (item) => item.receipt === String(order._id)
-        );
+        remote = found.items.find((item) => item.receipt === String(order._id));
     }
 
     if (!remote) return null;
@@ -46,16 +40,10 @@ async function ensureProviderOrder(order, payment) {
         remote.currency !== "INR" ||
         remote.receipt !== String(order._id)
     ) {
-        throw new ExpressError(
-            409,
-            "Payment order details do not match checkout."
-        );
+        throw new ExpressError(409, "Payment order details do not match checkout.");
     }
 
-    await Payment.updateOne(
-        { _id: payment._id },
-        { $set: { providerOrderId: remote.id } }
-    );
+    await Payment.updateOne({ _id: payment._id }, { $set: { providerOrderId: remote.id } });
 
     return remote.id;
 }
@@ -84,48 +72,31 @@ exports.synchronizePayment = async (orderId) => {
 
         if (!order) return;
 
-        if (
-            order.status === "Confirmed" ||
-            order.status === "Refunded"
-        ) {
+        if (order.status === "Confirmed" || order.status === "Refunded") {
             nextCheckAt = null;
             return;
         }
 
-        const providerOrderId = await ensureProviderOrder(
-            order,
-            payment
-        );
+        const providerOrderId = await ensureProviderOrder(order, payment);
 
         if (providerOrderId) {
-            const collection = await provider.fetchPayments(
-                providerOrderId
-            );
+            const collection = await provider.fetchPayments(providerOrderId);
 
             let captured = collection.items.find(
-                (item) =>
-                    item.status === "captured" ||
-                    item.status === "refunded"
+                (item) => item.status === "captured" || item.status === "refunded"
             );
 
-            const authorized = collection.items.find(
-                (item) => item.status === "authorized"
-            );
+            const authorized = collection.items.find((item) => item.status === "authorized");
 
             const candidate = captured || authorized;
 
             if (
                 candidate &&
-                (
-                    candidate.order_id !== providerOrderId ||
+                (candidate.order_id !== providerOrderId ||
                     candidate.currency !== "INR" ||
-                    candidate.amount !== order.pricing.total
-                )
+                    candidate.amount !== order.pricing.total)
             ) {
-                throw new ExpressError(
-                    409,
-                    "Payment amount does not match checkout."
-                );
+                throw new ExpressError(409, "Payment amount does not match checkout.");
             }
 
             if (
@@ -134,10 +105,7 @@ exports.synchronizePayment = async (orderId) => {
                 order.status === "AwaitingPayment" &&
                 order.expiresAt > new Date()
             ) {
-                captured = await provider.capture(
-                    authorized.id,
-                    order.pricing.total
-                );
+                captured = await provider.capture(authorized.id, order.pricing.total);
             }
 
             if (captured && captured.status === "captured") {
@@ -170,11 +138,7 @@ exports.synchronizePayment = async (orderId) => {
 
                 const refund = payment.refundId
                     ? await provider.fetchRefund(payment.refundId)
-                    : await provider.refund(
-                          captured.id,
-                          order.pricing.total,
-                          String(orderId)
-                      );
+                    : await provider.refund(captured.id, order.pricing.total, String(orderId));
 
                 await Payment.updateOne(
                     { orderId },
@@ -208,9 +172,7 @@ exports.synchronizePayment = async (orderId) => {
                         }
                     );
 
-                    nextCheckAt = new Date(
-                        Date.now() + 60 * 60 * 1000
-                    );
+                    nextCheckAt = new Date(Date.now() + 60 * 60 * 1000);
                 }
 
                 return;
@@ -233,11 +195,7 @@ exports.synchronizePayment = async (orderId) => {
                     {
                         _id: orderId,
                         status: {
-                            $in: [
-                                "Expired",
-                                "Refunding",
-                                "PaymentReview",
-                            ],
+                            $in: ["Expired", "Refunding", "PaymentReview"],
                         },
                     },
                     {
@@ -254,9 +212,7 @@ exports.synchronizePayment = async (orderId) => {
 
         if (order.status === "Expired") {
             // Keep records available for delayed payment recovery.
-            nextCheckAt = new Date(
-                Date.now() + 60 * 60 * 1000
-            );
+            nextCheckAt = new Date(Date.now() + 60 * 60 * 1000);
         }
     } catch (error) {
         await Payment.updateOne(
@@ -311,12 +267,7 @@ exports.checkoutStatus = async (userId, id) => {
                       name: order.address.name,
                       contact: order.address.phone,
                   },
-                  timeout: Math.max(
-                      1,
-                      Math.floor(
-                          (new Date(order.expiresAt) - Date.now()) / 1000
-                      )
-                  ),
+                  timeout: Math.max(1, Math.floor((new Date(order.expiresAt) - Date.now()) / 1000)),
               }
             : null,
     };
@@ -336,15 +287,10 @@ exports.verifyPayment = async (userId, id, values) => {
             getPaymentConfig().keySecret
         )
     ) {
-        throw new ExpressError(
-            400,
-            "Invalid payment verification."
-        );
+        throw new ExpressError(400, "Invalid payment verification.");
     }
 
-    const remote = await provider.fetchPayment(
-        values.razorpay_payment_id
-    );
+    const remote = await provider.fetchPayment(values.razorpay_payment_id);
 
     if (remote.order_id !== payment.providerOrderId) {
         throw new ExpressError(400, "Payment order mismatch.");

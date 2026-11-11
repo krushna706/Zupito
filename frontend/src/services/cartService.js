@@ -12,9 +12,7 @@ export function cartReferences(items) {
 
 export function readGuestCart() {
     try {
-        const stored = JSON.parse(
-            localStorage.getItem(GUEST_CART_KEY) || "[]"
-        );
+        const stored = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || "[]");
 
         if (!Array.isArray(stored)) return [];
 
@@ -36,10 +34,7 @@ export function readGuestCart() {
                     quantity: item.quantity,
                 };
 
-                unique.set(
-                    `${normalized.productId}::${normalized.variantId}`,
-                    normalized
-                );
+                unique.set(`${normalized.productId}::${normalized.variantId}`, normalized);
             }
         }
 
@@ -51,10 +46,7 @@ export function readGuestCart() {
 
 export function writeGuestCart(items) {
     try {
-        localStorage.setItem(
-            GUEST_CART_KEY,
-            JSON.stringify(items)
-        );
+        localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
 
         return true;
     } catch {
@@ -88,83 +80,33 @@ export async function saveCart(items, version) {
 const FREE_DELIVERY_MINIMUM = 499;
 const STANDARD_DELIVERY_CHARGE = 40;
 
-export const coupons = {
-    ZUPITO10: {
-        minAmount: 499,
-        type: "percentage",
-        value: 10,
-        maxDiscount: 100
-    },
-    WELCOME50: {
-        minAmount: 999,
-        type: "fixed",
-        value: 50
-    }
-};
-
 const roundPrice = (amount) => Math.round(amount * 100) / 100;
 
-export function calculateCheckoutPricing(cartItems = [], couponCode = "") {
+export function calculateCheckoutPricing(cartItems = []) {
     const items = Array.isArray(cartItems) ? cartItems : [];
 
-    const itemCount = items.reduce(
-        (total, item) => total + item.quantity,
-        0
-    );
+    const itemCount = items.reduce((total, item) => total + item.quantity, 0);
 
     const subtotal = roundPrice(
-        items.reduce(
-            (total, item) => total + item.price * item.quantity,
-            0
-        )
+        items.reduce((total, item) => total + item.price * item.quantity, 0)
     );
 
     const productDiscount = roundPrice(
-        items.reduce(
-            (total, item) =>
-                total +
-                Math.max(0, item.mrp - item.price) * item.quantity,
-            0
-        )
+        items.reduce((total, item) => total + Math.max(0, item.mrp - item.price) * item.quantity, 0)
     );
 
     const originalPrice = roundPrice(subtotal + productDiscount);
 
     const deliveryCharge =
-        items.length === 0 || subtotal >= FREE_DELIVERY_MINIMUM
-            ? 0
-            : STANDARD_DELIVERY_CHARGE;
+        items.length === 0 || subtotal >= FREE_DELIVERY_MINIMUM ? 0 : STANDARD_DELIVERY_CHARGE;
 
-    const amountForFreeDelivery = roundPrice(
-        Math.max(0, FREE_DELIVERY_MINIMUM - subtotal)
-    );
+    const amountForFreeDelivery = roundPrice(Math.max(0, FREE_DELIVERY_MINIMUM - subtotal));
 
-    const code = String(couponCode).trim().toUpperCase();
-    const coupon = coupons[code];
+    const couponDiscount = 0;
 
-    let couponDiscount = 0;
+    const total = roundPrice(Math.max(0, subtotal - couponDiscount + deliveryCharge));
 
-    if (coupon && subtotal >= coupon.minAmount) {
-        couponDiscount =
-            coupon.type === "percentage"
-                ? Math.min(
-                      (subtotal * coupon.value) / 100,
-                      coupon.maxDiscount
-                  )
-                : coupon.value;
-
-        couponDiscount = roundPrice(
-            Math.min(couponDiscount, subtotal)
-        );
-    }
-
-    const total = roundPrice(
-        Math.max(0, subtotal - couponDiscount + deliveryCharge)
-    );
-
-    const totalSavings = roundPrice(
-        productDiscount + couponDiscount
-    );
+    const totalSavings = roundPrice(productDiscount + couponDiscount);
 
     return {
         itemCount,
@@ -176,6 +118,6 @@ export function calculateCheckoutPricing(cartItems = [], couponCode = "") {
         amountForFreeDelivery,
         total,
         totalSavings,
-        appliedCoupon: couponDiscount > 0 ? code : ""
+        appliedCoupon: "",
     };
 }

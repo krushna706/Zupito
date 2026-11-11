@@ -22,7 +22,7 @@ function ProductSearchBar() {
 
         navigate({
             pathname: "/products",
-            search: query ? `?${query}` : ""
+            search: query ? `?${query}` : "",
         });
     }
 

@@ -1,5 +1,13 @@
+import api from "../services/api";
 import { useState } from "react";
-import { Dialog, DialogActions, DialogContent, DialogTitle, Rating, TextField } from "@mui/material";
+import {
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Rating,
+    TextField,
+} from "@mui/material";
 import { toast } from "react-toastify";
 
 const MAX_REVIEW_LENGTH = 800;
@@ -9,7 +17,7 @@ const ratingLabels = {
     2: "Poor",
     3: "Average",
     4: "Good",
-    5: "Excellent"
+    5: "Excellent",
 };
 
 function getProductName(item) {
@@ -25,7 +33,10 @@ function getProductName(item) {
 
 function getProductImage(item) {
     const image =
-        item?.productSnapshot?.image || item?.product?.images?.[0] || item?.product?.image || item?.image;
+        item?.productSnapshot?.image ||
+        item?.product?.images?.[0] ||
+        item?.product?.image ||
+        item?.image;
 
     return typeof image === "string" ? image : image?.url || image?.secure_url || "";
 }
@@ -55,7 +66,8 @@ function ReviewFormContent({ open = false, onClose, orderId, item = null, onSubm
     const productName = getProductName(item);
     const productImage = getProductImage(item);
 
-    const variantName = item?.variantName || item?.productSnapshot?.variantLabel || item?.variantLabel || "";
+    const variantName =
+        item?.variantName || item?.productSnapshot?.variantLabel || item?.variantLabel || "";
 
     // Reset form when another product is selected.
 
@@ -91,18 +103,15 @@ function ReviewFormContent({ open = false, onClose, orderId, item = null, onSubm
             productId: getProductId(item),
             variantId: item?.variantId || item?.productSnapshot?.variantId || null,
             rating,
-            comment
+            comment,
         };
-
-        if (typeof onSubmit !== "function") {
-            toast.info("Review submission will be available after backend integration.");
-            return;
-        }
 
         try {
             setSubmitting(true);
 
-            const result = await onSubmit(payload);
+            const result = onSubmit
+                ? await onSubmit(payload)
+                : (await api.post("/reviews", payload)).data;
 
             if (result?.success !== true) {
                 toast.error(result?.message || "Review submission could not be confirmed.");
@@ -111,8 +120,8 @@ function ReviewFormContent({ open = false, onClose, orderId, item = null, onSubm
 
             toast.success("Your review has been submitted.");
             onClose?.();
-        } catch {
-            toast.error("Unable to submit your review. Please try again.");
+        } catch (error) {
+            toast.error(error.message || "Unable to submit your review. Please try again.");
         } finally {
             setSubmitting(false);
         }
@@ -180,7 +189,9 @@ function ReviewFormContent({ open = false, onClose, orderId, item = null, onSubm
 
                         <h3>How was your experience?</h3>
 
-                        <p>Select the stars that best describe your experience with this product.</p>
+                        <p>
+                            Select the stars that best describe your experience with this product.
+                        </p>
 
                         <div className="customer-review-stars">
                             <Rating
@@ -229,13 +240,15 @@ function ReviewFormContent({ open = false, onClose, orderId, item = null, onSubm
                             disabled={submitting}
                             slotProps={{
                                 htmlInput: {
-                                    maxLength: MAX_REVIEW_LENGTH
-                                }
+                                    maxLength: MAX_REVIEW_LENGTH,
+                                },
                             }}
                         />
 
                         <div className="customer-review-character-count">
-                            <span>Share useful details about product quality and your experience.</span>
+                            <span>
+                                Share useful details about product quality and your experience.
+                            </span>
 
                             <span>
                                 {review.length}/{MAX_REVIEW_LENGTH}
@@ -248,8 +261,8 @@ function ReviewFormContent({ open = false, onClose, orderId, item = null, onSubm
                         <i className="fa-solid fa-circle-info" aria-hidden="true" />
 
                         <p>
-                            Reviews should reflect your own experience. Please avoid personal information,
-                            offensive content or unrelated comments.
+                            Reviews should reflect your own experience. Please avoid personal
+                            information, offensive content or unrelated comments.
                         </p>
                     </div>
                 </form>

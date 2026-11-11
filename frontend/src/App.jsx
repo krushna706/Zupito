@@ -1,41 +1,43 @@
-import { useEffect } from "react";
+import { getPageSEO } from "./config/seoConfig";
+import usePageSEO from "./hooks/usePageSEO";
+import { useEffect, lazy, Suspense, useMemo } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
 import { useAuth } from "./context/AuthContext";
 
-import WebsiteLayout from "./layouts/WebsiteLayout";
-import AccountLayout from "./layouts/AccountLayout";
-import PanelLayout from "./layouts/PanelLayout";
+const WebsiteLayout = lazy(() => import("./layouts/WebsiteLayout"));
+const AccountLayout = lazy(() => import("./layouts/AccountLayout"));
+const PanelLayout = lazy(() => import("./layouts/PanelLayout"));
 
 // Public website
-import HomePage from "./website/Home/HomePage";
-import Products from "./website/Products/Products";
-import ProductDetails from "./website/Products/ProductDetails";
-import Cart from "./website/Cart/Cart";
-import Checkout from "./website/Checkout/Checkout";
-import PaymentStatus from "./website/Checkout/PaymentStatus";
-import OrderConfirmation from "./website/Checkout/OrderConfirmation";
-import About from "./website/About";
-import Contact from "./website/Contact";
-import Policies from "./website/Policies";
+const HomePage = lazy(() => import("./website/Home/HomePage"));
+const Products = lazy(() => import("./website/Products/Products"));
+const ProductDetails = lazy(() => import("./website/Products/ProductDetails"));
+const Cart = lazy(() => import("./website/Cart/Cart"));
+const Checkout = lazy(() => import("./website/Checkout/Checkout"));
+const PaymentStatus = lazy(() => import("./website/Checkout/PaymentStatus"));
+const OrderConfirmation = lazy(() => import("./website/Checkout/OrderConfirmation"));
+const About = lazy(() => import("./website/About"));
+const Contact = lazy(() => import("./website/Contact"));
+const Policies = lazy(() => import("./website/Policies"));
 
 // Customer account
-import Profile from "./user/Profile";
-import Addresses from "./user/Addresses";
-import MyOrders from "./user/MyOrders";
-import OrderDetails from "./user/OrderDetails";
-import Complaints from "./user/Complaints";
+const Profile = lazy(() => import("./user/Profile"));
+const Addresses = lazy(() => import("./user/Addresses"));
+const MyOrders = lazy(() => import("./user/MyOrders"));
+const OrderDetails = lazy(() => import("./user/OrderDetails"));
+const Complaints = lazy(() => import("./user/Complaints"));
 
 // Authentication
-import Login from "./auth/Login";
-import Signup from "./auth/Signup";
-import ForgotPassword from "./auth/ForgotPassword";
-import SellerRegister from "./auth/SellerRegister";
+const Login = lazy(() => import("./auth/Login"));
+const Signup = lazy(() => import("./auth/Signup"));
+const ForgotPassword = lazy(() => import("./auth/ForgotPassword"));
+const SellerRegister = lazy(() => import("./auth/SellerRegister"));
 
 // Panel configuration
 import { panelPages, getPanelRole } from "./config/panelConfig";
-import SellerApprovalStatus from "./seller/ApprovalStatus";
+const SellerApprovalStatus = lazy(() => import("./seller/ApprovalStatus"));
 
 // Shared components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -68,11 +70,7 @@ function RolePage({ user, page }) {
         return <AccessDenied />;
     }
 
-    if (
-        user.role === "seller" &&
-        user.seller?.status !== "Approved" &&
-        page === "dashboard"
-    ) {
+    if (user.role === "seller" && user.seller?.status !== "Approved" && page === "dashboard") {
         return <SellerApprovalStatus user={user} />;
     }
 
@@ -91,7 +89,13 @@ function PanelPage({ user, page }) {
     if (
         role === "seller" &&
         user.seller?.status !== "Approved" &&
-        page.path !== "approval-status"
+        page.path !== "approval-status" &&
+        !(
+            user.seller?.status === "Suspended" &&
+            ["orders", "replacements", "earnings", "reviews"].some((path) =>
+                page.path.startsWith(path)
+            )
+        )
     ) {
         return <Navigate to="/manage/approval-status" replace />;
     }
@@ -107,6 +111,7 @@ function PanelPage({ user, page }) {
 
 function ScrollToTop() {
     const { pathname } = useLocation();
+    usePageSEO(getPageSEO(pathname));
 
     useEffect(() => {
         window.scrollTo({ top: 0, left: 0, behavior: "instant" });
@@ -119,67 +124,106 @@ function App() {
     const { user } = useAuth();
     const roleConfig = getPanelRole(user?.role);
 
-    const panelUser = user
-        ? {
-              ...user,
-              roleLabel: roleConfig?.label || "Unknown role",
-          }
-        : null;
+    const panelUser = useMemo(
+        () =>
+            user
+                ? {
+                      ...user,
+                      roleLabel: roleConfig?.label || "Unknown role",
+                  }
+                : null,
+        [user, roleConfig?.label]
+    );
 
     return (
         <BrowserRouter>
             <ScrollToTop />
             <ToastContainer position="top-right" autoClose={3000} />
 
-            <Routes>
-                {/* Authentication */}
-                <Route path="/manage" element={<Login />} />
-                <Route path="/manage/signup" element={<Signup />} />
-                <Route path="/manage/forgot-password" element={<ForgotPassword />} />
-                <Route path="/manage/seller-register" element={<SellerRegister />} />
+            <Suspense
+                fallback={
+                    <div className="container py-5" role="status">
+                        Loading page...
+                    </div>
+                }
+            >
+                <Routes>
+                    {/* Authentication */}
+                    <Route path="/manage" element={<Login />} />
+                    <Route path="/manage/signup" element={<Signup />} />
+                    <Route path="/manage/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/manage/seller-register" element={<SellerRegister />} />
 
-                {/* Public website */}
-                <Route element={<WebsiteLayout />}>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="products" element={<Products />} />
-                    <Route path="products/:productId" element={<ProductDetails />} />
-                    <Route path="cart" element={<Cart />} />
-                    <Route path="checkout" element={<ProtectedRoute allowedRoles={["customer"]}><Checkout /></ProtectedRoute>} />
-                    <Route path="payment-status" element={<PaymentStatus />} />
-                    <Route path="order-confirmation/:orderId" element={<ProtectedRoute allowedRoles={["customer"]}><OrderConfirmation /></ProtectedRoute>} />
-                    <Route path="about" element={<About />} />
-                    <Route path="contact" element={<Contact />} />
-                    <Route path="policies" element={<Policies />} />
+                    {/* Public website */}
+                    <Route element={<WebsiteLayout />}>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="products" element={<Products />} />
+                        <Route path="products/:productId" element={<ProductDetails />} />
+                        <Route path="cart" element={<Cart />} />
+                        <Route
+                            path="checkout"
+                            element={
+                                <ProtectedRoute allowedRoles={["customer"]}>
+                                    <Checkout />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route path="payment-status" element={<PaymentStatus />} />
+                        <Route
+                            path="order-confirmation/:orderId"
+                            element={
+                                <ProtectedRoute allowedRoles={["customer"]}>
+                                    <OrderConfirmation />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route path="about" element={<About />} />
+                        <Route path="contact" element={<Contact />} />
+                        <Route path="policies" element={<Policies />} />
 
-                    <Route path="account" element={<ProtectedRoute allowedRoles={["customer"]}><AccountLayout /></ProtectedRoute>}>
-                        <Route index element={<Profile />} />
-                        <Route path="addresses" element={<Addresses />} />
-                        <Route path="orders" element={<MyOrders />} />
-                        <Route path="orders/:orderId" element={<OrderDetails />} />
-                        <Route path="complaints" element={<Complaints />} />
-                    </Route>
-
-                    <Route path="*" element={<NotFound />} />
-                </Route>
-
-                {/* Staff panels */}
-                <Route element={<PanelAccess />}>
-                    <Route path="/manage" element={<PanelLayout />}>
-                        <Route path="dashboard" element={<RolePage user={panelUser} page="dashboard" />} />
-                        <Route path="profile" element={<RolePage user={panelUser} page="profile" />} />
-
-                        {panelPages.map((page) => (
-                            <Route
-                                key={page.path}
-                                path={page.path}
-                                element={<PanelPage user={panelUser} page={page} />}
-                            />
-                        ))}
+                        <Route
+                            path="account"
+                            element={
+                                <ProtectedRoute allowedRoles={["customer"]}>
+                                    <AccountLayout />
+                                </ProtectedRoute>
+                            }
+                        >
+                            <Route index element={<Profile />} />
+                            <Route path="addresses" element={<Addresses />} />
+                            <Route path="orders" element={<MyOrders />} />
+                            <Route path="orders/:orderId" element={<OrderDetails />} />
+                            <Route path="complaints" element={<Complaints />} />
+                        </Route>
 
                         <Route path="*" element={<NotFound />} />
                     </Route>
-                </Route>
-            </Routes>
+
+                    {/* Staff panels */}
+                    <Route element={<PanelAccess />}>
+                        <Route path="/manage" element={<PanelLayout />}>
+                            <Route
+                                path="dashboard"
+                                element={<RolePage user={panelUser} page="dashboard" />}
+                            />
+                            <Route
+                                path="profile"
+                                element={<RolePage user={panelUser} page="profile" />}
+                            />
+
+                            {panelPages.map((page) => (
+                                <Route
+                                    key={page.path}
+                                    path={page.path}
+                                    element={<PanelPage user={panelUser} page={page} />}
+                                />
+                            ))}
+
+                            <Route path="*" element={<NotFound />} />
+                        </Route>
+                    </Route>
+                </Routes>
+            </Suspense>
         </BrowserRouter>
     );
 }

@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const DeliveryTask = require("../models/DeliveryTask");
@@ -13,10 +12,7 @@ function eligible(task) {
         status: "Active",
         availability: "Available",
         pincodes: {
-            $all: [
-                task.pickupPincode,
-                task.deliveryPincode,
-            ],
+            $all: [task.pickupPincode, task.deliveryPincode],
         },
         $expr: {
             $lt: ["$activeTasks", "$capacity"],
@@ -25,39 +21,25 @@ function eligible(task) {
 }
 
 // Change parcel ownership and workload atomically.
-async function assign(
-    taskId,
-    agentProfileId = null,
-    adminId = null,
-    custodyConfirmed = false
-) {
+async function assign(taskId, agentProfileId = null, adminId = null, custodyConfirmed = false) {
     return mongoose.connection.transaction(async (session) => {
         const task = await DeliveryTask.findById(taskId)
             .select("+otpHash +otpCiphertext")
             .session(session);
 
         if (!task) {
-            throw new ExpressError(
-                404,
-                "Delivery task not found."
-            );
+            throw new ExpressError(404, "Delivery task not found.");
         }
 
         if (["delivered", "cancelled"].includes(task.stage)) {
-            throw new ExpressError(
-                409,
-                "This parcel is already closed."
-            );
+            throw new ExpressError(409, "This parcel is already closed.");
         }
 
         if (!agentProfileId && task.agentProfileId) {
             return task;
         }
 
-        if (
-            agentProfileId &&
-            String(agentProfileId) === String(task.agentProfileId)
-        ) {
+        if (agentProfileId && String(agentProfileId) === String(task.agentProfileId)) {
             return task;
         }
 
@@ -69,9 +51,7 @@ async function assign(
         }
 
         const profiles = await DeliveryAgentProfile.find({
-            ...(agentProfileId
-                ? { _id: agentProfileId }
-                : {}),
+            ...(agentProfileId ? { _id: agentProfileId } : {}),
             ...eligible(task),
         })
             .sort({ activeTasks: 1, _id: 1 })
@@ -109,26 +89,48 @@ async function assign(
 
         if (task.custody === "Agent") {
             // Admin confirms physical return before reassignment.
-            const returned = await SellerOrder.updateOne(
-                {
-                    _id: task.sellerOrderId,
-                    status: "Shipped",
-                },
-                {
-                    $set: {
-                        status: "Ready for Pickup",
+            if (task.kind !== "original") {
+                await require("../models/Replacement").updateOne(
+                    { _id: task.replacementId },
+                    {
+                        $set: {
+                            status:
+                                task.kind === "replacement_pickup"
+                                    ? "Approved"
+                                    : "Ready for Pickup",
+                        },
+                        $push: {
+                            history: {
+                                status: "Reassigned",
+                                note: "Admin confirmed physical return to pickup location.",
+                                date: new Date(),
+                                actorUserId: adminId,
+                            },
+                        },
                     },
-                },
-                { session }
-            );
-
-            if (!returned.modifiedCount) {
-                throw new ExpressError(
-                    409,
-                    "Parcel cannot return to pickup in its current stage."
+                    { session }
                 );
-            }
+            } else {
+                const returned = await SellerOrder.updateOne(
+                    {
+                        _id: task.sellerOrderId,
+                        status: "Shipped",
+                    },
+                    {
+                        $set: {
+                            status: "Ready for Pickup",
+                        },
+                    },
+                    { session }
+                );
 
+                if (!returned.modifiedCount) {
+                    throw new ExpressError(
+                        409,
+                        "Parcel cannot return to pickup in its current stage."
+                    );
+                }
+            }
             task.pickedUpAt = undefined;
             task.outForDeliveryAt = undefined;
         }
@@ -146,10 +148,7 @@ async function assign(
             );
 
             if (!released.modifiedCount) {
-                throw new ExpressError(
-                    409,
-                    "Previous agent workload needs reconciliation."
-                );
+                throw new ExpressError(409, "Previous agent workload needs reconciliation.");
             }
         }
 
@@ -165,22 +164,15 @@ async function assign(
         );
 
         if (!reserved.modifiedCount) {
-            throw new ExpressError(
-                409,
-                "Agent capacity changed. Refresh and retry."
-            );
+            throw new ExpressError(409, "Agent capacity changed. Refresh and retry.");
         }
 
         task.agentProfileId = next._id;
         task.stage = "assigned";
-        task.custody = "Seller";
+        task.custody = task.kind === "replacement_pickup" ? "Customer" : "Seller";
         task.assignedAt = new Date();
 
-        task.assignmentMode = previousAgentId
-            ? "Override"
-            : adminId
-                ? "Manual"
-                : "Auto";
+        task.assignmentMode = previousAgentId ? "Override" : adminId ? "Manual" : "Auto";
 
         task.retryAt = undefined;
         task.failedFrom = undefined;
@@ -192,6 +184,8 @@ async function assign(
         // Reassignment invalidates the previous handover code.
         if (previousAgentId) {
             otp.clear(task);
+            otp.issue(task, "pickup");
+            task.otpRegenerations = 0;
         }
 
         task.events.push({
@@ -211,8 +205,7 @@ exports.assign = assign;
 
 // ================== AUTOMATIC ASSIGNMENT ==================
 exports.assignPending = async () => {
-    await require("./deliveryService")
-        .reconcileReadyParcels();
+    await require("./deliveryService").reconcileReadyParcels();
 
     const pending = await DeliveryTask.find({
         stage: "ready_for_pickup",
@@ -227,15 +220,8 @@ exports.assignPending = async () => {
         try {
             await assign(row._id);
         } catch (error) {
-            if (
-                ![409, 11000].includes(
-                    error.statusCode || error.code
-                )
-            ) {
-                console.warn(
-                    "Delivery assignment pending:",
-                    String(row._id)
-                );
+            if (![409, 11000].includes(error.statusCode || error.code)) {
+                console.warn("Delivery assignment pending:", String(row._id));
             }
         }
     }

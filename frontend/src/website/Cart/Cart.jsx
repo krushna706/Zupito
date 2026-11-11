@@ -9,7 +9,7 @@ import CartSummary from "./CartSummary";
 const formatter = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    minimumFractionDigits: 2
+    minimumFractionDigits: 2,
 });
 
 const formatPrice = (value) => formatter.format(value);
@@ -26,7 +26,7 @@ function Cart() {
         ready,
         error,
         changeQuantity,
-        refreshCart
+        refreshCart,
     } = useCart();
 
     const navigate = useNavigate();
@@ -41,19 +41,14 @@ function Cart() {
         if (!next) return;
 
         if (!next.canCheckout) {
-            toast.error(
-                "Please resolve unavailable items before checkout."
-            );
+            toast.error("Please resolve unavailable items before checkout.");
             return;
         }
 
         const changed =
             next.items.length !== items.length ||
             next.items.some((item) => {
-                const previous = items.find(
-                    (entry) =>
-                        entry.product._id === item.product._id
-                );
+                const previous = items.find((entry) => entry.product._id === item.product._id);
 
                 return (
                     !previous ||
@@ -79,21 +74,13 @@ function Cart() {
         const rawStock = Number(product.stock);
 
         const validPrice =
-            product.validPrice !== false &&
-            Number.isFinite(rawPrice) &&
-            rawPrice >= 0;
+            product.validPrice !== false && Number.isFinite(rawPrice) && rawPrice >= 0;
 
         const price = validPrice ? rawPrice : 0;
 
-        const mrp =
-            Number.isFinite(rawMrp) && rawMrp > price
-                ? rawMrp
-                : price;
+        const mrp = Number.isFinite(rawMrp) && rawMrp > price ? rawMrp : price;
 
-        const stock =
-            Number.isInteger(rawStock) && rawStock >= 0
-                ? rawStock
-                : 0;
+        const stock = Number.isInteger(rawStock) && rawStock >= 0 ? rawStock : 0;
 
         return {
             product,
@@ -102,27 +89,18 @@ function Cart() {
             mrp,
             stock,
             validPrice,
-            available:
-                product.availableForPurchase &&
-                validPrice &&
-                quantity <= stock,
+            available: product.availableForPurchase && validPrice && quantity <= stock,
             subtotal: price * quantity,
-            discount: (mrp - price) * quantity
+            discount: (mrp - price) * quantity,
         };
     });
 
     return (
         <section className="cart-page">
             <div className="container-fluid website-shell">
-                <nav
-                    className="products-breadcrumb"
-                    aria-label="Breadcrumb"
-                >
+                <nav className="products-breadcrumb" aria-label="Breadcrumb">
                     <Link to="/">Home</Link>
-                    <i
-                        className="fa-solid fa-chevron-right"
-                        aria-hidden="true"
-                    />
+                    <i className="fa-solid fa-chevron-right" aria-hidden="true" />
                     <span aria-current="page">Cart</span>
                 </nav>
 
@@ -130,30 +108,20 @@ function Cart() {
                     <div>
                         <h1>Shopping Cart</h1>
                         <p>
-                            {cartCount}{" "}
-                            {cartCount === 1 ? "item" : "items"} in your cart
+                            {cartCount} {cartCount === 1 ? "item" : "items"} in your cart
                         </p>
                     </div>
 
                     {cartItems.length > 0 && (
-                        <Link
-                            to="/products"
-                            className="cart-continue"
-                        >
-                            <i
-                                className="fa-solid fa-arrow-left"
-                                aria-hidden="true"
-                            />
+                        <Link to="/products" className="cart-continue">
+                            <i className="fa-solid fa-arrow-left" aria-hidden="true" />
                             Continue Shopping
                         </Link>
                     )}
                 </div>
 
                 {error && (
-                    <div
-                        className="alert alert-danger"
-                        role="alert"
-                    >
+                    <div className="alert alert-danger" role="alert">
                         {error}{" "}
                         <button
                             type="button"
@@ -168,30 +136,19 @@ function Cart() {
 
                 {!ready ? (
                     <p role="status">
-                        {loading
-                            ? "Loading your cart…"
-                            : "Your cart could not be loaded."}
+                        {loading ? "Loading your cart…" : "Your cart could not be loaded."}
                     </p>
                 ) : cartItems.length === 0 ? (
                     <div className="cart-panel cart-empty">
                         <div className="cart-empty-icon">
-                            <i
-                                className="fa-solid fa-bag-shopping"
-                                aria-hidden="true"
-                            />
+                            <i className="fa-solid fa-bag-shopping" aria-hidden="true" />
                         </div>
 
                         <h2>Your cart is empty</h2>
 
-                        <p>
-                            Explore Zupito and add products you love
-                            to your cart.
-                        </p>
+                        <p>Explore Zupito and add products you love to your cart.</p>
 
-                        <Link
-                            to="/products"
-                            className="cart-primary cart-explore"
-                        >
+                        <Link to="/products" className="cart-primary cart-explore">
                             Explore Products
                         </Link>
                     </div>

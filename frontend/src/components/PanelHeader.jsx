@@ -6,13 +6,15 @@ import { appConfig } from "../config/appConfig";
 import { getPanelDashboardPath, panelConfig } from "../config/panelConfig";
 
 function getInitials(name) {
-    return String(name || "")
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((word) => word.charAt(0))
-        .join("")
-        .toUpperCase() || "Z";
+    return (
+        String(name || "")
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((word) => word.charAt(0))
+            .join("")
+            .toUpperCase() || "Z"
+    );
 }
 
 function PanelHeader({ user, isSidebarOpen, onToggleSidebar, onLogout, isLoggingOut }) {
@@ -73,7 +75,10 @@ function PanelHeader({ user, isSidebarOpen, onToggleSidebar, onLogout, isLogging
                         <span>{roleLabel}</span>
                     </span>
 
-                    <i className="fa-solid fa-chevron-down panel-profile-chevron" aria-hidden="true" />
+                    <i
+                        className="fa-solid fa-chevron-down panel-profile-chevron"
+                        aria-hidden="true"
+                    />
                 </Button>
 
                 <Menu
@@ -107,10 +112,17 @@ function PanelHeader({ user, isSidebarOpen, onToggleSidebar, onLogout, isLogging
                         </span>
 
                         <span>My Profile</span>
-                        <i className="fa-solid fa-chevron-right panel-dropdown-arrow" aria-hidden="true" />
+                        <i
+                            className="fa-solid fa-chevron-right panel-dropdown-arrow"
+                            aria-hidden="true"
+                        />
                     </MenuItem>
 
-                    <MenuItem className="panel-logout-item" onClick={handleLogout} disabled={isLoggingOut}>
+                    <MenuItem
+                        className="panel-logout-item"
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                    >
                         <span className="panel-dropdown-icon" aria-hidden="true">
                             <i className="fa-solid fa-arrow-right-from-bracket" />
                         </span>

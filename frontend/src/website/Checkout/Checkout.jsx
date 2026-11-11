@@ -10,7 +10,7 @@ import {
     normalizeAddress,
     removeAddress,
     saveAddress,
-    setDefaultAddress
+    setDefaultAddress,
 } from "../../services/userService";
 import { calculateCheckoutPricing } from "../../services/cartService";
 import {
@@ -18,7 +18,7 @@ import {
     startCheckout,
     getActiveCheckout,
     getCheckoutAttempt,
-    openPayment
+    openPayment,
 } from "../../services/paymentService";
 import { getProductPath } from "../../utils/productVariants";
 
@@ -31,18 +31,11 @@ const COUPON_STORAGE_KEY = "zupito_checkout_coupon";
 const formatPrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    minimumFractionDigits: 2
+    minimumFractionDigits: 2,
 }).format;
 
 const formatAddress = (address) =>
-    [
-        address.house,
-        address.area,
-        address.landmark,
-        address.city,
-        address.state,
-        address.pincode
-    ]
+    [address.house, address.area, address.landmark, address.city, address.state, address.pincode]
         .filter(Boolean)
         .join(", ");
 
@@ -64,11 +57,7 @@ function SelectedAddressCard({ address, onChange, onAdd, onEdit, onDelete }) {
                     <span>Selected</span>
                 </div>
 
-                <button
-                    type="button"
-                    className="checkout-address-change"
-                    onClick={onChange}
-                >
+                <button type="button" className="checkout-address-change" onClick={onChange}>
                     Change Address
                 </button>
             </div>
@@ -103,13 +92,7 @@ function Checkout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
-    const {
-        items,
-        ready,
-        loading: cartLoading,
-        error: cartError,
-        refreshCart
-    } = useCart();
+    const { items, ready, loading: cartLoading, error: cartError, refreshCart } = useCart();
 
     const accountId = user?._id || user?.id || "";
     const addressBusy = useRef(false);
@@ -124,7 +107,7 @@ function Checkout() {
     const [addressBook, setAddressBook] = useState({
         addresses: [],
         selectedId: null,
-        version: 0
+        version: 0,
     });
     const [couponCode, setCouponCode] = useState(() => loadCoupon(accountId));
     const [serverQuote, setServerQuote] = useState(null);
@@ -170,7 +153,7 @@ function Checkout() {
             .then((pending) => {
                 if (active && pending.order) {
                     navigate(`/payment-status?order=${pending.order.orderId}`, {
-                        replace: true
+                        replace: true,
                     });
                 }
             })
@@ -186,19 +169,32 @@ function Checkout() {
     useEffect(() => {
         try {
             if (couponCode) {
-                window.sessionStorage.setItem(
-                    `${COUPON_STORAGE_KEY}:${accountId}`,
-                    couponCode
-                );
+                window.sessionStorage.setItem(`${COUPON_STORAGE_KEY}:${accountId}`, couponCode);
             } else {
-                window.sessionStorage.removeItem(
-                    `${COUPON_STORAGE_KEY}:${accountId}`
-                );
+                window.sessionStorage.removeItem(`${COUPON_STORAGE_KEY}:${accountId}`);
             }
         } catch {
             // Coupon selection remains usable in the current page.
         }
     }, [couponCode, accountId]);
+
+    useEffect(() => {
+        if (!couponCode || !addressBook.selectedId || !ready) return;
+        let active = true;
+        quoteCheckout(addressBook.selectedId, couponCode)
+            .then((quote) => {
+                if (active) setServerQuote(quote);
+            })
+            .catch((error) => {
+                if (!active) return;
+                setServerQuote(null);
+                setCouponCode("");
+                toast.error(error.message);
+            });
+        return () => {
+            active = false;
+        };
+    }, [couponCode, addressBook.selectedId, items, ready]);
 
     const cartItems = items.map(({ product, quantity }) => {
         const rawPrice = Number(product.price);
@@ -219,7 +215,7 @@ function Checkout() {
             price,
             mrp: Number.isFinite(rawMrp) && rawMrp > price ? rawMrp : price,
             stock: Number.isInteger(rawStock) && rawStock >= 0 ? rawStock : 0,
-            validPrice
+            validPrice,
         };
     });
 
@@ -232,10 +228,7 @@ function Checkout() {
         cartItems.length > 0 &&
         cartItems.every(
             ({ quantity, stock, validPrice }) =>
-                validPrice &&
-                Number.isInteger(quantity) &&
-                quantity > 0 &&
-                quantity <= stock
+                validPrice && Number.isInteger(quantity) && quantity > 0 && quantity <= stock
         );
 
     const openAddressDialog = (mode = "list", id = null) => {
@@ -300,9 +293,7 @@ function Checkout() {
             setServerQuote(null);
 
             toast.success(
-                input.id
-                    ? "Address updated successfully."
-                    : "Address saved successfully."
+                input.id ? "Address updated successfully." : "Address saved successfully."
             );
 
             return data;
@@ -350,13 +341,7 @@ function Checkout() {
     const handleCheckout = async (event) => {
         event.preventDefault();
 
-        if (
-            addressBusy.current ||
-            processing ||
-            addressLoading ||
-            cartLoading ||
-            !ready
-        ) {
+        if (addressBusy.current || processing || addressLoading || cartLoading || !ready) {
             return;
         }
 
@@ -383,9 +368,7 @@ function Checkout() {
             const changed =
                 freshCart.items.length !== items.length ||
                 freshCart.items.some((item) => {
-                    const old = items.find(
-                        (entry) => entry.product._id === item.product._id
-                    );
+                    const old = items.find((entry) => entry.product._id === item.product._id);
 
                     return (
                         !old ||
@@ -405,9 +388,7 @@ function Checkout() {
             let book = await getAddresses();
 
             if (selectedAddress) {
-                const latest = book.addresses.find(
-                    (item) => item.id === selectedAddress.id
-                );
+                const latest = book.addresses.find((item) => item.id === selectedAddress.id);
 
                 setAddressBook(book);
 
@@ -444,7 +425,7 @@ function Checkout() {
                 "productDiscount",
                 "couponDiscount",
                 "deliveryCharge",
-                "total"
+                "total",
             ];
 
             const pricingChanged = priceFields.some(
@@ -457,9 +438,7 @@ function Checkout() {
 
             // Ask for review only when the displayed pricing actually changes.
             if (pricingChanged) {
-                toast.info(
-                    "Checkout changed. Review the updated total before continuing."
-                );
+                toast.info("Checkout changed. Review the updated total before continuing.");
                 return;
             }
 
@@ -467,7 +446,7 @@ function Checkout() {
                 addressId,
                 couponCode,
                 quoteToken: quote.quoteToken,
-                attemptId: getCheckoutAttempt(accountId, quote.quoteToken)
+                attemptId: getCheckoutAttempt(accountId, quote.quoteToken),
             });
 
             try {
@@ -490,13 +469,7 @@ function Checkout() {
     };
 
     if (!user) {
-        return (
-            <Navigate
-                to="/login"
-                replace
-                state={{ returnTo: location.pathname }}
-            />
-        );
+        return <Navigate to="/login" replace state={{ returnTo: location.pathname }} />;
     }
 
     if (!ready || !addressesReady) {
@@ -603,9 +576,7 @@ function Checkout() {
                                         address={selectedAddress}
                                         onChange={() => openAddressDialog("list")}
                                         onAdd={() => openAddressDialog("add")}
-                                        onEdit={() =>
-                                            openAddressDialog("edit", selectedAddress.id)
-                                        }
+                                        onEdit={() => openAddressDialog("edit", selectedAddress.id)}
                                         onDelete={() =>
                                             openAddressDialog("delete", selectedAddress.id)
                                         }
@@ -700,9 +671,9 @@ function Checkout() {
                                                             ...new Set(
                                                                 [
                                                                     product.variantLabel,
-                                                                    product.packLabel
+                                                                    product.packLabel,
                                                                 ].filter(Boolean)
-                                                            )
+                                                            ),
                                                         ].join(" · ")}
                                                     </p>
                                                 )}
@@ -735,17 +706,27 @@ function Checkout() {
                         <CheckoutSummary
                             cartItems={cartItems}
                             couponCode={couponCode}
-                            onCouponChange={(code) => {
-                                if (addressBusy.current) return;
+                            onCouponChange={async (code) => {
+                                if (addressBusy.current)
+                                    throw new Error("Please wait for the address update.");
+                                const addressId = addressBook.selectedId;
+                                if (!addressId)
+                                    throw new Error(
+                                        "Save and select a delivery address before applying a coupon."
+                                    );
+                                const quote = await quoteCheckout(addressId, code);
                                 setCouponCode(code);
-                                setServerQuote(null);
+                                setServerQuote(quote);
                             }}
                             serverPricing={serverQuote?.pricing}
                         />
 
                         {!canCheckout && (
                             <p className="checkout-error" role="alert">
-                                <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
+                                <i
+                                    className="fa-solid fa-triangle-exclamation"
+                                    aria-hidden="true"
+                                />
                                 Some products are unavailable. Please update your cart.
                             </p>
                         )}
@@ -753,12 +734,7 @@ function Checkout() {
                         <button
                             type="submit"
                             className="checkout-pay-button"
-                            disabled={
-                                !canCheckout ||
-                                processing ||
-                                cartLoading ||
-                                addressLoading
-                            }
+                            disabled={!canCheckout || processing || cartLoading || addressLoading}
                         >
                             {processing ? "Opening payment…" : "Continue to Payment"}
                             <i className="fa-solid fa-arrow-right" aria-hidden="true" />

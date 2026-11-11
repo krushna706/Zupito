@@ -28,8 +28,27 @@ router.param("categoryId", (req, res, next, value) => {
 
 // Category management
 router.get("/", limits.categoryReadLimiter, category.getCategories);
-router.post("/", limits.categoryWriteLimiter, uploadProductImages, category.parseBody, validate(schema.categoryCreateSchema), category.saveCategory);
-router.patch("/:categoryId", limits.categoryWriteLimiter, uploadProductImages, category.parseBody, validate(schema.categoryUpdateSchema), category.saveCategory);
-router.patch("/:categoryId/status", limits.categoryWriteLimiter, validate(schema.categoryStatusSchema), category.updateCategoryStatus);
+router.post(
+    "/",
+    limits.categoryWriteLimiter,
+    uploadProductImages,
+    category.parseBody,
+    validate(schema.categoryCreateSchema),
+    category.saveCategory
+);
+router.patch(
+    "/:categoryId",
+    limits.categoryWriteLimiter,
+    uploadProductImages,
+    category.parseBody,
+    validate(schema.categoryUpdateSchema),
+    category.saveCategory
+);
+router.patch(
+    "/:categoryId/status",
+    limits.categoryWriteLimiter,
+    validate(schema.categoryStatusSchema),
+    category.updateCategoryStatus
+);
 
 module.exports = router;

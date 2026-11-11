@@ -1,4 +1,3 @@
-
 export function sortNewestFirst(records, dateKey = "createdAt", idKey = "id") {
     return [...records].sort((a, b) => {
         const dateA = Date.parse(a[dateKey] || "") || 0;
@@ -8,10 +7,8 @@ export function sortNewestFirst(records, dateKey = "createdAt", idKey = "id") {
             return dateB - dateA;
         }
 
-        return String(b[idKey] || "").localeCompare(
-            String(a[idKey] || ""),
-            undefined,
-            { numeric: true }
-        );
+        return String(b[idKey] || "").localeCompare(String(a[idKey] || ""), undefined, {
+            numeric: true,
+        });
     });
 }

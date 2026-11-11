@@ -1,15 +1,8 @@
-
 const router = require("express").Router();
 
-const {
-    authMiddleware,
-    authorize,
-} = require("../middleware/authMiddleware");
+const { authMiddleware, authorize } = require("../middleware/authMiddleware");
 
-const {
-    adminReadLimiter,
-    adminWriteLimiter,
-} = require("../middleware/rateLimiter");
+const { adminReadLimiter, adminWriteLimiter } = require("../middleware/rateLimiter");
 
 const delivery = require("../controllers/deliveryController");
 
@@ -30,46 +23,18 @@ router.patch(
     delivery.changeAvailability
 );
 
-router.get(
-    "/tasks",
-    authorize("delivery"),
-    delivery.myTasks
-);
+router.get("/tasks", authorize("delivery"), delivery.myTasks);
 
-router.get(
-    "/tasks/:taskId",
-    authorize("delivery"),
-    delivery.myTask
-);
+router.get("/tasks/:taskId", authorize("delivery"), delivery.myTask);
 
-router.patch(
-    "/tasks/:taskId",
-    authorize("delivery"),
-    adminWriteLimiter,
-    delivery.perform
-);
+router.patch("/tasks/:taskId", authorize("delivery"), adminWriteLimiter, delivery.perform);
 
 // ================== ADMIN AGENTS ==================
-router.get(
-    "/admin/agents",
-    authorize("admin"),
-    adminReadLimiter,
-    delivery.agents
-);
+router.get("/admin/agents", authorize("admin"), adminReadLimiter, delivery.agents);
 
-router.post(
-    "/admin/agents",
-    authorize("admin"),
-    adminWriteLimiter,
-    delivery.saveAgent
-);
+router.post("/admin/agents", authorize("admin"), adminWriteLimiter, delivery.saveAgent);
 
-router.patch(
-    "/admin/agents/:agentId",
-    authorize("admin"),
-    adminWriteLimiter,
-    delivery.saveAgent
-);
+router.patch("/admin/agents/:agentId", authorize("admin"), adminWriteLimiter, delivery.saveAgent);
 
 router.patch(
     "/admin/agents/:agentId/status",
@@ -79,25 +44,17 @@ router.patch(
 );
 
 // ================== ADMIN ASSIGNMENTS ==================
-router.get(
-    "/admin/assignments",
-    authorize("admin"),
-    adminReadLimiter,
-    delivery.assignments
-);
+router.get("/admin/assignments", authorize("admin"), adminReadLimiter, delivery.assignments);
+
+router.post("/admin/assignments/auto", authorize("admin"), adminWriteLimiter, delivery.autoAssign);
+
+router.patch("/admin/assignments/:taskId", authorize("admin"), adminWriteLimiter, delivery.assign);
 
 router.post(
-    "/admin/assignments/auto",
+    "/admin/assignments/:taskId/recover-otp",
     authorize("admin"),
     adminWriteLimiter,
-    delivery.autoAssign
-);
-
-router.patch(
-    "/admin/assignments/:taskId",
-    authorize("admin"),
-    adminWriteLimiter,
-    delivery.assign
+    delivery.recoverOtp
 );
 
 module.exports = router;

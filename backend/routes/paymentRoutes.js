@@ -1,10 +1,7 @@
 const router = require("express").Router();
 const { rateLimit } = require("express-rate-limit");
 
-const {
-    authMiddleware,
-    authorize,
-} = require("../middleware/authMiddleware");
+const { authMiddleware, authorize } = require("../middleware/authMiddleware");
 
 const payment = require("../controllers/paymentController");
 

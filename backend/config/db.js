@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 async function connectDB() {
@@ -18,6 +17,7 @@ async function connectDB() {
         require("../models/Address").init(),
         require("../models/Order").init(),
         require("../models/Payment").init(),
+        require("../models/Refund").init(),
         require("../models/SellerOrder").init(),
         require("../models/DeliveryAgentProfile").init(),
         require("../models/DeliveryTask").init(),

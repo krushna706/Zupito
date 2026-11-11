@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -21,69 +20,8 @@ import {
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { demoOrders } from "../data/orderPreview";
+import api from "../services/api";
 import { getStatusLabel, normalizeStatus } from "../utils/orderStatus";
-
-// ================== PAYMENT CONFIGURATION ==================
-const STORAGE_KEY = "zupito_admin_payments";
-const ORDER_KEY = "zupito_admin_orders";
-
-const extraAttempts = [
-    { id: "SIM-PAY-1008", amount: 1499, status: "Pending", createdAt: "2026-11-04T09:30:00+05:30" },
-    { id: "SIM-PAY-1009", amount: 2499, status: "Failed", createdAt: "2026-11-04T11:15:00+05:30" },
-    { id: "SIM-PAY-1010", amount: 899, status: "Cancelled", createdAt: "2026-11-04T15:40:00+05:30" },
-    { id: "SIM-PAY-1011", amount: 4299, status: "Failed", createdAt: "2026-11-05T10:20:00+05:30" },
-    { id: "SIM-PAY-1012", amount: 1999, status: "Pending", createdAt: "2026-11-05T12:10:00+05:30" },
-];
-
-const initialPayments = [
-    ...demoOrders.map((order, index) => ({
-        id: `SIM-PAY-${1001 + index}`,
-        orderId: order._id,
-        customerName: "Demo Customer",
-        amount: order.totalAmount,
-        status: "Successful",
-        method: "Online Payment",
-        gatewayOrderId: null,
-        gatewayPaymentId: null,
-        createdAt: `${order.createdAt}+05:30`,
-        reviewStatus: order.orderStatus === "cancelled" ? "Flagged" : "Clear",
-        reviewReason: order.orderStatus === "cancelled"
-            ? "Cancelled order requires separate refund verification."
-            : "",
-        reviewHistory: [],
-    })),
-    ...extraAttempts.map((attempt) => ({
-        ...attempt,
-        orderId: null,
-        customerName: "Preview Customer",
-        method: "Online Payment",
-        gatewayOrderId: null,
-        gatewayPaymentId: null,
-        reviewStatus: "Clear",
-        reviewReason: "",
-        reviewHistory: [],
-    })),
-];
-
-// ================== HELPERS ==================
-function readList(key) {
-    try {
-        const value = JSON.parse(localStorage.getItem(key));
-
-        return Array.isArray(value) ? value : null;
-    } catch {
-        return null;
-    }
-}
-
-function loadPayments() {
-    return readList(STORAGE_KEY) || initialPayments;
-}
-
-function loadOrders() {
-    return readList(ORDER_KEY) || demoOrders;
-}
 
 function formatMoney(value) {
     return new Intl.NumberFormat("en-IN", {
@@ -140,8 +78,8 @@ function DetailItem({ label, value }) {
 
 // ================== PAYMENT MANAGEMENT ==================
 function Payments() {
-    const [payments, setPayments] = useState(loadPayments);
-    const [orders, setOrders] = useState(loadOrders);
+    const [payments, setPayments] = useState([]);
+    const [orders, setOrders] = useState([]);
 
     // ================== FILTERS ==================
     const [search, setSearch] = useState("");
@@ -159,18 +97,17 @@ function Payments() {
     const selectedPayment = payments.find((payment) => payment.id === selectedId);
     const actionPayment = payments.find((payment) => payment.id === reviewAction?.paymentId);
 
-    const getOrder = (orderId) => orders.find(
-        (order) => String(order.id || order._id) === String(orderId)
-    );
+    const getOrder = (orderId) =>
+        orders.find((order) => String(order.id || order._id) === String(orderId));
 
-    // ================== SAVE RECORDS ==================
+    const loadPayments = async () => {
+        const { data } = await api.get("/admin/payments");
+        setPayments(data.payments);
+        setOrders(data.orders);
+    };
     useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
-        } catch {
-            // Continue using current React state.
-        }
-    }, [payments]);
+        loadPayments().catch((error) => toast.error(error.message));
+    }, []);
 
     // ================== STATISTICS ==================
     const statistics = [
@@ -184,7 +121,7 @@ function Payments() {
         {
             label: "Successful Payments",
             value: payments.filter((item) => item.status === "Successful").length,
-            description: "Successful preview attempts",
+            description: "Confirmed payments",
             icon: "fa-circle-check",
             theme: "green",
         },
@@ -197,9 +134,7 @@ function Payments() {
         },
         {
             label: "Failed / Cancelled",
-            value: payments.filter((item) =>
-                ["Failed", "Cancelled"].includes(item.status)
-            ).length,
+            value: payments.filter((item) => ["Failed", "Cancelled"].includes(item.status)).length,
             description: "Unsuccessful payment attempts",
             icon: "fa-circle-xmark",
             theme: "red",
@@ -210,35 +145,36 @@ function Payments() {
         .filter((item) => item.status === "Successful")
         .reduce((total, item) => total + Number(item.amount || 0), 0);
 
-    const openReviews = payments.filter((item) =>
-        item.reviewStatus === "Flagged"
-    ).length;
+    const openReviews = payments.filter((item) => item.reviewStatus === "Flagged").length;
 
     // ================== SEARCH RESULTS ==================
-    const filteredPayments = payments.filter((payment) => {
-        const query = search.trim().toLowerCase();
+    const filteredPayments = payments
+        .filter((payment) => {
+            const query = search.trim().toLowerCase();
 
-        const matchesSearch = [
-            payment.id,
-            payment.orderId,
-            payment.customerName,
-            payment.gatewayOrderId,
-            payment.gatewayPaymentId,
-        ].some((value) => String(value || "").toLowerCase().includes(query));
+            const matchesSearch = [
+                payment.id,
+                payment.orderId,
+                payment.customerName,
+                payment.gatewayOrderId,
+                payment.gatewayPaymentId,
+            ].some((value) =>
+                String(value || "")
+                    .toLowerCase()
+                    .includes(query)
+            );
 
-        return matchesSearch &&
-            (statusFilter === "All" || payment.status === statusFilter) &&
-            (reviewFilter === "All" || payment.reviewStatus === reviewFilter);
-    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            return (
+                matchesSearch &&
+                (statusFilter === "All" || payment.status === statusFilter) &&
+                (reviewFilter === "All" || payment.reviewStatus === reviewFilter)
+            );
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    const visiblePayments = filteredPayments.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
-    );
+    const visiblePayments = filteredPayments.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
-    const hasFilters = Boolean(search.trim()) ||
-        statusFilter !== "All" ||
-        reviewFilter !== "All";
+    const hasFilters = Boolean(search.trim()) || statusFilter !== "All" || reviewFilter !== "All";
 
     // ================== FILTER ACTIONS ==================
     const resetFilters = () => {
@@ -248,12 +184,7 @@ function Payments() {
         setPage(0);
     };
 
-    const handleRefresh = () => {
-        setPayments(loadPayments());
-        setOrders(loadOrders());
-        setPage(0);
-        toast.info("Payment records refreshed.");
-    };
+    const handleRefresh = () => loadPayments().catch((error) => toast.error(error.message));
 
     // ================== REVIEW ACTIONS ==================
     const openReview = (payment, type) => {
@@ -273,51 +204,19 @@ function Payments() {
         setReviewError("");
     };
 
-    const handleReview = () => {
-        if (!actionPayment || !reviewAction ||
-            actionPayment.reviewStatus !== reviewAction.previousStatus) {
-            toast.error("Payment review record has changed. Please refresh.");
+    const handleReview = async () => {
+        if (!actionPayment) return;
+        try {
+            await api.patch(`/admin/payments/${actionPayment.id}/review`, {
+                status: reviewAction.type === "flag" ? "Flagged" : "Closed",
+                note: reviewNote.trim(),
+            });
+            await loadPayments();
             closeReview();
-            return;
+            toast.success("Review saved.");
+        } catch (error) {
+            setReviewError(error.message);
         }
-
-        const note = reviewNote.trim();
-
-        if (note.length < 5 || note.length > 300) {
-            setReviewError("Enter a review note containing 5–300 characters.");
-            return;
-        }
-
-        const nextStatus = reviewAction.type === "flag" ? "Flagged" : "Closed";
-        const now = new Date().toISOString();
-
-        setPayments((previous) => previous.map((payment) =>
-            payment.id === reviewAction.paymentId
-                ? {
-                      ...payment,
-                      reviewStatus: nextStatus,
-                      reviewReason: reviewAction.type === "flag"
-                          ? note
-                          : payment.reviewReason,
-                      reviewHistory: [
-                          ...(payment.reviewHistory || []),
-                          {
-                              status: nextStatus,
-                              note,
-                              date: now,
-                          },
-                      ],
-                  }
-                : payment
-        ));
-
-        toast.success(
-            reviewAction.type === "flag"
-                ? "Payment attempt flagged for review."
-                : "Review note closed successfully."
-        );
-
-        closeReview();
     };
 
     return (
@@ -331,8 +230,8 @@ function Payments() {
                     </span>
 
                     <p>
-                        Monitor online payment attempts, transaction references,
-                        payment statuses and reconciliation exceptions.
+                        Monitor online payment attempts, transaction references, payment statuses
+                        and reconciliation exceptions.
                     </p>
                 </div>
 
@@ -373,7 +272,7 @@ function Payments() {
                 <div>
                     <span>Successful Payment Value</span>
                     <strong>{formatMoney(totalSuccessful)}</strong>
-                    <p>Illustrative total from successful preview attempts.</p>
+                    <p>Total from confirmed checkout payments.</p>
                 </div>
 
                 <div className="pay-summary-review">
@@ -397,9 +296,7 @@ function Payments() {
                         </div>
                     </div>
 
-                    <span className="pay-record-count">
-                        {filteredPayments.length} Records
-                    </span>
+                    <span className="pay-record-count">{filteredPayments.length} Records</span>
                 </div>
 
                 {/* ================== SEARCH AND FILTERS ================== */}
@@ -477,8 +374,8 @@ function Payments() {
                 {/* ================== PREVIEW INFORMATION ================== */}
                 <div className="pay-preview-note">
                     <i className="fa-solid fa-circle-info" aria-hidden="true" />
-                    Payment records are frontend previews. Gateway references
-                    and payment verification will be available after backend integration.
+                    Payment records are loaded from the server. Gateway references and payment
+                    verification will be available after backend integration.
                 </div>
 
                 {/* ================== PAYMENTS TABLE ================== */}
@@ -509,19 +406,17 @@ function Payments() {
 
                                     <TableCell>
                                         <div className="pay-cell">
-                                            <strong>
-                                                {payment.orderId || "No Order Created"}
-                                            </strong>
+                                            <strong>{payment.orderId || "No Order Created"}</strong>
                                             <small>
-                                                {payment.orderId ? "Linked order" : "Payment attempt only"}
+                                                {payment.orderId
+                                                    ? "Linked order"
+                                                    : "Payment attempt only"}
                                             </small>
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
-                                        <span className="pay-customer">
-                                            {payment.customerName}
-                                        </span>
+                                        <span className="pay-customer">{payment.customerName}</span>
                                     </TableCell>
 
                                     <TableCell>
@@ -645,10 +540,7 @@ function Payments() {
                                         label="Order Reference"
                                         value={selectedPayment.orderId || "No order created"}
                                     />
-                                    <DetailItem
-                                        label="Gateway"
-                                        value="Not connected"
-                                    />
+                                    <DetailItem label="Gateway" value="Not connected" />
                                     <DetailItem
                                         label="Gateway Order ID"
                                         value={selectedPayment.gatewayOrderId || "Not available"}
@@ -671,7 +563,8 @@ function Payments() {
                                                 {getOrder(selectedPayment.orderId)
                                                     ? getStatusLabel(
                                                           normalizeStatus(
-                                                              getOrder(selectedPayment.orderId).orderStatus
+                                                              getOrder(selectedPayment.orderId)
+                                                                  .orderStatus
                                                           )
                                                       )
                                                     : "Order record unavailable"}
@@ -719,8 +612,8 @@ function Payments() {
                             </div>
 
                             <Alert severity="info" className="pay-detail-alert">
-                                Payment status cannot be changed manually.
-                                Gateway verification and refunds require separate backend workflows.
+                                Payment status cannot be changed manually. Gateway verification and
+                                refunds require separate backend workflows.
                             </Alert>
                         </DialogContent>
 
@@ -731,11 +624,19 @@ function Payments() {
 
                             <Button
                                 variant="contained"
-                                color={selectedPayment.reviewStatus === "Flagged" ? "primary" : "warning"}
-                                onClick={() => openReview(
-                                    selectedPayment,
-                                    selectedPayment.reviewStatus === "Flagged" ? "close" : "flag"
-                                )}
+                                color={
+                                    selectedPayment.reviewStatus === "Flagged"
+                                        ? "primary"
+                                        : "warning"
+                                }
+                                onClick={() =>
+                                    openReview(
+                                        selectedPayment,
+                                        selectedPayment.reviewStatus === "Flagged"
+                                            ? "close"
+                                            : "flag"
+                                    )
+                                }
                             >
                                 {selectedPayment.reviewStatus === "Flagged"
                                     ? "Close Review"
@@ -767,15 +668,15 @@ function Payments() {
 
                     {reviewAction?.type === "close" && (
                         <Alert severity="info" className="pay-detail-alert">
-                            Closing this review note does not verify a payment,
-                            change its status or process a refund.
+                            Closing this review note does not verify a payment, change its status or
+                            process a refund.
                         </Alert>
                     )}
 
                     <TextField
-                        label={reviewAction?.type === "flag"
-                            ? "Reason for Review"
-                            : "Resolution Note"}
+                        label={
+                            reviewAction?.type === "flag" ? "Reason for Review" : "Resolution Note"
+                        }
                         value={reviewNote}
                         onChange={(event) => {
                             setReviewNote(event.target.value);

@@ -14,8 +14,7 @@ const RESEND_DELAY = 60 * 1000;
 const REQUEST_WINDOW = 60 * 60 * 1000;
 const CLEANUP_DELAY = 24 * 60 * 60 * 1000;
 
-const hash = (value) =>
-    crypto.createHash("sha256").update(value).digest("hex");
+const hash = (value) => crypto.createHash("sha256").update(value).digest("hex");
 
 const hashOtp = (requestId, otp) =>
     crypto
@@ -24,10 +23,7 @@ const hashOtp = (requestId, otp) =>
         .digest("hex");
 
 const invalidCode = () =>
-    new ExpressError(
-        400,
-        "Invalid or expired code. Request a new code if needed."
-    );
+    new ExpressError(400, "Invalid or expired code. Request a new code if needed.");
 
 // Reserve an OTP request within the account limits.
 async function reserveRequest(userId, requestId, otp) {
@@ -56,8 +52,7 @@ async function reserveRequest(userId, requestId, otp) {
         }
 
         const newWindow =
-            !reset.requestWindowStartedAt ||
-            now - reset.requestWindowStartedAt >= REQUEST_WINDOW;
+            !reset.requestWindowStartedAt || now - reset.requestWindowStartedAt >= REQUEST_WINDOW;
 
         const requests = newWindow ? 0 : reset.requestsInWindow;
 
@@ -74,9 +69,7 @@ async function reserveRequest(userId, requestId, otp) {
                     otpExpiresAt: new Date(+now + OTP_LIFETIME),
                     failedAttempts: 0,
                     resendAvailableAt: new Date(+now + RESEND_DELAY),
-                    requestWindowStartedAt: newWindow
-                        ? now
-                        : reset.requestWindowStartedAt,
+                    requestWindowStartedAt: newWindow ? now : reset.requestWindowStartedAt,
                     requestsInWindow: requests + 1,
                     cleanupAt: new Date(+now + CLEANUP_DELAY),
                 },
@@ -99,9 +92,7 @@ exports.requestPasswordResetOtp = async (req, res, next) => {
         const requestId = crypto.randomBytes(32).toString("hex");
 
         const user = await User.findOne({
-            ...(identifier.includes("@")
-                ? { email: identifier }
-                : { phone: identifier }),
+            ...(identifier.includes("@") ? { email: identifier } : { phone: identifier }),
             status: "Active",
         }).select("_id name email");
 
@@ -213,10 +204,7 @@ exports.resetPassword = async (req, res, next) => {
 
         // Avoid password hashing for unknown reset credentials.
         if (!(await PasswordReset.exists(filter))) {
-            throw new ExpressError(
-                400,
-                "Reset authorization expired. Please start again."
-            );
+            throw new ExpressError(400, "Reset authorization expired. Please start again.");
         }
 
         const passwordHash = await bcrypt.hash(password, 12);
@@ -242,10 +230,7 @@ exports.resetPassword = async (req, res, next) => {
             );
 
             if (!reset) {
-                throw new ExpressError(
-                    400,
-                    "Reset authorization expired. Please start again."
-                );
+                throw new ExpressError(400, "Reset authorization expired. Please start again.");
             }
 
             const changed = await User.updateOne(

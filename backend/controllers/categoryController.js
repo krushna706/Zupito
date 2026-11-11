@@ -5,8 +5,7 @@ const cloudinary = require("../config/cloudinary");
 const ExpressError = require("../utils/ExpressError");
 const { categoryListSchema } = require("../validations/schema");
 
-const escapeRegex = (value) =>
-    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Read category form data
 exports.parseBody = (req, res, next) => {
@@ -24,12 +23,7 @@ exports.parseBody = (req, res, next) => {
         req.body = JSON.parse(req.body.data);
         next();
     } catch {
-        next(
-            new ExpressError(
-                400,
-                "Submit category details and at most one image."
-            )
-        );
+        next(new ExpressError(400, "Submit category details and at most one image."));
     }
 };
 
@@ -41,16 +35,12 @@ function uploadImage(file) {
                 public_id: `zupito/categories/${randomUUID()}`,
                 resource_type: "image",
                 allowed_formats: ["jpg", "jpeg", "png", "webp"],
-                transformation: [
-                    { width: 800, height: 800, crop: "limit" },
-                ],
+                transformation: [{ width: 800, height: 800, crop: "limit" }],
                 timeout: 45000,
             },
             (error, result) => {
                 if (error || !result?.secure_url) {
-                    return reject(
-                        new ExpressError(502, "Category image upload failed.")
-                    );
+                    return reject(new ExpressError(502, "Category image upload failed."));
                 }
 
                 resolve({
@@ -93,20 +83,15 @@ exports.getCategories = async (req, res, next) => {
         if (type === "Subcategory") filter.parentId = { $ne: null };
 
         if (status !== "All") {
-            filter.effectiveStatus = status === "Active"
-                ? "Active"
-                : { $ne: "Active" };
+            filter.effectiveStatus = status === "Active" ? "Active" : { $ne: "Active" };
         }
 
         if (search) {
             const expression = new RegExp(escapeRegex(search), "i");
 
-            filter.$or = [
-                "name",
-                "slug",
-                "parent.name",
-                "attributes",
-            ].map((key) => ({ [key]: expression }));
+            filter.$or = ["name", "slug", "parent.name", "attributes"].map((key) => ({
+                [key]: expression,
+            }));
         }
 
         const [result] = await Category.aggregate([
@@ -150,18 +135,10 @@ exports.getCategories = async (req, res, next) => {
                         { $skip: (page - 1) * limit },
                         { $limit: limit },
                         {
-                            $unset: [
-                                "parent",
-                                "nameKey",
-                                "image.publicId",
-                                "statusHistory",
-                            ],
+                            $unset: ["parent", "nameKey", "image.publicId", "statusHistory"],
                         },
                     ],
-                    count: [
-                        { $match: filter },
-                        { $count: "total" },
-                    ],
+                    count: [{ $match: filter }, { $count: "total" }],
                     parents: [
                         { $match: { parentId: null } },
                         { $sort: { sortOrder: 1, name: 1 } },
@@ -174,20 +151,12 @@ exports.getCategories = async (req, res, next) => {
                                 total: { $sum: 1 },
                                 main: {
                                     $sum: {
-                                        $cond: [
-                                            { $eq: ["$parentId", null] },
-                                            1,
-                                            0,
-                                        ],
+                                        $cond: [{ $eq: ["$parentId", null] }, 1, 0],
                                     },
                                 },
                                 disabled: {
                                     $sum: {
-                                        $cond: [
-                                            { $ne: ["$effectiveStatus", "Active"] },
-                                            1,
-                                            0,
-                                        ],
+                                        $cond: [{ $ne: ["$effectiveStatus", "Active"] }, 1, 0],
                                     },
                                 },
                             },
@@ -230,8 +199,7 @@ exports.saveCategory = async (req, res, next) => {
         const editing = Boolean(req.params.categoryId);
 
         const previous = editing
-            ? await Category.findById(req.params.categoryId)
-                .select("+image.publicId")
+            ? await Category.findById(req.params.categoryId).select("+image.publicId")
             : null;
 
         if (editing && !previous) {
@@ -239,74 +207,47 @@ exports.saveCategory = async (req, res, next) => {
         }
 
         if (editing && previous.__v !== version) {
-            throw new ExpressError(
-                409,
-                "Category changed. Refresh and edit again."
-            );
+            throw new ExpressError(409, "Category changed. Refresh and edit again.");
         }
 
-        if (
-            editing &&
-            String(previous.parentId || "") !== String(data.parentId || "")
-        ) {
-            throw new ExpressError(
-                400,
-                "Category type and parent cannot change."
-            );
+        if (editing && String(previous.parentId || "") !== String(data.parentId || "")) {
+            throw new ExpressError(400, "Category type and parent cannot change.");
         }
 
         if (data.parentId) {
             if (
                 !editing &&
-                !await Category.exists({
+                !(await Category.exists({
                     _id: data.parentId,
                     parentId: null,
                     status: "Active",
-                })
+                }))
             ) {
                 throw new ExpressError(400, "Select an active main category.");
             }
 
             if (data.showOnHome || req.files?.length) {
-                throw new ExpressError(
-                    400,
-                    "Home images belong to main categories."
-                );
+                throw new ExpressError(400, "Home images belong to main categories.");
             }
 
-            const attributes = new Set(
-                data.attributes.map((name) => name.toLowerCase())
-            );
+            const attributes = new Set(data.attributes.map((name) => name.toLowerCase()));
 
-            if (
-                data.filterAttributes.some(
-                    (name) => !attributes.has(name.toLowerCase())
-                )
-            ) {
+            if (data.filterAttributes.some((name) => !attributes.has(name.toLowerCase()))) {
                 throw new ExpressError(
                     400,
                     "Choose filter attributes from the category specifications."
                 );
             }
         } else if (data.filterAttributes.length) {
-            throw new ExpressError(
-                400,
-                "Configure attribute filters on subcategories."
-            );
+            throw new ExpressError(400, "Configure attribute filters on subcategories.");
         }
 
         if (req.files?.[0]) {
             uploaded = await uploadImage(req.files[0]);
         }
 
-        if (
-            data.showOnHome &&
-            !(uploaded?.url || previous?.image?.url)
-        ) {
-            throw new ExpressError(
-                400,
-                "Upload a category image before showing it on Home."
-            );
+        if (data.showOnHome && !(uploaded?.url || previous?.image?.url)) {
+            throw new ExpressError(400, "Upload a category image before showing it on Home.");
         }
 
         const changes = {
@@ -333,10 +274,7 @@ exports.saveCategory = async (req, res, next) => {
             );
 
             if (!result.matchedCount) {
-                throw new ExpressError(
-                    409,
-                    "Category changed. Refresh and edit again."
-                );
+                throw new ExpressError(409, "Category changed. Refresh and edit again.");
             }
         } else {
             const slug = data.name
@@ -348,10 +286,7 @@ exports.saveCategory = async (req, res, next) => {
                 .replace(/^-+|-+$/g, "");
 
             if (!slug) {
-                throw new ExpressError(
-                    400,
-                    "Use a category name with a valid URL slug."
-                );
+                throw new ExpressError(400, "Use a category name with a valid URL slug.");
             }
 
             await Category.create({
@@ -382,10 +317,7 @@ exports.saveCategory = async (req, res, next) => {
 
         next(
             error.code === 11000
-                ? new ExpressError(
-                    409,
-                    "Category name or slug already exists."
-                )
+                ? new ExpressError(409, "Category name or slug already exists.")
                 : error
         );
     }
@@ -433,9 +365,10 @@ exports.updateCategoryStatus = async (req, res, next) => {
 
         res.json({
             success: true,
-            message: status === "Active"
-                ? "Category enabled successfully."
-                : "Category disabled successfully.",
+            message:
+                status === "Active"
+                    ? "Category enabled successfully."
+                    : "Category disabled successfully.",
         });
     } catch (error) {
         next(error);

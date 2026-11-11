@@ -1,46 +1,46 @@
-
-import LoadingState from "../components/LoadingState";
+import { lazy } from "react";
 
 // Admin panel
-import AdminDashboard from "../admin/Dashboard";
-import Sellers from "../admin/Sellers";
-import Customers from "../admin/Customers";
-import DeliveryAgents from "../admin/DeliveryAgents";
-import Categories from "../admin/Categories";
-import Products from "../admin/Products";
-import Orders from "../admin/Orders";
-import DeliveryAssignments from "../admin/DeliveryAssignments";
-import Payments from "../admin/Payments";
-import Refunds from "../admin/Refunds";
-import Replacements from "../admin/Replacements";
-import Settlements from "../admin/Settlements";
-import Coupons from "../admin/Coupons";
-import Reviews from "../admin/Reviews";
-import Complaints from "../admin/Complaints";
-import Reports from "../admin/Reports";
-import ReuseProfile from "../admin/Profile";
+const AdminDashboard = lazy(() => import("../admin/Dashboard"));
+const Sellers = lazy(() => import("../admin/Sellers"));
+const Customers = lazy(() => import("../admin/Customers"));
+const DeliveryAgents = lazy(() => import("../admin/DeliveryAgents"));
+const Categories = lazy(() => import("../admin/Categories"));
+const Products = lazy(() => import("../admin/Products"));
+const Orders = lazy(() => import("../admin/Orders"));
+const DeliveryAssignments = lazy(() => import("../admin/DeliveryAssignments"));
+const Payments = lazy(() => import("../admin/Payments"));
+const Refunds = lazy(() => import("../admin/Refunds"));
+const Replacements = lazy(() => import("../admin/Replacements"));
+const Settlements = lazy(() => import("../admin/Settlements"));
+const Coupons = lazy(() => import("../admin/Coupons"));
+const Reviews = lazy(() => import("../admin/Reviews"));
+const Complaints = lazy(() => import("../admin/Complaints"));
+const Reports = lazy(() => import("../admin/Reports"));
+const ReuseProfile = lazy(() => import("../admin/Profile"));
+
+const SellerProfile = lazy(() => import("../seller/Profile"));
+const DeliveryProfile = lazy(() => import("../delivery/Profile"));
 
 // Seller panel
-import SellerDashboard from "../seller/Dashboard";
-import SellerApprovalStatus from "../seller/ApprovalStatus";
-import StoreProfile from "../seller/StoreProfile";
-import SellerProducts from "../seller/Products";
-import SellerProductForm from "../seller/ProductForm";
-import SellerInventory from "../seller/Inventory";
-import SellerOrders from "../seller/Orders";
-import SellerOrderDetails from "../seller/OrderDetails";
-import SellerReplacements from "../seller/Replacements";
-import SellerReplacementDetails from "../seller/ReplacementDetails";
-import SellerEarnings from "../seller/Earnings";
-import SellerReviews from "../seller/Reviews";
+const SellerDashboard = lazy(() => import("../seller/Dashboard"));
+const SellerApprovalStatus = lazy(() => import("../seller/ApprovalStatus"));
+const StoreProfile = lazy(() => import("../seller/StoreProfile"));
+const SellerProducts = lazy(() => import("../seller/Products"));
+const SellerProductForm = lazy(() => import("../seller/ProductForm"));
+const SellerInventory = lazy(() => import("../seller/Inventory"));
+const SellerOrders = lazy(() => import("../seller/Orders"));
+const SellerOrderDetails = lazy(() => import("../seller/OrderDetails"));
+const SellerReplacements = lazy(() => import("../seller/Replacements"));
+const SellerReplacementDetails = lazy(() => import("../seller/ReplacementDetails"));
+const SellerEarnings = lazy(() => import("../seller/Earnings"));
+const SellerReviews = lazy(() => import("../seller/Reviews"));
 
 // Delivery panel
-import DeliveryDashboard from "../delivery/Dashboard";
-import AssignedTasks from "../delivery/AssignedTasks";
-import TaskDetails from "../delivery/TaskDetails";
-import DeliveryHistory from "../delivery/DeliveryHistory";
-
-
+const DeliveryDashboard = lazy(() => import("../delivery/Dashboard"));
+const AssignedTasks = lazy(() => import("../delivery/AssignedTasks"));
+const TaskDetails = lazy(() => import("../delivery/TaskDetails"));
+const DeliveryHistory = lazy(() => import("../delivery/DeliveryHistory"));
 
 /* ===== REGISTERED ROLES ===== */
 
@@ -53,12 +53,12 @@ export const panelRoles = {
     seller: {
         label: "Seller",
         dashboard: SellerDashboard,
-        profile: ReuseProfile,
+        profile: SellerProfile,
     },
     delivery: {
         label: "Delivery Agent",
         dashboard: DeliveryDashboard,
-        profile: ReuseProfile,
+        profile: DeliveryProfile,
     },
 };
 
@@ -85,19 +85,6 @@ export function getPanelRole(role) {
     Replace LoadingState with actual components as pages are completed.
     Backend APIs must enforce role and ownership permissions.
 */
-
-function previewPage(path, label, icon, allowedRoles) {
-    return {
-        path,
-        component: LoadingState,
-        allowedRoles,
-        navigation: {
-            label,
-            icon,
-            end: false,
-        },
-    };
-}
 
 export const panelPages = [
     // ================== ADMIN PANEL ==================
@@ -165,7 +152,6 @@ export const panelPages = [
         component: SellerProductForm,
         allowedRoles: ["seller"],
     },
-
 
     {
         path: "orders",
@@ -291,7 +277,7 @@ export const panelPages = [
     },
 
     // ================== SELLER PANEL ==================
-    
+
     {
         path: "approval-status",
         component: SellerApprovalStatus,
@@ -322,7 +308,7 @@ export const panelPages = [
             end: false,
         },
     },
-    
+
     {
         path: "earnings",
         component: SellerEarnings,
@@ -334,9 +320,8 @@ export const panelPages = [
         },
     },
 
-
     // ================== DELIVERY AGENT PANEL ==================
-    
+
     {
         path: "tasks",
         component: AssignedTasks,
@@ -362,12 +347,6 @@ export const panelPages = [
             end: false,
         },
     },
-
-
-
-
-
-
 ];
 
 /* ===== SIDEBAR MENU ===== */
@@ -380,9 +359,7 @@ export function getPanelNavigation(role) {
     }
 
     const pageLinks = panelPages
-        .filter((page) =>
-            page.navigation && page.allowedRoles.includes(normalizedRole)
-        )
+        .filter((page) => page.navigation && page.allowedRoles.includes(normalizedRole))
         .map((page) => ({
             path: `/manage/${page.path}`,
             ...page.navigation,

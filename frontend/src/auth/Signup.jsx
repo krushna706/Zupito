@@ -29,7 +29,13 @@ const features = [
 const fields = [
     { name: "name", label: "Full Name", autoComplete: "name", maxLength: 100 },
     { name: "email", label: "Email Address", type: "email", autoComplete: "email", maxLength: 254 },
-    { name: "phone", label: "Mobile Number", type: "tel", autoComplete: "tel-national", maxLength: 10 },
+    {
+        name: "phone",
+        label: "Mobile Number",
+        type: "tel",
+        autoComplete: "tel-national",
+        maxLength: 10,
+    },
     { name: "password", label: "Password", password: true },
     { name: "confirmPassword", label: "Confirm Password", password: true },
 ];
@@ -74,7 +80,9 @@ function Signup() {
             return;
         }
         if (password.length < 6 || new TextEncoder().encode(password).length > 72) {
-            toast.error("Password must contain at least 6 characters and cannot exceed 72 UTF-8 bytes.");
+            toast.error(
+                "Password must contain at least 6 characters and cannot exceed 72 UTF-8 bytes."
+            );
             return;
         }
         if (password !== confirmPassword) {
@@ -107,7 +115,12 @@ function Signup() {
 
                 <div className="auth-card">
                     <aside className="auth-introduction">
-                        <img src="/images/about-story.jpg" alt="" className="auth-background" decoding="async" />
+                        <img
+                            src="/images/about-story.jpg"
+                            alt=""
+                            className="auth-background"
+                            decoding="async"
+                        />
 
                         <div className="auth-introduction-content">
                             <p className="website-section-label">WELCOME TO ZUPITO</p>
@@ -116,15 +129,18 @@ function Signup() {
                                 <span> all in one place.</span>
                             </h2>
                             <p className="website-section-description">
-                                Create your account to explore products, manage purchases
-                                and enjoy a convenient shopping experience.
+                                Create your account to explore products, manage purchases and enjoy
+                                a convenient shopping experience.
                             </p>
 
                             <ul className="auth-features">
                                 {features.map((feature) => (
                                     <li key={feature.title}>
                                         <span className="auth-feature-icon">
-                                            <i className={`fa-solid ${feature.icon}`} aria-hidden="true" />
+                                            <i
+                                                className={`fa-solid ${feature.icon}`}
+                                                aria-hidden="true"
+                                            />
                                         </span>
                                         <div>
                                             <h3>{feature.title}</h3>
@@ -143,7 +159,11 @@ function Signup() {
                     <section className="auth-form-panel" aria-labelledby="signup-title">
                         <div className="auth-form-content">
                             <header className="auth-form-header">
-                                <Link to="/" className="website-brand auth-brand" aria-label="Zupito Home">
+                                <Link
+                                    to="/"
+                                    className="website-brand auth-brand"
+                                    aria-label="Zupito Home"
+                                >
                                     <img src={appConfig.logo} alt={appConfig.name} />
                                 </Link>
                                 <h1 id="signup-title" className="website-section-title">
@@ -160,15 +180,24 @@ function Signup() {
                                         key={field.name}
                                         label={field.label}
                                         name={field.name}
-                                        type={field.password ? (visible[field.name] ? "text" : "password") : field.type || "text"}
+                                        type={
+                                            field.password
+                                                ? visible[field.name]
+                                                    ? "text"
+                                                    : "password"
+                                                : field.type || "text"
+                                        }
                                         value={form[field.name]}
                                         onChange={handleChange}
                                         className="auth-text-field"
-                                        autoComplete={field.password ? "new-password" : field.autoComplete}
+                                        autoComplete={
+                                            field.password ? "new-password" : field.autoComplete
+                                        }
                                         slotProps={{
                                             htmlInput: {
                                                 maxLength: field.maxLength,
-                                                inputMode: field.name === "phone" ? "numeric" : undefined,
+                                                inputMode:
+                                                    field.name === "phone" ? "numeric" : undefined,
                                             },
                                             input: field.password
                                                 ? {
@@ -177,10 +206,13 @@ function Signup() {
                                                               <IconButton
                                                                   type="button"
                                                                   className="auth-password-toggle"
-                                                                  onClick={() => setVisible((previous) => ({
-                                                                      ...previous,
-                                                                      [field.name]: !previous[field.name],
-                                                                  }))}
+                                                                  onClick={() =>
+                                                                      setVisible((previous) => ({
+                                                                          ...previous,
+                                                                          [field.name]:
+                                                                              !previous[field.name],
+                                                                      }))
+                                                                  }
                                                                   aria-label={`${visible[field.name] ? "Hide" : "Show"} ${field.label}`}
                                                                   edge="end"
                                                               >

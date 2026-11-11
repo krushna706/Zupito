@@ -9,7 +9,8 @@ const STATUS_INFO = {
     Pending: {
         icon: "fa-clock",
         title: "Your application is under review",
-        description: "The Zupito team is reviewing your store details and registration information.",
+        description:
+            "The Zupito team is reviewing your store details and registration information.",
         next: "Keep your contact information available while the application is reviewed.",
     },
     Approved: {
@@ -92,9 +93,10 @@ function ApprovalStatus({ user }) {
         },
         {
             title: "Application verification",
-            text: currentStatus === "Pending"
-                ? "Account and store verification is pending."
-                : "Account and store information reviewed.",
+            text:
+                currentStatus === "Pending"
+                    ? "Account and store verification is pending."
+                    : "Account and store information reviewed.",
             complete: currentStatus !== "Pending",
         },
         {
@@ -112,7 +114,10 @@ function ApprovalStatus({ user }) {
                         <i className="fa-solid fa-clipboard-check" aria-hidden="true" />
                         APPROVAL STATUS
                     </h1>
-                    <p>Track your seller application, review the decision and manage your next steps.</p>
+                    <p>
+                        Track your seller application, review the decision and manage your next
+                        steps.
+                    </p>
                 </div>
 
                 <Button
@@ -160,18 +165,27 @@ function ApprovalStatus({ user }) {
                         <InfoItem icon="fa-shop" label="Store Name" value={seller?.storeName} />
                         <InfoItem icon="fa-user" label="Applicant Name" value={user?.name} />
                         <InfoItem icon="fa-hashtag" label="Application ID" value={seller?.id} />
-                        <InfoItem icon="fa-calendar" label="Application Date" value={dateLabel(seller?.createdAt)} />
+                        <InfoItem
+                            icon="fa-calendar"
+                            label="Application Date"
+                            value={dateLabel(seller?.createdAt)}
+                        />
                         <InfoItem icon="fa-envelope" label="Email Address" value={user?.email} />
                         <InfoItem icon="fa-phone" label="Mobile Number" value={user?.phone} />
                         <InfoItem
                             icon="fa-location-dot"
                             label="Store Location"
-                            value={[seller?.pickupAddress?.city, seller?.pickupAddress?.state].filter(Boolean).join(", ")}
+                            value={[seller?.pickupAddress?.city, seller?.pickupAddress?.state]
+                                .filter(Boolean)
+                                .join(", ")}
                         />
                         <InfoItem
                             icon="fa-clock"
                             label="Last Refreshed"
-                            value={updated.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                            value={updated.toLocaleTimeString("en-IN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                            })}
                         />
                     </div>
                 </section>
@@ -189,9 +203,15 @@ function ApprovalStatus({ user }) {
 
                     <ol className="sa-timeline">
                         {timeline.map((item) => (
-                            <li key={item.title} className={item.complete ? "is-complete" : "is-active"}>
+                            <li
+                                key={item.title}
+                                className={item.complete ? "is-complete" : "is-active"}
+                            >
                                 <span className="sa-step-marker">
-                                    <i className={`fa-solid ${item.complete ? "fa-check" : "fa-clock"}`} aria-hidden="true" />
+                                    <i
+                                        className={`fa-solid ${item.complete ? "fa-check" : "fa-clock"}`}
+                                        aria-hidden="true"
+                                    />
                                 </span>
                                 <div>
                                     <strong>{item.title}</strong>

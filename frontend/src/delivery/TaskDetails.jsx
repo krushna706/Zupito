@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -42,15 +41,19 @@ const steps = [
 function addressText(address, pincode) {
     if (typeof address === "string") return address;
 
-    return [
-        address?.house,
-        address?.street,
-        address?.area,
-        address?.locality,
-        address?.city,
-        address?.state,
-        address?.pincode || pincode,
-    ].filter(Boolean).join(", ") || "Address not available";
+    return (
+        [
+            address?.house,
+            address?.street,
+            address?.area,
+            address?.locality,
+            address?.city,
+            address?.state,
+            address?.pincode || pincode,
+        ]
+            .filter(Boolean)
+            .join(", ") || "Address not available"
+    );
 }
 
 function statusTone(stage) {
@@ -83,28 +86,18 @@ function OrderedItems({ task }) {
         <section className="dtd-card">
             <div className="dtd-card-title">
                 <i className="fa-solid fa-bag-shopping" />
-                <h3>
-                    Ordered Items ({items.length})
-                </h3>
+                <h3>Ordered Items ({items.length})</h3>
             </div>
 
             <p>
-                Total quantity:{" "}
-                <strong>{task.totalQuantity || 0} units</strong>
+                Total quantity: <strong>{task.totalQuantity || 0} units</strong>
             </p>
 
             <div className="dtd-info-grid">
                 {items.map((item, index) => (
-                    <div
-                        className="dtd-info"
-                        key={`${item.id}-${index}`}
-                    >
+                    <div className="dtd-info" key={`${item.id}-${index}`}>
                         {item.image ? (
-                            <Avatar
-                                variant="rounded"
-                                src={item.image}
-                                alt={item.name}
-                            />
+                            <Avatar variant="rounded" src={item.image} alt={item.name} />
                         ) : (
                             <i className="fa-solid fa-box" />
                         )}
@@ -112,34 +105,19 @@ function OrderedItems({ task }) {
                         <div>
                             <strong>{item.name}</strong>
 
-                            <span>
-                                {item.variantLabel ||
-                                    "Standard Variant"}
-                            </span>
+                            <span>{item.variantLabel || "Standard Variant"}</span>
 
-                            {item.brand && (
-                                <span>
-                                    Brand: {item.brand}
-                                </span>
-                            )}
+                            {item.brand && <span>Brand: {item.brand}</span>}
 
-                            {item.sku && (
-                                <span>SKU: {item.sku}</span>
-                            )}
+                            {item.sku && <span>SKU: {item.sku}</span>}
 
-                            <strong>
-                                Quantity: {item.quantity}
-                            </strong>
+                            <strong>Quantity: {item.quantity}</strong>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {!items.length && (
-                <p className="dtd-muted">
-                    Order item snapshot unavailable.
-                </p>
-            )}
+            {!items.length && <p className="dtd-muted">Order item snapshot unavailable.</p>}
         </section>
     );
 }
@@ -148,9 +126,7 @@ function OrderedItems({ task }) {
 function TaskDetails({ user }) {
     const { taskId } = useParams();
 
-    const [task, setTask] = useState(() =>
-        getDeliveryTask(user, taskId)
-    );
+    const [task, setTask] = useState(() => getDeliveryTask(user, taskId));
 
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -186,20 +162,12 @@ function TaskDetails({ user }) {
         return () => {
             active = false;
         };
-    }, [
-        user?._id,
-        user?.id,
-        user?.role,
-        taskId,
-    ]);
+    }, [user, taskId]);
 
     // ================== MANUAL REFRESH ==================
     const refresh = async () => {
         try {
-            const result = await fetchDeliveryTask(
-                user,
-                taskId
-            );
+            const result = await fetchDeliveryTask(user, taskId);
 
             setTask(result);
             setError("");
@@ -216,17 +184,12 @@ function TaskDetails({ user }) {
         setError("");
 
         try {
-            const updated = await updateDeliveryTask(
-                user,
-                taskId,
-                action,
-                {
-                    confirmed,
-                    otp,
-                    reason,
-                    note,
-                }
-            );
+            const updated = await updateDeliveryTask(user, taskId, action, {
+                confirmed,
+                otp,
+                reason,
+                note,
+            });
 
             setTask(updated);
             setConfirmed(false);
@@ -244,17 +207,12 @@ function TaskDetails({ user }) {
                 retry: "Delivery retry started.",
             };
 
-            toast.success(
-                messages[action] || "Task updated."
-            );
+            toast.success(messages[action] || "Task updated.");
         } catch (failure) {
             // Wrong OTP attempts are persisted on the backend.
             await refresh();
 
-            setError(
-                failure.message ||
-                "Unable to update this task."
-            );
+            setError(failure.message || "Unable to update this task.");
         } finally {
             setBusy(false);
         }
@@ -264,10 +222,7 @@ function TaskDetails({ user }) {
     if (!task) {
         return (
             <main className="delivery-task-detail">
-                <Link
-                    className="dtd-back"
-                    to="/manage/tasks"
-                >
+                <Link className="dtd-back" to="/manage/tasks">
                     <i className="fa-solid fa-arrow-left" />
                     Assigned Tasks
                 </Link>
@@ -275,25 +230,16 @@ function TaskDetails({ user }) {
                 <section className="dtd-empty">
                     <i className="fa-solid fa-shield-halved" />
 
-                    <h1>
-                        {loading
-                            ? "Loading task..."
-                            : "Task not available"}
-                    </h1>
+                    <h1>{loading ? "Loading task..." : "Task not available"}</h1>
 
                     <p>
                         {loading
                             ? "Loading your assigned parcel."
-                            : error ||
-                                "This task is not assigned to your account."}
+                            : error || "This task is not assigned to your account."}
                     </p>
 
                     {!loading && (
-                        <Button
-                            component={Link}
-                            to="/manage/tasks"
-                            variant="contained"
-                        >
+                        <Button component={Link} to="/manage/tasks" variant="contained">
                             Back to Assigned Tasks
                         </Button>
                     )}
@@ -305,68 +251,35 @@ function TaskDetails({ user }) {
     // ================== TASK DETAILS ==================
     const reverse = task.kind === "replacement_pickup";
 
-    const closed = [
-        "delivered",
-        "cancelled",
-    ].includes(task.stage);
+    const closed = ["delivered", "cancelled"].includes(task.stage);
 
-    const canFail = [
-        "assigned",
-        "out_for_delivery",
-    ].includes(task.stage);
+    const canFail = ["assigned", "out_for_delivery"].includes(task.stage);
 
     const canRetry =
-        task.stage === "failed" &&
-        Number(task.attempts || 0) < 3 &&
-        !task.escalatedToAdmin;
+        task.stage === "failed" && Number(task.attempts || 0) < 3 && !task.escalatedToAdmin;
 
     const origin = {
-        name: reverse
-            ? task.customerName
-            : task.sellerName,
-        address: reverse
-            ? task.customerAddress
-            : task.pickupAddress,
-        pincode: reverse
-            ? task.deliveryPincode
-            : task.pickupPincode,
-        label: reverse
-            ? "Customer Pickup"
-            : "Seller Pickup",
-        icon: reverse
-            ? "fa-user"
-            : "fa-store",
+        name: reverse ? task.customerName : task.sellerName,
+        address: task.pickupAddress,
+        pincode: task.pickupPincode,
+        label: reverse ? "Customer Pickup" : "Seller Pickup",
+        icon: reverse ? "fa-user" : "fa-store",
     };
 
     const destination = {
-        name: reverse
-            ? task.sellerName
-            : task.customerName,
-        address: reverse
-            ? task.sellerAddress
-            : task.customerAddress,
-        pincode: reverse
-            ? task.pickupPincode
-            : task.deliveryPincode,
-        label: reverse
-            ? "Return to Seller"
-            : "Deliver to Customer",
-        icon: reverse
-            ? "fa-store"
-            : "fa-house",
+        name: reverse ? task.sellerName : task.customerName,
+        address: task.customerAddress,
+        pincode: task.deliveryPincode,
+        label: reverse ? "Return to Seller" : "Deliver to Customer",
+        icon: reverse ? "fa-store" : "fa-house",
     };
 
-    const activeIndex = steps.findIndex(
-        ([stage]) => stage === task.stage
-    );
+    const activeIndex = steps.findIndex(([stage]) => stage === task.stage);
 
     return (
         <main className="delivery-task-detail">
             {/* ================== HEADER ================== */}
-            <Link
-                className="dtd-back"
-                to="/manage/tasks"
-            >
+            <Link className="dtd-back" to="/manage/tasks">
                 <i className="fa-solid fa-arrow-left" />
                 Assigned Tasks
             </Link>
@@ -378,19 +291,14 @@ function TaskDetails({ user }) {
                         TASK DETAILS
                     </h1>
 
-                    <p>
-                        Review parcel items, confirm handovers
-                        and track delivery activity.
-                    </p>
+                    <p>Review parcel items, confirm handovers and track delivery activity.</p>
                 </div>
 
                 <Button
                     variant="outlined"
                     disabled={busy}
                     onClick={refresh}
-                    startIcon={
-                        <i className="fa-solid fa-arrows-rotate" />
-                    }
+                    startIcon={<i className="fa-solid fa-arrows-rotate" />}
                 >
                     Refresh
                 </Button>
@@ -404,18 +312,14 @@ function TaskDetails({ user }) {
                     </span>
 
                     <div>
-                        <span className="dtd-kicker">
-                            {task.taskType}
-                        </span>
+                        <span className="dtd-kicker">{task.taskType}</span>
 
                         <h2>{task.id}</h2>
                         <p>Parcel: {task.parcelId}</p>
                     </div>
                 </div>
 
-                <span className={`dtd-badge is-${
-                    statusTone(task.stage)
-                }`}>
+                <span className={`dtd-badge is-${statusTone(task.stage)}`}>
                     <i className="fa-solid fa-circle" />
                     {deliveryStageLabel(task.stage)}
                 </span>
@@ -432,11 +336,7 @@ function TaskDetails({ user }) {
                     {steps.map(([stage, label, icon], index) => (
                         <div
                             key={stage}
-                            className={`dtd-step ${
-                                activeIndex >= index
-                                    ? "is-done"
-                                    : ""
-                            }`}
+                            className={`dtd-step ${activeIndex >= index ? "is-done" : ""}`}
                         >
                             <span>
                                 <i className={`fa-solid ${icon}`} />
@@ -449,8 +349,7 @@ function TaskDetails({ user }) {
                 {task.stage === "failed" && (
                     <Alert severity="warning">
                         Failed attempt {task.attempts || 0} of 3.
-                        {task.escalatedToAdmin &&
-                            " Admin review required."}
+                        {task.escalatedToAdmin && " Admin review required."}
                     </Alert>
                 )}
             </section>
@@ -465,33 +364,19 @@ function TaskDetails({ user }) {
                         </div>
 
                         <div className="dtd-route">
-                            {[origin, destination].map(
-                                (point, index) => (
-                                    <div
-                                        className="dtd-place"
-                                        key={point.label}
-                                    >
-                                        <span className={`dtd-place-icon ${
-                                            index ? "is-end" : ""
-                                        }`}>
-                                            <i className={`fa-solid ${
-                                                point.icon
-                                            }`} />
-                                        </span>
+                            {[origin, destination].map((point, index) => (
+                                <div className="dtd-place" key={point.label}>
+                                    <span className={`dtd-place-icon ${index ? "is-end" : ""}`}>
+                                        <i className={`fa-solid ${point.icon}`} />
+                                    </span>
 
-                                        <div>
-                                            <small>{point.label}</small>
-                                            <strong>{point.name}</strong>
-                                            <p>
-                                                {addressText(
-                                                    point.address,
-                                                    point.pincode
-                                                )}
-                                            </p>
-                                        </div>
+                                    <div>
+                                        <small>{point.label}</small>
+                                        <strong>{point.name}</strong>
+                                        <p>{addressText(point.address, point.pincode)}</p>
                                     </div>
-                                )
-                            )}
+                                </div>
+                            ))}
                         </div>
                     </section>
 
@@ -506,11 +391,7 @@ function TaskDetails({ user }) {
                         </div>
 
                         <div className="dtd-info-grid">
-                            <Info
-                                label="Order ID"
-                                value={task.orderId}
-                                icon="fa-hashtag"
-                            />
+                            <Info label="Order ID" value={task.orderId} icon="fa-hashtag" />
                             <Info
                                 label="Total Product Types"
                                 value={task.productCount || 0}
@@ -533,9 +414,7 @@ function TaskDetails({ user }) {
                             />
                             <Info
                                 label="Assigned On"
-                                value={formatDeliveryDate(
-                                    task.assignedAt
-                                )}
+                                value={formatDeliveryDate(task.assignedAt)}
                                 icon="fa-calendar"
                             />
                             <Info
@@ -554,30 +433,19 @@ function TaskDetails({ user }) {
                         </div>
 
                         <div className="dtd-activity">
-                            {[...(task.events || [])]
-                                .reverse()
-                                .map((event, index) => (
-                                    <div
-                                        className="dtd-event"
-                                        key={`${event.date}-${index}`}
-                                    >
-                                        <span className="dtd-event-dot" />
+                            {[...(task.events || [])].reverse().map((event, index) => (
+                                <div className="dtd-event" key={`${event.date}-${index}`}>
+                                    <span className="dtd-event-dot" />
 
-                                        <div>
-                                            <strong>{event.note}</strong>
-                                            <small>
-                                                {formatDeliveryDate(
-                                                    event.date
-                                                )}
-                                            </small>
-                                        </div>
+                                    <div>
+                                        <strong>{event.note}</strong>
+                                        <small>{formatDeliveryDate(event.date)}</small>
                                     </div>
-                                ))}
+                                </div>
+                            ))}
 
                             {!task.events?.length && (
-                                <p className="dtd-muted">
-                                    No activity recorded yet.
-                                </p>
+                                <p className="dtd-muted">No activity recorded yet.</p>
                             )}
                         </div>
                     </section>
@@ -591,10 +459,7 @@ function TaskDetails({ user }) {
                     </div>
 
                     {error && (
-                        <Alert
-                            severity="error"
-                            onClose={() => setError("")}
-                        >
+                        <Alert severity="error" onClose={() => setError("")}>
                             {error}
                         </Alert>
                     )}
@@ -603,35 +468,27 @@ function TaskDetails({ user }) {
                     {task.stage === "assigned" && (
                         <div className="dtd-action-form">
                             <p>
-                                Collect the parcel from the seller
-                                and verify their Pickup OTP.
+                                Collect the parcel at the pickup address and verify the sender’s
+                                handover OTP.
                             </p>
 
                             <FormControlLabel
                                 control={
                                     <Checkbox
                                         checked={confirmed}
-                                        onChange={(event) =>
-                                            setConfirmed(
-                                                event.target.checked
-                                            )
-                                        }
+                                        onChange={(event) => setConfirmed(event.target.checked)}
                                     />
                                 }
-                                label="I physically received the parcel from the seller"
+                                label="I physically received the parcel at the pickup address"
                             />
 
                             <TextField
                                 fullWidth
-                                label="Seller Pickup OTP"
+                                label={reverse ? "Customer Pickup OTP" : "Seller Pickup OTP"}
                                 value={otp}
                                 disabled={busy || task.otpLocked}
                                 onChange={(event) =>
-                                    setOtp(
-                                        event.target.value
-                                            .replace(/\D/g, "")
-                                            .slice(0, 6)
-                                    )
+                                    setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))
                                 }
                                 slotProps={{
                                     htmlInput: {
@@ -643,20 +500,13 @@ function TaskDetails({ user }) {
                             />
 
                             <small>
-                                {Math.max(
-                                    0,
-                                    5 - Number(task.otpAttempts || 0)
-                                )} OTP attempts remaining
+                                {Math.max(0, 5 - Number(task.otpAttempts || 0))} OTP attempts
+                                remaining
                             </small>
 
                             <Button
                                 variant="contained"
-                                disabled={
-                                    busy ||
-                                    !confirmed ||
-                                    otp.length !== 6 ||
-                                    task.otpLocked
-                                }
+                                disabled={busy || !confirmed || otp.length !== 6 || task.otpLocked}
                                 onClick={() => submit("pickup")}
                             >
                                 Verify OTP & Confirm Pickup
@@ -668,17 +518,14 @@ function TaskDetails({ user }) {
                     {task.stage === "picked_up" && (
                         <div className="dtd-action-form">
                             <p>
-                                Parcel custody is with you.
-                                Start delivery when leaving
-                                for the destination.
+                                Parcel custody is with you. Start delivery when leaving for the
+                                destination.
                             </p>
 
                             <Button
                                 variant="contained"
                                 disabled={busy}
-                                onClick={() =>
-                                    submit("start_delivery")
-                                }
+                                onClick={() => submit("start_delivery")}
                             >
                                 Out for Delivery
                             </Button>
@@ -688,22 +535,15 @@ function TaskDetails({ user }) {
                     {/* ================== CUSTOMER OTP ================== */}
                     {task.stage === "out_for_delivery" && (
                         <div className="dtd-action-form">
-                            <p>
-                                Ask the customer for their
-                                delivery OTP at the doorstep.
-                            </p>
+                            <p>Ask the recipient for their handover OTP at the destination.</p>
 
                             <TextField
                                 fullWidth
-                                label="Customer Delivery OTP"
+                                label={reverse ? "Seller Receipt OTP" : "Customer Delivery OTP"}
                                 value={otp}
                                 disabled={busy || task.otpLocked}
                                 onChange={(event) =>
-                                    setOtp(
-                                        event.target.value
-                                            .replace(/\D/g, "")
-                                            .slice(0, 6)
-                                    )
+                                    setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))
                                 }
                                 slotProps={{
                                     htmlInput: {
@@ -715,19 +555,13 @@ function TaskDetails({ user }) {
                             />
 
                             <small>
-                                {Math.max(
-                                    0,
-                                    5 - Number(task.otpAttempts || 0)
-                                )} OTP attempts remaining
+                                {Math.max(0, 5 - Number(task.otpAttempts || 0))} OTP attempts
+                                remaining
                             </small>
 
                             <Button
                                 variant="contained"
-                                disabled={
-                                    busy ||
-                                    otp.length !== 6 ||
-                                    task.otpLocked
-                                }
+                                disabled={busy || otp.length !== 6 || task.otpLocked}
                                 onClick={() => submit("deliver")}
                             >
                                 Verify OTP & Deliver
@@ -736,9 +570,7 @@ function TaskDetails({ user }) {
                             <Button
                                 variant="outlined"
                                 disabled={busy}
-                                onClick={() =>
-                                    submit("regenerate_otp")
-                                }
+                                onClick={() => submit("regenerate_otp")}
                             >
                                 Regenerate Delivery OTP
                             </Button>
@@ -749,8 +581,7 @@ function TaskDetails({ user }) {
                     {task.stage === "failed" && (
                         <div className="dtd-action-form">
                             <Alert severity="warning">
-                                {task.failureReason ||
-                                    "Delivery failed"}
+                                {task.failureReason || "Delivery failed"}
                             </Alert>
 
                             {canRetry ? (
@@ -762,9 +593,7 @@ function TaskDetails({ user }) {
                                     Retry Task
                                 </Button>
                             ) : (
-                                <p>
-                                    Contact Admin for review.
-                                </p>
+                                <p>Contact Admin for review.</p>
                             )}
                         </div>
                     )}
@@ -772,15 +601,9 @@ function TaskDetails({ user }) {
                     {/* ================== COMPLETED ================== */}
                     {closed && (
                         <div className="dtd-action-form">
-                            <Alert severity="success">
-                                This task is closed.
-                            </Alert>
+                            <Alert severity="success">This task is closed.</Alert>
 
-                            <Button
-                                component={Link}
-                                to="/manage/history"
-                                variant="outlined"
-                            >
+                            <Button component={Link} to="/manage/history" variant="outlined">
                                 Delivery History
                             </Button>
                         </div>
@@ -808,15 +631,10 @@ function TaskDetails({ user }) {
                                 fullWidth
                                 label="Failure Reason"
                                 value={reason}
-                                onChange={(event) =>
-                                    setReason(event.target.value)
-                                }
+                                onChange={(event) => setReason(event.target.value)}
                             >
                                 {failureReasons.map((value) => (
-                                    <MenuItem
-                                        key={value}
-                                        value={value}
-                                    >
+                                    <MenuItem key={value} value={value}>
                                         {value}
                                     </MenuItem>
                                 ))}
@@ -828,20 +646,11 @@ function TaskDetails({ user }) {
                                 minRows={2}
                                 label="Additional Notes"
                                 value={note}
-                                onChange={(event) =>
-                                    setNote(
-                                        event.target.value.slice(0, 200)
-                                    )
-                                }
+                                onChange={(event) => setNote(event.target.value.slice(0, 200))}
                             />
 
                             <div className="dtd-form-buttons">
-                                <Button
-                                    variant="outlined"
-                                    onClick={() =>
-                                        setShowFailure(false)
-                                    }
-                                >
+                                <Button variant="outlined" onClick={() => setShowFailure(false)}>
                                     Cancel
                                 </Button>
 
@@ -857,7 +666,7 @@ function TaskDetails({ user }) {
                         </div>
                     )}
 
-                    <p className="dtd-demo-note">
+                    <p className="dtd-info-note">
                         <i className="fa-solid fa-circle-info" />
                         OTP verification is handled by the backend.
                     </p>

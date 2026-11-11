@@ -45,7 +45,10 @@ function AccountLayout() {
     return (
         <section className="customer-account-page">
             <div className="container-fluid website-shell">
-                <nav className="products-breadcrumb customer-account-breadcrumb" aria-label="Breadcrumb">
+                <nav
+                    className="products-breadcrumb customer-account-breadcrumb"
+                    aria-label="Breadcrumb"
+                >
                     <Link to="/">Home</Link>
                     <i className="fa-solid fa-chevron-right" aria-hidden="true" />
 
@@ -72,7 +75,9 @@ function AccountLayout() {
                 <div className="cart-page-header customer-account-page-header">
                     <div>
                         <h1>My Account</h1>
-                        <p>Manage your personal details, delivery addresses and support requests.</p>
+                        <p>
+                            Manage your personal details, delivery addresses and support requests.
+                        </p>
                     </div>
                 </div>
 
@@ -88,7 +93,10 @@ function AccountLayout() {
                             </div>
                         </div>
 
-                        <nav className="customer-account-navigation" aria-label="Customer account navigation">
+                        <nav
+                            className="customer-account-navigation"
+                            aria-label="Customer account navigation"
+                        >
                             {accountLinks.map((item) => (
                                 <NavLink
                                     key={item.path}
@@ -102,7 +110,10 @@ function AccountLayout() {
                                         <i className={`fa-solid ${item.icon}`} aria-hidden="true" />
                                     </span>
                                     <span className="customer-account-nav-label">{item.label}</span>
-                                    <i className="fa-solid fa-chevron-right customer-account-nav-arrow" aria-hidden="true" />
+                                    <i
+                                        className="fa-solid fa-chevron-right customer-account-nav-arrow"
+                                        aria-hidden="true"
+                                    />
                                 </NavLink>
                             ))}
                         </nav>
@@ -115,10 +126,16 @@ function AccountLayout() {
                                 disabled={busy}
                             >
                                 <span className="customer-account-nav-icon">
-                                    <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden="true" />
+                                    <i
+                                        className="fa-solid fa-arrow-right-from-bracket"
+                                        aria-hidden="true"
+                                    />
                                 </span>
                                 <span>{busy ? "Logging out…" : "Logout"}</span>
-                                <i className="fa-solid fa-chevron-right customer-account-nav-arrow" aria-hidden="true" />
+                                <i
+                                    className="fa-solid fa-chevron-right customer-account-nav-arrow"
+                                    aria-hidden="true"
+                                />
                             </button>
                         </div>
                     </aside>

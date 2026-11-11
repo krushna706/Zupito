@@ -11,14 +11,13 @@ import {
     buildOrderParcels,
     getOverallStatus,
     getDeliveryInfo,
-    getParcelOtp
+    getParcelOtp,
 } from "../utils/orderStatus";
 import formatDate from "../utils/formatDate";
 import formatMoney from "../utils/formatCurrency";
 import ParcelTimeline from "../components/OrderTimeline";
 import ParcelDeliveryOtp from "../components/DeliveryOTP";
 import OrderItemImage from "../components/OrderItems";
-
 import { useState } from "react";
 import { useOrderResource } from "../services/orderService";
 import { Link, useParams } from "react-router-dom";
@@ -26,9 +25,6 @@ import ReviewForm from "../components/ReviewForm";
 import InvoiceDownload from "../components/InvoiceDownload";
 import OrderCancellation, { RefundStatus } from "../components/OrderCancellation";
 import ReplacementRequest, { ReplacementStatus } from "./ReplacementRequest";
-
-import { SHOW_DEMO_ORDERS, demoOrders, demoAddress } from "../data/orderPreview";
-
 function OrderDetailsContent({
     order = null,
     orders = null,
@@ -38,107 +34,76 @@ function OrderDetailsContent({
     onCancel,
     onRequestReplacement,
     onSubmitReview,
-    onDownloadInvoice
+    onDownloadInvoice,
 }) {
     const { orderId } = useParams();
-
     const [visibleOtps, setVisibleOtps] = useState({});
     const [replacementOpen, setReplacementOpen] = useState(false);
     const [reviewItem, setReviewItem] = useState(null);
-
-    const hasRealData = Boolean(order) || Array.isArray(orders);
-
-    const isDemo = SHOW_DEMO_ORDERS && !hasRealData;
-
     const realOrder =
         order && getOrderId(order) === orderId
             ? order
             : Array.isArray(orders)
               ? orders.find((item) => getOrderId(item) === orderId)
               : null;
-
-    const sampleOrder = isDemo ? demoOrders.find((item) => getOrderId(item) === orderId) : null;
-
-    const selectedOrder = realOrder || sampleOrder || null;
-
+    const selectedOrder = realOrder || null;
     const items = Array.isArray(selectedOrder?.items) ? selectedOrder.items : [];
-
-    const parcels = buildOrderParcels(selectedOrder, isDemo);
-
+    const parcels = buildOrderParcels(selectedOrder);
     const status = getOverallStatus(selectedOrder, parcels);
     const statusCategory = getStatusCategory(status);
-
     const orderDeliveryInfo =
         selectedOrder && parcels.length > 1
             ? {
                   label: "Delivery Schedule",
                   value: "See package details",
-                  type: "expected"
+                  type: "expected",
               }
             : selectedOrder && parcels.length === 1
               ? getDeliveryInfo(parcels[0], getParcelStatus(parcels[0]), selectedOrder)
               : null;
-
     const address = selectedOrder
-        ? selectedOrder.shippingAddress || selectedOrder.deliveryAddress || (isDemo ? demoAddress : null)
+        ? selectedOrder.shippingAddress || selectedOrder.deliveryAddress || null
         : null;
-
     const payment = selectedOrder?.payment || {};
-
-    const paymentMethod = payment.method || selectedOrder?.paymentMethod || (isDemo ? "Online Payment" : "");
-
-    const paymentStatus = String(
-        payment.status || selectedOrder?.paymentStatus || (isDemo ? "Paid (Demo)" : "")
-    );
-
-    const paymentIsPaid = ["paid", "paid_(demo)", "paid_demo", "completed", "success"].includes(
-        normalizeStatus(paymentStatus)
-    );
-
-    const isItemDelivered = (item, itemIndex) => {
+    const paymentMethod = payment.method || selectedOrder?.paymentMethod || "";
+    const paymentStatus = String(payment.status || selectedOrder?.paymentStatus || "");
+    const paymentIsPaid = ["paid", "completed", "success"].includes(normalizeStatus(paymentStatus));
+    const isItemDelivered = (item) => {
         return parcels.some((parcel) => {
             if (getParcelStatus(parcel) !== "delivered") {
                 return false;
             }
 
             // Match the exact item within a delivered package.
-            if (isDemo && Array.isArray(parcel.itemIndexes) && parcel.itemIndexes.includes(itemIndex)) {
-                return true;
-            }
 
             const orderItemId = getItemId(item);
-
             return parcel.items.some((parcelItem) => {
                 if (parcelItem === item) return true;
-
                 const parcelItemId = getItemId(parcelItem);
-
                 return Boolean(orderItemId) && parcelItemId === orderItemId;
             });
         });
     };
-
-    const deliveredItems = items.flatMap((item, index) => {
+    const deliveredItems = items.filter((item) => {
         const declaredEligible =
-            isDemo || item.replacementEligible === true || selectedOrder?.replacementEligible === true;
+            item.replacementPolicy?.allowed === true ||
+            item.replacementEligible === true ||
+            selectedOrder?.replacementEligible === true;
         if (
-            !isItemDelivered(item, index) ||
+            !isItemDelivered(item) ||
             !declaredEligible ||
             item.replacementEligible === false ||
             selectedOrder?.replacementEligible === false
         )
-            return [];
-
-        return [isDemo ? { ...item, demoItemId: `preview-item-${index}` } : item];
+            return false;
+        return true;
     });
-
     const canReplace = deliveredItems.length > 0;
     const canCancel = parcels.some((parcel) =>
         ["placed", "confirmed", "processing", "packing", "packed", "ready_for_pickup"].includes(
             getParcelStatus(parcel)
         )
     );
-
     if (loading || error || !selectedOrder) {
         return (
             <div className="customer-order-detail-page">
@@ -150,13 +115,7 @@ function OrderDetailsContent({
                 <div className="customer-detail-feedback">
                     <span>
                         <i
-                            className={`fa-solid ${
-                                loading
-                                    ? "fa-spinner fa-spin"
-                                    : error
-                                      ? "fa-circle-exclamation"
-                                      : "fa-box-open"
-                            }`}
+                            className={`fa-solid ${loading ? "fa-spinner fa-spin" : error ? "fa-circle-exclamation" : "fa-box-open"}`}
                             aria-hidden="true"
                         />
                     </span>
@@ -172,14 +131,15 @@ function OrderDetailsContent({
                     <p>
                         {loading
                             ? "Retrieving the latest order information."
-                            : error ||
-                              (isDemo
-                                  ? "This order is not available in the sample order list."
-                                  : "Order information is unavailable.")}
+                            : error || "Order information is unavailable."}
                     </p>
 
                     {!loading && error && typeof onRetry === "function" && (
-                        <button type="button" className="customer-detail-primary-button" onClick={onRetry}>
+                        <button
+                            type="button"
+                            className="customer-detail-primary-button"
+                            onClick={onRetry}
+                        >
                             Try Again
                         </button>
                     )}
@@ -187,26 +147,23 @@ function OrderDetailsContent({
             </div>
         );
     }
-
     const totalAmount = getOrderTotal(selectedOrder);
     const pricing = selectedOrder.pricing || {};
-
     const summaryRows = [
         {
             label: "Subtotal",
-            value: pricing.subtotal ?? selectedOrder.subtotal
+            value: pricing.subtotal ?? selectedOrder.subtotal,
         },
         {
             label: "Delivery Fee",
-            value: pricing.shippingFee ?? selectedOrder.shippingFee
+            value: pricing.shippingFee ?? selectedOrder.shippingFee,
         },
         {
             label: "Discount",
             value: pricing.discount ?? selectedOrder.discount,
-            discount: true
-        }
+            discount: true,
+        },
     ].filter((row) => row.value !== undefined && row.value !== null);
-
     return (
         <div className="customer-order-detail-page">
             <Link to="/account/orders" className="customer-detail-back">
@@ -222,13 +179,6 @@ function OrderDetailsContent({
                     <h2>Order Details</h2>
 
                     <p>Review your order items, payment and delivery information.</p>
-
-                    {isDemo && (
-                        <span className="customer-detail-demo-label">
-                            <i className="fa-solid fa-flask" aria-hidden="true" />
-                            Demo Preview — Sample order
-                        </span>
-                    )}
                 </div>
 
                 <span className="customer-detail-heading-icon">
@@ -269,7 +219,9 @@ function OrderDetailsContent({
                     <div>
                         <span>Order Total</span>
 
-                        <strong className="customer-detail-total">{formatMoney(totalAmount)}</strong>
+                        <strong className="customer-detail-total">
+                            {formatMoney(totalAmount)}
+                        </strong>
                     </div>
                 </div>
             </div>
@@ -289,7 +241,8 @@ function OrderDetailsContent({
                                 <h3>Order Items</h3>
 
                                 <p>
-                                    {items.length} {items.length === 1 ? "item" : "items"} in this order
+                                    {items.length} {items.length === 1 ? "item" : "items"} in this
+                                    order
                                 </p>
                             </div>
                         </div>
@@ -297,15 +250,16 @@ function OrderDetailsContent({
                         <div className="customer-detail-items">
                             {items.length ? (
                                 items.map((item, index) => {
-                                    const price = item.unitPrice ?? item.price ?? item.productSnapshot?.price;
-
+                                    const price =
+                                        item.unitPrice ?? item.price ?? item.productSnapshot?.price;
                                     const quantity = Number(item.quantity) || 1;
-
-                                    const delivered = isItemDelivered(item, index);
-                                    const productPath = getProductLink(item, isDemo);
-
+                                    const delivered = isItemDelivered(item);
+                                    const productPath = getProductLink(item);
                                     return (
-                                        <div className="customer-detail-item" key={getItemId(item) || index}>
+                                        <div
+                                            className="customer-detail-item"
+                                            key={getItemId(item) || index}
+                                        >
                                             <OrderItemImage item={item} />
 
                                             <div className="customer-detail-item-info">
@@ -370,8 +324,8 @@ function OrderDetailsContent({
                                 <h3>Delivery Tracking</h3>
 
                                 <p>
-                                    {parcels.length} {parcels.length === 1 ? "package" : "packages"} in this
-                                    order
+                                    {parcels.length} {parcels.length === 1 ? "package" : "packages"}{" "}
+                                    in this order
                                 </p>
                             </div>
                         </div>
@@ -379,32 +333,29 @@ function OrderDetailsContent({
                         <div className="customer-detail-parcels">
                             {parcels.map((parcel, index) => {
                                 const parcelStatus = getParcelStatus(parcel, status);
-
                                 const parcelCategory = getStatusCategory(parcelStatus);
-
                                 const deliveryInfo = getDeliveryInfo(
                                     parcel,
                                     parcelStatus,
                                     parcels.length === 1 ? selectedOrder : null
                                 );
-
                                 const parcelItems = Array.isArray(parcel.items) ? parcel.items : [];
-
                                 const otp = getParcelOtp(parcel);
-
                                 const canViewOtp =
                                     parcelStatus === "out_for_delivery" &&
                                     Boolean(otp) &&
                                     !parcel.otpVerified &&
                                     !parcel.delivery?.otpVerified;
-
                                 return (
                                     <article key={parcel.id} className="customer-detail-parcel">
                                         {/* Package Heading */}
                                         <div className="customer-detail-parcel-heading">
                                             <div className="customer-detail-parcel-title">
                                                 <span>
-                                                    <i className="fa-solid fa-box" aria-hidden="true" />
+                                                    <i
+                                                        className="fa-solid fa-box"
+                                                        aria-hidden="true"
+                                                    />
                                                 </span>
 
                                                 <div>
@@ -414,8 +365,13 @@ function OrderDetailsContent({
                                                 </div>
                                             </div>
 
-                                            <span className={`customer-detail-status is-${parcelCategory}`}>
-                                                <i className="fa-solid fa-circle" aria-hidden="true" />
+                                            <span
+                                                className={`customer-detail-status is-${parcelCategory}`}
+                                            >
+                                                <i
+                                                    className="fa-solid fa-circle"
+                                                    aria-hidden="true"
+                                                />
 
                                                 {getStatusLabel(parcelStatus)}
                                             </span>
@@ -445,23 +401,18 @@ function OrderDetailsContent({
                                         </div>
 
                                         {/* Package Timeline */}
-                                        <ParcelTimeline
-                                            parcel={parcel}
-                                            order={selectedOrder}
-                                            isDemo={isDemo}
-                                        />
+                                        <ParcelTimeline parcel={parcel} order={selectedOrder} />
 
                                         {/* Package Delivery OTP */}
                                         {canViewOtp && (
                                             <div className="customer-detail-parcel-otp">
                                                 <ParcelDeliveryOtp
                                                     otp={otp}
-                                                    isDemo={isDemo}
                                                     visible={Boolean(visibleOtps[parcel.id])}
                                                     onToggle={() =>
                                                         setVisibleOtps((previous) => ({
                                                             ...previous,
-                                                            [parcel.id]: !previous[parcel.id]
+                                                            [parcel.id]: !previous[parcel.id],
                                                         }))
                                                     }
                                                 />
@@ -484,7 +435,6 @@ function OrderDetailsContent({
                                 <OrderCancellation
                                     order={selectedOrder}
                                     parcels={parcels}
-                                    isDemo={isDemo}
                                     onCancel={onCancel}
                                 />
                             )}
@@ -502,7 +452,7 @@ function OrderDetailsContent({
                     )}
 
                     {/* Refund and Replacement Tracking */}
-                    <RefundStatus order={selectedOrder} parcels={parcels} isDemo={isDemo} />
+                    <RefundStatus order={selectedOrder} parcels={parcels} />
                     <ReplacementStatus order={selectedOrder} />
                 </div>
 
@@ -546,7 +496,9 @@ function OrderDetailsContent({
                                     )}
                                 </>
                             ) : (
-                                <p className="customer-detail-unavailable">Delivery address unavailable.</p>
+                                <p className="customer-detail-unavailable">
+                                    Delivery address unavailable.
+                                </p>
                             )}
                         </div>
                     </section>
@@ -604,7 +556,6 @@ function OrderDetailsContent({
                             <InvoiceDownload
                                 order={selectedOrder}
                                 address={address}
-                                isDemo={isDemo}
                                 onDownload={onDownloadInvoice}
                             />
                         </div>
@@ -646,23 +597,14 @@ function OrderDetailsContent({
                 order={selectedOrder}
                 items={deliveredItems}
                 address={address}
-                isDemo={isDemo}
                 onSubmit={onRequestReplacement}
             />
         </div>
     );
 }
-
 export default function OrderDetails() {
     const { orderId } = useParams();
-
-    const {
-        data,
-        loading,
-        error,
-        refresh,
-    } = useOrderResource("customer-detail", orderId);
-
+    const { data, loading, error, refresh } = useOrderResource("customer-detail", orderId);
     return (
         <OrderDetailsContent
             key={orderId}

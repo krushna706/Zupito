@@ -30,7 +30,7 @@ function ProductRow({ section }) {
 
             const selectedVariant = getDisplayVariant(product, {
                 variantId: product.variantId,
-                preferredVariantId: section.preferredVariantIds?.[product._id]
+                preferredVariantId: section.preferredVariantIds?.[product._id],
             });
 
             const view = getProductView(product, selectedVariant);
@@ -84,11 +84,14 @@ function ProductRow({ section }) {
 
             if (!first || !nextGroup) return;
 
-            const newWidth = nextGroup.getBoundingClientRect().left - first.getBoundingClientRect().left;
+            const newWidth =
+                nextGroup.getBoundingClientRect().left - first.getBoundingClientRect().left;
 
             if (newWidth <= 0) return;
 
-            const oldPosition = cycleWidth ? ((track.scrollLeft % cycleWidth) + cycleWidth) % cycleWidth : 0;
+            const oldPosition = cycleWidth
+                ? ((track.scrollLeft % cycleWidth) + cycleWidth) % cycleWidth
+                : 0;
 
             const progress = cycleWidth ? oldPosition / cycleWidth : 0;
 
@@ -105,7 +108,8 @@ function ProductRow({ section }) {
                 return;
             }
 
-            const relativePosition = (((current - cycleWidth) % cycleWidth) + cycleWidth) % cycleWidth;
+            const relativePosition =
+                (((current - cycleWidth) % cycleWidth) + cycleWidth) % cycleWidth;
 
             setPosition(cycleWidth + relativePosition);
         };
@@ -193,7 +197,7 @@ function ProductRow({ section }) {
             pointerId: event.pointerId,
             startX: event.clientX,
             startScroll: event.currentTarget.scrollLeft,
-            moved: false
+            moved: false,
         };
     };
 
@@ -332,7 +336,10 @@ function ProductRow({ section }) {
                 >
                     {[0, 1, 2].flatMap((copy) =>
                         loopProducts.map((product, index) => (
-                            <li key={`${copy}-${index}-${product._id}`} className="home-product-item">
+                            <li
+                                key={`${copy}-${index}-${product._id}`}
+                                className="home-product-item"
+                            >
                                 <ProductCard product={product} variantId={product.variantId} />
                             </li>
                         ))

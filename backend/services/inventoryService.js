@@ -19,10 +19,7 @@ exports.prepareVariantStock = (
     const movements = [];
 
     for (const old of oldVariants.values()) {
-        if (
-            !nextIds.has(old.variantId) &&
-            (old.stock > 0 || old.reservedQuantity > 0)
-        ) {
+        if (!nextIds.has(old.variantId) && (old.stock > 0 || old.reservedQuantity > 0)) {
             throw new ExpressError(
                 400,
                 `${old.sku}: Save zero stock before removing this variant.`
@@ -37,17 +34,11 @@ exports.prepareVariantStock = (
         const after = variant.stock;
 
         if (old && old.sku !== variant.sku) {
-            throw new ExpressError(
-                400,
-                "Existing variant SKUs cannot be changed."
-            );
+            throw new ExpressError(400, "Existing variant SKUs cannot be changed.");
         }
 
         if (after < reservedQuantity) {
-            throw new ExpressError(
-                400,
-                `${variant.sku}: Stock cannot be below reserved quantity.`
-            );
+            throw new ExpressError(400, `${variant.sku}: Stock cannot be below reserved quantity.`);
         }
 
         if (!old || before !== after) {
@@ -64,10 +55,7 @@ exports.prepareVariantStock = (
             }
 
             if (old && stockReason !== "Restock" && !stockNote) {
-                throw new ExpressError(
-                    400,
-                    "Explain the manual stock correction."
-                );
+                throw new ExpressError(400, "Explain the manual stock correction.");
             }
 
             movements.push({
@@ -79,9 +67,7 @@ exports.prepareVariantStock = (
                 beforeQuantity: before,
                 quantityChange: after - before,
                 afterQuantity: after,
-                reason: old
-                    ? `${stockReason} from Product Form`
-                    : "Opening stock for new variant",
+                reason: old ? `${stockReason} from Product Form` : "Opening stock for new variant",
                 note: stockNote,
                 actorUserId,
             });
@@ -99,8 +85,7 @@ exports.recordStockMovements = async (movements, session) => {
     }
 };
 
-const escapeInventoryRegex = (value) =>
-    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeInventoryRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 async function getInventorySeller(userId) {
     const seller = await SellerProfile.findOne({
@@ -212,7 +197,12 @@ exports.getInventory = async (userId, options) => {
         rows: result.rows,
         total: result.count[0]?.total || 0,
         statistics: result.statistics[0] || {
-            skus: 0, onHand: 0, reserved: 0, available: 0, low: 0, out: 0,
+            skus: 0,
+            onHand: 0,
+            reserved: 0,
+            available: 0,
+            low: 0,
+            out: 0,
         },
     };
 };
@@ -300,9 +290,7 @@ exports.changeInventoryStock = async (userId, values, source = "manual") => {
         throw new ExpressError(400, "Enter a valid stock quantity.");
     }
 
-    const operationKey = source === "csv"
-        ? `csv:${reference}:${sku}`
-        : `manual:${operationId}`;
+    const operationKey = source === "csv" ? `csv:${reference}:${sku}` : `manual:${operationId}`;
 
     const requestHash = createHash("sha256")
         .update(JSON.stringify({ sku, mode, quantity, reason, reference }))
@@ -330,7 +318,9 @@ exports.changeInventoryStock = async (userId, values, source = "manual") => {
             const previous = await StockMovement.findOne({
                 sellerProfileId: seller._id,
                 operationKey,
-            }).select("+requestHash").session(session);
+            })
+                .select("+requestHash")
+                .session(session);
 
             if (previous) return checkPrevious(previous);
 
@@ -363,9 +353,12 @@ exports.changeInventoryStock = async (userId, values, source = "manual") => {
             const variant = product.variants.find((item) => item.sku === sku);
             const before = variant.stock;
 
-            const after = mode === "add"
-                ? before + quantity
-                : mode === "remove" ? before - quantity : quantity;
+            const after =
+                mode === "add"
+                    ? before + quantity
+                    : mode === "remove"
+                      ? before - quantity
+                      : quantity;
 
             if (
                 !Number.isSafeInteger(after) ||
@@ -395,24 +388,32 @@ exports.changeInventoryStock = async (userId, values, source = "manual") => {
                 throw new ExpressError(409, "Inventory changed. Please retry.");
             }
 
-            await StockMovement.create([{
-                sellerProfileId: seller._id,
-                productId: product._id,
-                variantId: variant.variantId,
-                sku,
-                type: mode === "add"
-                    ? "Restock"
-                    : mode === "remove" ? "Damage/Loss" : "Adjustment",
-                beforeQuantity: before,
-                quantityChange: after - before,
-                afterQuantity: after,
-                reason,
-                reference,
-                source,
-                operationKey,
-                requestHash,
-                actorUserId: userId,
-            }], { session });
+            await StockMovement.create(
+                [
+                    {
+                        sellerProfileId: seller._id,
+                        productId: product._id,
+                        variantId: variant.variantId,
+                        sku,
+                        type:
+                            mode === "add"
+                                ? "Restock"
+                                : mode === "remove"
+                                  ? "Damage/Loss"
+                                  : "Adjustment",
+                        beforeQuantity: before,
+                        quantityChange: after - before,
+                        afterQuantity: after,
+                        reason,
+                        reference,
+                        source,
+                        operationKey,
+                        requestHash,
+                        actorUserId: userId,
+                    },
+                ],
+                { session }
+            );
 
             return {
                 outcome: after === before ? "Unchanged" : "Updated",

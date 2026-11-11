@@ -1,3 +1,4 @@
+import api from "../services/api";
 
 import { useEffect, useState } from "react";
 import {
@@ -23,61 +24,6 @@ import { toast } from "react-toastify";
 import { sortNewestFirst } from "../utils/sortNewestFirst";
 
 // ================== COUPON CONFIGURATION ==================
-const STORAGE_KEY = "zupito_admin_coupons";
-
-const scopes = [
-    "All Categories",
-    "Electronics",
-    "Fashion",
-    "Groceries",
-    "Health & Beauty",
-    "Home & Living",
-    "Travel Essentials",
-];
-
-function dateAfter(days) {
-    const now = new Date();
-    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
-
-    return [
-        date.getFullYear(),
-        String(date.getMonth() + 1).padStart(2, "0"),
-        String(date.getDate()).padStart(2, "0"),
-    ].join("-");
-}
-
-const initialCoupons = [
-    { code: "WELCOME10", name: "Welcome Offer", type: "Percentage", value: 10, cap: 200, minimum: 499, limit: 500, perCustomer: 1, used: 124, scope: "All Categories", start: -30, end: 30, enabled: true },
-    { code: "ZUPITO200", name: "Shopping Savings", type: "Fixed", value: 200, cap: 0, minimum: 1499, limit: 300, perCustomer: 2, used: 78, scope: "All Categories", start: -25, end: 20, enabled: true },
-    { code: "FASHION15", name: "Fashion Deals", type: "Percentage", value: 15, cap: 400, minimum: 999, limit: 150, perCustomer: 1, used: 31, scope: "Fashion", start: -20, end: 25, enabled: true },
-    { code: "GROCERY50", name: "Grocery Savings", type: "Fixed", value: 50, cap: 0, minimum: 399, limit: 100, perCustomer: 1, used: 86, scope: "Groceries", start: -18, end: 12, enabled: true },
-    { code: "ELEC5", name: "Electronics Offer", type: "Percentage", value: 5, cap: 500, minimum: 2999, limit: 80, perCustomer: 1, used: 11, scope: "Electronics", start: -12, end: 28, enabled: true },
-    { code: "SAVE100", name: "Limited Savings", type: "Fixed", value: 100, cap: 0, minimum: 799, limit: 120, perCustomer: 1, used: 120, scope: "All Categories", start: -25, end: 10, enabled: true },
-    { code: "TRAVEL20", name: "Travel Collection Offer", type: "Percentage", value: 20, cap: 600, minimum: 1599, limit: 100, perCustomer: 1, used: 0, scope: "Travel Essentials", start: 5, end: 35, enabled: true },
-    { code: "WEEKEND10", name: "Weekend Specials", type: "Percentage", value: 10, cap: 200, minimum: 599, limit: 200, perCustomer: 2, used: 23, scope: "All Categories", start: -5, end: 20, enabled: false },
-    { code: "OLDDEAL", name: "Previous Campaign", type: "Fixed", value: 150, cap: 0, minimum: 999, limit: 100, perCustomer: 1, used: 94, scope: "All Categories", start: -70, end: -7, enabled: true },
-    { code: "HOME5", name: "Home Essentials Offer", type: "Percentage", value: 5, cap: 150, minimum: 499, limit: 100, perCustomer: 1, used: 15, scope: "Home & Living", start: -3, end: 18, enabled: true },
-].map((coupon, index) => ({
-    id: `ZC${1001 + index}`,
-    code: coupon.code,
-    name: coupon.name,
-    type: coupon.type,
-    value: coupon.value,
-    maxDiscount: coupon.cap,
-    minOrder: coupon.minimum,
-    usageLimit: coupon.limit,
-    perCustomerLimit: coupon.perCustomer,
-    usageCount: coupon.used,
-    scope: coupon.scope,
-    validFrom: dateAfter(coupon.start),
-    validUntil: dateAfter(coupon.end),
-    enabled: coupon.enabled,
-    description: "",
-    createdAt: new Date(Date.now() - (9 - index) * 86400000).toISOString(),
-    updatedAt: null,
-    history: [],
-}));
-
 const createEmptyForm = () => ({
     name: "",
     code: "",
@@ -93,17 +39,17 @@ const createEmptyForm = () => ({
     validUntil: dateAfter(30),
 });
 
-// ================== HELPERS ==================
-function loadCoupons() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+const scopes = ["All Categories"];
 
-        if (Array.isArray(saved)) return saved;
-    } catch {
-        // Use initial preview records.
-    }
+function dateAfter(days) {
+    const now = new Date();
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
 
-    return initialCoupons;
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0"),
+    ].join("-");
 }
 
 function getCouponStatus(coupon) {
@@ -132,15 +78,14 @@ function formatDate(value) {
 
     if (parts.length !== 3) return value;
 
-    return new Date(
-        Number(parts[0]),
-        Number(parts[1]) - 1,
-        Number(parts[2])
-    ).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-    });
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).toLocaleDateString(
+        "en-IN",
+        {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+        }
+    );
 }
 
 function formatDiscount(coupon) {
@@ -150,13 +95,14 @@ function formatDiscount(coupon) {
 }
 
 function CouponBadge({ value }) {
-    const theme = {
-        Active: "success",
-        Scheduled: "blue",
-        Paused: "neutral",
-        Exhausted: "warning",
-        Expired: "danger",
-    }[value] || "neutral";
+    const theme =
+        {
+            Active: "success",
+            Scheduled: "blue",
+            Paused: "neutral",
+            Exhausted: "warning",
+            Expired: "danger",
+        }[value] || "neutral";
 
     return (
         <span className={`mc-badge mc-badge--${theme}`}>
@@ -177,7 +123,7 @@ function DetailItem({ label, value }) {
 
 // ================== COUPON MANAGEMENT ==================
 function Coupons() {
-    const [coupons, setCoupons] = useState(loadCoupons);
+    const [coupons, setCoupons] = useState([]);
 
     // ================== FILTERS ==================
     const [search, setSearch] = useState("");
@@ -202,14 +148,10 @@ function Coupons() {
     const editingCoupon = coupons.find((coupon) => coupon.id === editingId);
     const actionCoupon = coupons.find((coupon) => coupon.id === statusAction?.id);
 
-    // ================== SAVE RECORDS ==================
+    const loadCoupons = async () => setCoupons((await api.get("/coupons")).data.coupons);
     useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(coupons));
-        } catch {
-            // Continue with current React state.
-        }
-    }, [coupons]);
+        loadCoupons().catch((error) => toast.error(error.message));
+    }, []);
 
     // ================== STATISTICS ==================
     const statistics = [
@@ -256,23 +198,24 @@ function Coupons() {
                 coupon.scope,
                 coupon.description,
                 coupon.id,
-            ].some((value) => String(value || "").toLowerCase().includes(query));
+            ].some((value) =>
+                String(value || "")
+                    .toLowerCase()
+                    .includes(query)
+            );
 
-            return matchesSearch &&
+            return (
+                matchesSearch &&
                 (statusFilter === "All" || getCouponStatus(coupon) === statusFilter) &&
-                (typeFilter === "All" || coupon.type === typeFilter);
+                (typeFilter === "All" || coupon.type === typeFilter)
+            );
         }),
         "createdAt"
     );
 
-    const visibleCoupons = filteredCoupons.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
-    );
+    const visibleCoupons = filteredCoupons.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
-    const hasFilters = Boolean(search.trim()) ||
-        statusFilter !== "All" ||
-        typeFilter !== "All";
+    const hasFilters = Boolean(search.trim()) || statusFilter !== "All" || typeFilter !== "All";
 
     // ================== FILTER ACTIONS ==================
     const resetFilters = () => {
@@ -283,7 +226,7 @@ function Coupons() {
     };
 
     const handleRefresh = () => {
-        setCoupons(loadCoupons());
+        loadCoupons().catch((error) => toast.error(error.message));
         setPage(0);
         toast.info("Coupon records refreshed.");
     };
@@ -293,21 +236,24 @@ function Coupons() {
         setSelectedId(null);
         setEditingId(coupon?.id || null);
 
-        setForm(coupon ? {
-            name: coupon.name,
-            code: coupon.code,
-            description: coupon.description || "",
-            type: coupon.type,
-            value: String(coupon.value),
-            maxDiscount: coupon.type === "Percentage"
-                ? String(coupon.maxDiscount) : "",
-            minOrder: String(coupon.minOrder),
-            scope: coupon.scope,
-            usageLimit: String(coupon.usageLimit),
-            perCustomerLimit: String(coupon.perCustomerLimit),
-            validFrom: coupon.validFrom,
-            validUntil: coupon.validUntil,
-        } : createEmptyForm());
+        setForm(
+            coupon
+                ? {
+                      name: coupon.name,
+                      code: coupon.code,
+                      description: coupon.description || "",
+                      type: coupon.type,
+                      value: String(coupon.value),
+                      maxDiscount: coupon.type === "Percentage" ? String(coupon.maxDiscount) : "",
+                      minOrder: String(coupon.minOrder),
+                      scope: coupon.scope,
+                      usageLimit: String(coupon.usageLimit),
+                      perCustomerLimit: String(coupon.perCustomerLimit),
+                      validFrom: coupon.validFrom,
+                      validUntil: coupon.validUntil,
+                  }
+                : createEmptyForm()
+        );
 
         setFormError("");
         setShowForm(true);
@@ -333,7 +279,7 @@ function Coupons() {
         setFormError("");
     };
 
-    const handleSave = (event) => {
+    const handleSave = async (event) => {
         event.preventDefault();
 
         const name = form.name.trim();
@@ -355,9 +301,7 @@ function Coupons() {
             return;
         }
 
-        if (coupons.some((coupon) =>
-            coupon.code === code && coupon.id !== editingId
-        )) {
+        if (coupons.some((coupon) => coupon.code === code && coupon.id !== editingId)) {
             setFormError("This coupon code already exists.");
             return;
         }
@@ -372,8 +316,10 @@ function Coupons() {
             return;
         }
 
-        if (form.type === "Percentage" &&
-            (!form.maxDiscount.trim() || !Number.isFinite(cap) || cap <= 0)) {
+        if (
+            form.type === "Percentage" &&
+            (!form.maxDiscount.trim() || !Number.isFinite(cap) || cap <= 0)
+        ) {
             setFormError("Enter a valid maximum discount amount.");
             return;
         }
@@ -388,8 +334,11 @@ function Coupons() {
             return;
         }
 
-        if (!Number.isInteger(perCustomerLimit) ||
-            perCustomerLimit < 1 || perCustomerLimit > usageLimit) {
+        if (
+            !Number.isInteger(perCustomerLimit) ||
+            perCustomerLimit < 1 ||
+            perCustomerLimit > usageLimit
+        ) {
             setFormError("Per-customer limit must be between 1 and the total usage limit.");
             return;
         }
@@ -404,14 +353,15 @@ function Coupons() {
             return;
         }
 
-        if (!form.validFrom || !form.validUntil ||
-            form.validFrom > form.validUntil) {
+        if (!form.validFrom || !form.validUntil || form.validFrom > form.validUntil) {
             setFormError("End date must be on or after the start date.");
             return;
         }
 
-        if (form.validUntil < dateAfter(0) &&
-            (!editingCoupon || form.validUntil !== editingCoupon.validUntil)) {
+        if (
+            form.validUntil < dateAfter(0) &&
+            (!editingCoupon || form.validUntil !== editingCoupon.validUntil)
+        ) {
             setFormError("New validity end date cannot be in the past.");
             return;
         }
@@ -436,44 +386,15 @@ function Coupons() {
             validUntil: form.validUntil,
         };
 
-        const now = new Date().toISOString();
-
-        if (editingId) {
-            setCoupons((previous) => previous.map((coupon) =>
-                coupon.id === editingId
-                    ? {
-                          ...coupon,
-                          ...details,
-                          updatedAt: now,
-                          history: [
-                              ...(coupon.history || []),
-                              {
-                                  action: "Updated",
-                                  date: now,
-                                  note: "Coupon configuration updated by Admin.",
-                              },
-                          ],
-                      }
-                    : coupon
-            ));
-
-            toast.success("Coupon updated successfully.");
-        } else {
-            setCoupons((previous) => [
-                ...previous,
-                {
-                    id: `ZC-${crypto.randomUUID()}`,
-                    ...details,
-                    enabled: true,
-                    usageCount: 0,
-                    createdAt: now,
-                    updatedAt: null,
-                    history: [],
-                },
-            ]);
-
-            toast.success("Coupon created successfully.");
+        try {
+            if (editingId) await api.patch(`/coupons/${editingId}`, details);
+            else await api.post("/coupons", details);
+            await loadCoupons();
+        } catch (error) {
+            setFormError(error.message);
+            return;
         }
+        toast.success("Coupon saved.");
 
         setPage(0);
         closeForm();
@@ -496,65 +417,18 @@ function Coupons() {
         setActionError("");
     };
 
-    const handleStatusUpdate = () => {
-        if (!actionCoupon) {
+    const handleStatusUpdate = async () => {
+        if (!actionCoupon) return;
+        try {
+            await api.patch(`/coupons/${actionCoupon.id}/status`, {
+                enabled: statusAction.type === "activate",
+                reason: actionReason.trim() || "Campaign enabled by administrator.",
+            });
+            await loadCoupons();
             closeStatusAction();
-            return;
+        } catch (error) {
+            setActionError(error.message);
         }
-
-        if (statusAction.type === "pause" && !actionCoupon.enabled) {
-            setActionError("Coupon is already paused.");
-            return;
-        }
-
-        if (statusAction.type === "activate") {
-            if (actionCoupon.enabled) {
-                setActionError("Coupon is already enabled.");
-                return;
-            }
-
-            if (actionCoupon.validUntil < dateAfter(0)) {
-                setActionError("Extend the validity date before activating.");
-                return;
-            }
-
-            if (actionCoupon.usageCount >= actionCoupon.usageLimit) {
-                setActionError("Increase the usage limit before activating.");
-                return;
-            }
-        }
-
-        if (statusAction.type === "pause" &&
-            actionReason.trim().length < 5) {
-            setActionError("Enter a reason containing at least 5 characters.");
-            return;
-        }
-
-        const enabled = statusAction.type === "activate";
-        const now = new Date().toISOString();
-
-        setCoupons((previous) => previous.map((coupon) =>
-            coupon.id === statusAction.id
-                ? {
-                      ...coupon,
-                      enabled,
-                      updatedAt: now,
-                      history: [
-                          ...(coupon.history || []),
-                          {
-                              action: enabled ? "Activated" : "Paused",
-                              date: now,
-                              note: enabled
-                                  ? "Coupon activated by Admin."
-                                  : actionReason.trim(),
-                          },
-                      ],
-                  }
-                : coupon
-        ));
-
-        toast.success(enabled ? "Coupon activated successfully." : "Coupon paused successfully.");
-        closeStatusAction();
     };
 
     return (
@@ -568,8 +442,8 @@ function Coupons() {
                     </span>
 
                     <p>
-                        Create promotional offers, control discount limits,
-                        campaign validity and coupon availability.
+                        Create promotional offers, control discount limits, campaign validity and
+                        coupon availability.
                     </p>
                 </div>
 
@@ -584,8 +458,10 @@ function Coupons() {
 
                     <Button
                         variant="contained"
-                        onClick={() => showForm ? closeForm() : openForm()}
-                        startIcon={<i className={`fa-solid ${showForm ? "fa-xmark" : "fa-plus"}`} />}
+                        onClick={() => (showForm ? closeForm() : openForm())}
+                        startIcon={
+                            <i className={`fa-solid ${showForm ? "fa-xmark" : "fa-plus"}`} />
+                        }
                     >
                         {showForm ? "Close Form" : "Add Coupon"}
                     </Button>
@@ -603,7 +479,9 @@ function Coupons() {
 
                             <div>
                                 <h2>{editingId ? "Edit Coupon" : "Add Coupon"}</h2>
-                                <p>Configure promotion details, eligibility and redemption limits.</p>
+                                <p>
+                                    Configure promotion details, eligibility and redemption limits.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -663,9 +541,11 @@ function Coupons() {
                             </TextField>
 
                             <TextField
-                                label={form.type === "Percentage"
-                                    ? "Discount Percentage"
-                                    : "Fixed Discount Amount"}
+                                label={
+                                    form.type === "Percentage"
+                                        ? "Discount Percentage"
+                                        : "Fixed Discount Amount"
+                                }
                                 name="value"
                                 type="number"
                                 value={form.value}
@@ -693,9 +573,11 @@ function Coupons() {
                                 value={form.maxDiscount}
                                 onChange={handleFormChange}
                                 disabled={form.type !== "Percentage"}
-                                helperText={form.type === "Fixed"
-                                    ? "Not required for fixed discounts."
-                                    : "Maximum rupee discount per redemption."}
+                                helperText={
+                                    form.type === "Fixed"
+                                        ? "Not required for fixed discounts."
+                                        : "Maximum rupee discount per redemption."
+                                }
                                 slotProps={{ htmlInput: { min: 0, step: "0.01" } }}
                                 fullWidth
                             />
@@ -710,7 +592,9 @@ function Coupons() {
                                 fullWidth
                             >
                                 {scopes.map((scope) => (
-                                    <MenuItem key={scope} value={scope}>{scope}</MenuItem>
+                                    <MenuItem key={scope} value={scope}>
+                                        {scope}
+                                    </MenuItem>
                                 ))}
                             </TextField>
                         </div>
@@ -772,7 +656,7 @@ function Coupons() {
                         <div className="mc-form-footer">
                             <span>
                                 <i className="fa-solid fa-circle-info" />
-                                Coupon settings are saved in frontend demo storage.
+                                Coupon settings are validated and saved on the server.
                             </span>
 
                             <div>
@@ -821,9 +705,7 @@ function Coupons() {
                         </div>
                     </div>
 
-                    <span className="mc-record-count">
-                        {filteredCoupons.length} Records
-                    </span>
+                    <span className="mc-record-count">{filteredCoupons.length} Records</span>
                 </div>
 
                 {/* ================== FILTERS ================== */}
@@ -863,7 +745,9 @@ function Coupons() {
                     >
                         <MenuItem value="All">All Statuses</MenuItem>
                         {["Active", "Scheduled", "Paused", "Expired", "Exhausted"].map((status) => (
-                            <MenuItem key={status} value={status}>{status}</MenuItem>
+                            <MenuItem key={status} value={status}>
+                                {status}
+                            </MenuItem>
                         ))}
                     </TextField>
 
@@ -955,7 +839,10 @@ function Coupons() {
 
                                             <progress
                                                 max={coupon.usageLimit}
-                                                value={Math.min(coupon.usageCount, coupon.usageLimit)}
+                                                value={Math.min(
+                                                    coupon.usageCount,
+                                                    coupon.usageLimit
+                                                )}
                                                 aria-label={`${coupon.code} redemption usage`}
                                             />
                                         </div>
@@ -1028,6 +915,7 @@ function Coupons() {
                 onClose={() => setSelectedId(null)}
                 fullWidth
                 maxWidth="sm"
+                className="panel-record-dialog"
                 slotProps={{ paper: { className: "mc-dialog" } }}
             >
                 {selectedCoupon && (
@@ -1050,16 +938,30 @@ function Coupons() {
 
                                 <dl className="mc-detail-grid">
                                     <DetailItem label="Discount Type" value={selectedCoupon.type} />
-                                    <DetailItem label="Discount Value" value={formatDiscount(selectedCoupon)} />
+                                    <DetailItem
+                                        label="Discount Value"
+                                        value={formatDiscount(selectedCoupon)}
+                                    />
                                     <DetailItem
                                         label="Maximum Discount"
-                                        value={selectedCoupon.type === "Percentage"
-                                            ? formatMoney(selectedCoupon.maxDiscount)
-                                            : "Not applicable"}
+                                        value={
+                                            selectedCoupon.type === "Percentage"
+                                                ? formatMoney(selectedCoupon.maxDiscount)
+                                                : "Not applicable"
+                                        }
                                     />
-                                    <DetailItem label="Minimum Order" value={formatMoney(selectedCoupon.minOrder)} />
-                                    <DetailItem label="Applicable Category" value={selectedCoupon.scope} />
-                                    <DetailItem label="Coupon Status" value={getCouponStatus(selectedCoupon)} />
+                                    <DetailItem
+                                        label="Minimum Order"
+                                        value={formatMoney(selectedCoupon.minOrder)}
+                                    />
+                                    <DetailItem
+                                        label="Applicable Category"
+                                        value={selectedCoupon.scope}
+                                    />
+                                    <DetailItem
+                                        label="Coupon Status"
+                                        value={getCouponStatus(selectedCoupon)}
+                                    />
                                 </dl>
                             </div>
 
@@ -1067,13 +969,28 @@ function Coupons() {
                                 <h4>Validity & Usage</h4>
 
                                 <dl className="mc-detail-grid">
-                                    <DetailItem label="Valid From" value={formatDate(selectedCoupon.validFrom)} />
-                                    <DetailItem label="Valid Until" value={formatDate(selectedCoupon.validUntil)} />
-                                    <DetailItem label="Total Usage Limit" value={selectedCoupon.usageLimit} />
-                                    <DetailItem label="Used Count" value={selectedCoupon.usageCount} />
+                                    <DetailItem
+                                        label="Valid From"
+                                        value={formatDate(selectedCoupon.validFrom)}
+                                    />
+                                    <DetailItem
+                                        label="Valid Until"
+                                        value={formatDate(selectedCoupon.validUntil)}
+                                    />
+                                    <DetailItem
+                                        label="Total Usage Limit"
+                                        value={selectedCoupon.usageLimit}
+                                    />
+                                    <DetailItem
+                                        label="Used Count"
+                                        value={selectedCoupon.usageCount}
+                                    />
                                     <DetailItem
                                         label="Remaining Uses"
-                                        value={Math.max(0, selectedCoupon.usageLimit - selectedCoupon.usageCount)}
+                                        value={Math.max(
+                                            0,
+                                            selectedCoupon.usageLimit - selectedCoupon.usageCount
+                                        )}
                                     />
                                     <DetailItem
                                         label="Per-Customer Limit"
@@ -1084,7 +1001,10 @@ function Coupons() {
                                 <div className="mc-detail-usage">
                                     <progress
                                         max={selectedCoupon.usageLimit}
-                                        value={Math.min(selectedCoupon.usageCount, selectedCoupon.usageLimit)}
+                                        value={Math.min(
+                                            selectedCoupon.usageCount,
+                                            selectedCoupon.usageLimit
+                                        )}
                                     />
                                 </div>
                             </div>
@@ -1101,21 +1021,26 @@ function Coupons() {
                                     <h4>Administrative History</h4>
 
                                     <div className="mc-history">
-                                        {[...selectedCoupon.history].reverse().map((entry, index) => (
-                                            <div key={index}>
-                                                <strong>{entry.action}</strong>
-                                                <small>{new Date(entry.date).toLocaleString("en-IN")}</small>
-                                                <p>{entry.note}</p>
-                                            </div>
-                                        ))}
+                                        {[...selectedCoupon.history]
+                                            .reverse()
+                                            .map((entry, index) => (
+                                                <div key={index}>
+                                                    <strong>{entry.action}</strong>
+                                                    <small>
+                                                        {new Date(entry.date).toLocaleString(
+                                                            "en-IN"
+                                                        )}
+                                                    </small>
+                                                    <p>{entry.note}</p>
+                                                </div>
+                                            ))}
                                     </div>
                                 </div>
                             )}
 
                             <Alert severity="info" className="mc-dialog-alert">
-                                Coupon usage counts are preview data. Real checkout
-                                redemption validation and usage tracking will
-                                be implemented in the backend.
+                                Coupon usage includes confirmed redemptions. Checkout redemption
+                                validation and usage tracking will be implemented in the backend.
                             </Alert>
                         </DialogContent>
 
@@ -1129,7 +1054,9 @@ function Coupons() {
                             </Button>
 
                             {selectedCoupon.enabled &&
-                                ["Active", "Scheduled"].includes(getCouponStatus(selectedCoupon)) && (
+                                ["Active", "Scheduled"].includes(
+                                    getCouponStatus(selectedCoupon)
+                                ) && (
                                     <Button
                                         variant="contained"
                                         color="warning"
@@ -1158,12 +1085,11 @@ function Coupons() {
                 onClose={closeStatusAction}
                 fullWidth
                 maxWidth="xs"
+                className="panel-record-dialog"
                 slotProps={{ paper: { className: "mc-dialog" } }}
             >
                 <DialogTitle>
-                    {statusAction?.type === "pause"
-                        ? "Pause Coupon"
-                        : "Activate Coupon"}
+                    {statusAction?.type === "pause" ? "Pause Coupon" : "Activate Coupon"}
                 </DialogTitle>
 
                 <DialogContent dividers>
@@ -1174,8 +1100,8 @@ function Coupons() {
                     {statusAction?.type === "pause" ? (
                         <>
                             <Alert severity="warning" className="mc-dialog-alert">
-                                New coupon redemptions will be blocked.
-                                Previous orders will remain unchanged.
+                                New coupon redemptions will be blocked. Previous orders will remain
+                                unchanged.
                             </Alert>
 
                             <TextField
@@ -1194,8 +1120,8 @@ function Coupons() {
                         </>
                     ) : (
                         <Alert severity="info" className="mc-dialog-alert">
-                            Activation enables the coupon subject to its validity
-                            dates and remaining usage limit.
+                            Activation enables the coupon subject to its validity dates and
+                            remaining usage limit.
                         </Alert>
                     )}
 

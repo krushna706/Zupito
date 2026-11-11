@@ -1,81 +1,57 @@
-import { calculateCheckoutPricing, coupons } from "../../services/cartService";
+import { calculateCheckoutPricing } from "../../services/cartService";
 import { useState } from "react";
 import { Button, TextField } from "@mui/material";
 
 const formatPrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    minimumFractionDigits: 2
+    minimumFractionDigits: 2,
 }).format;
 
-function CheckoutSummary({ cartItems = [], couponCode, onCouponChange, serverPricing }) {
+function CheckoutSummary({ cartItems = [], onCouponChange, serverPricing }) {
     const [couponInput, setCouponInput] = useState("");
-    const [localCoupon, setLocalCoupon] = useState("");
+    const [applying, setApplying] = useState(false);
     const [couponError, setCouponError] = useState("");
 
-    // Supports both standalone and parent-controlled coupon state.
-    const controlled = typeof couponCode === "string" && typeof onCouponChange === "function";
-
-    const selectedCoupon = controlled ? couponCode : localCoupon;
-
-    const updateCoupon = (code) => {
-        if (controlled) {
-            onCouponChange(code);
-        } else {
-            setLocalCoupon(code);
-        }
-    };
-
-    const pricing = serverPricing || calculateCheckoutPricing(cartItems, selectedCoupon);
-    const invalidCoupon = selectedCoupon && !pricing.appliedCoupon;
-    const visibleCouponError =
-        couponError || (invalidCoupon ? "Coupon is not eligible for this order value." : "");
+    const pricing = serverPricing || calculateCheckoutPricing(cartItems);
+    const visibleCouponError = couponError;
 
     const {
         itemCount,
         originalPrice,
-        subtotal,
         productDiscount,
         couponDiscount,
         deliveryCharge,
         amountForFreeDelivery,
         total,
         totalSavings,
-        appliedCoupon
+        appliedCoupon,
     } = pricing;
 
-    // Remove coupon automatically when cart becomes ineligible.
+    const updateCoupon = async (code) => {
+        if (applying || typeof onCouponChange !== "function") return;
+        setApplying(true);
+        setCouponError("");
+        try {
+            await onCouponChange(code);
+            setCouponInput("");
+        } catch (error) {
+            setCouponError(error.message);
+        } finally {
+            setApplying(false);
+        }
+    };
 
     const handleApplyCoupon = () => {
         const code = couponInput.trim().toUpperCase();
-
         if (!code) {
             setCouponError("Please enter a coupon code.");
             return;
         }
-
-        const coupon = coupons[code];
-
-        if (!coupon) {
-            setCouponError("Invalid coupon code. Please try another.");
-            return;
-        }
-
-        if (subtotal < coupon.minAmount) {
-            setCouponError(`Minimum order of ${formatPrice(coupon.minAmount)} required.`);
-            return;
-        }
-
-        updateCoupon(code);
-        setCouponInput("");
-        setCouponError("");
+        void updateCoupon(code);
     };
 
-    const handleRemoveCoupon = () => {
-        updateCoupon("");
-        setCouponInput("");
-        setCouponError("");
-    };
+    const handleRemoveCoupon = () => void updateCoupon("");
 
     return (
         <aside className="cart-panel checkout-summary" aria-label="Order summary">
@@ -151,6 +127,7 @@ function CheckoutSummary({ cartItems = [], couponCode, onCouponChange, serverPri
                                 type="button"
                                 className="checkout-coupon-remove"
                                 onClick={handleRemoveCoupon}
+                                disabled={applying}
                             >
                                 Remove
                             </button>
@@ -177,8 +154,8 @@ function CheckoutSummary({ cartItems = [], couponCode, onCouponChange, serverPri
                                     slotProps={{
                                         htmlInput: {
                                             maxLength: 30,
-                                            autoComplete: "off"
-                                        }
+                                            autoComplete: "off",
+                                        },
                                     }}
                                     error={Boolean(visibleCouponError)}
                                     fullWidth
@@ -189,8 +166,9 @@ function CheckoutSummary({ cartItems = [], couponCode, onCouponChange, serverPri
                                     variant="contained"
                                     className="checkout-coupon-apply"
                                     onClick={handleApplyCoupon}
+                                    disabled={applying}
                                 >
-                                    Apply
+                                    {applying ? "Checking…" : "Apply"}
                                 </Button>
                             </div>
 
@@ -199,11 +177,6 @@ function CheckoutSummary({ cartItems = [], couponCode, onCouponChange, serverPri
                                     {visibleCouponError}
                                 </p>
                             )}
-
-                            <p className="checkout-coupon-hint">
-                                Available offers: <strong>ZUPITO10</strong> (10% off, up to ₹100, ₹499+ order)
-                                and <strong>WELCOME50</strong> (₹50 off, ₹999+ order).
-                            </p>
                         </>
                     )}
                 </div>

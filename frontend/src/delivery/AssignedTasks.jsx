@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -40,12 +39,7 @@ const statuses = [
     ["failed", "Delivery Failed"],
 ];
 
-const types = [
-    "All",
-    "Customer Delivery",
-    "Return Pickup",
-    "Replacement Delivery",
-];
+const types = ["All", "Customer Delivery", "Return Pickup", "Replacement Delivery"];
 
 const icons = {
     "Customer Delivery": "fa-truck-fast",
@@ -57,45 +51,33 @@ const icons = {
 function addressText(address, pincode = "") {
     if (typeof address === "string") return address;
 
-    return [
-        address?.house,
-        address?.street,
-        address?.area,
-        address?.locality,
-        address?.city,
-        address?.state,
-        address?.pincode || pincode,
-    ].filter(Boolean).join(", ") || "Address not available";
+    return (
+        [
+            address?.house,
+            address?.street,
+            address?.area,
+            address?.locality,
+            address?.city,
+            address?.state,
+            address?.pincode || pincode,
+        ]
+            .filter(Boolean)
+            .join(", ") || "Address not available"
+    );
 }
 
 function routeOf(task) {
     const reverse = task.kind === "replacement_pickup";
 
     return {
-        from: reverse
-            ? task.customerName
-            : task.sellerName,
-        to: reverse
-            ? task.sellerName
-            : task.customerName,
-        fromPin: reverse
-            ? task.deliveryPincode
-            : task.pickupPincode,
-        toPin: reverse
-            ? task.pickupPincode
-            : task.deliveryPincode,
-        fromAddress: reverse
-            ? task.customerAddress
-            : task.pickupAddress,
-        toAddress: reverse
-            ? task.sellerAddress
-            : task.customerAddress,
-        fromLabel: reverse
-            ? "Customer Pickup"
-            : "Seller Pickup",
-        toLabel: reverse
-            ? "Seller Return"
-            : "Customer Delivery",
+        from: reverse ? task.customerName : task.sellerName,
+        to: reverse ? task.sellerName : task.customerName,
+        fromPin: reverse ? task.deliveryPincode : task.pickupPincode,
+        toPin: reverse ? task.pickupPincode : task.deliveryPincode,
+        fromAddress: reverse ? task.customerAddress : task.pickupAddress,
+        toAddress: reverse ? task.sellerAddress : task.customerAddress,
+        fromLabel: reverse ? "Customer Pickup" : "Seller Pickup",
+        toLabel: reverse ? "Seller Return" : "Customer Delivery",
     };
 }
 
@@ -109,11 +91,11 @@ function summaryText(task) {
 
     return [
         first.name,
-        items.length > 1
-            ? `+${items.length - 1} more`
-            : null,
+        items.length > 1 ? `+${items.length - 1} more` : null,
         `Qty ${task.totalQuantity || 0}`,
-    ].filter(Boolean).join(" · ");
+    ]
+        .filter(Boolean)
+        .join(" · ");
 }
 
 function StatusBadge({ stage }) {
@@ -126,9 +108,7 @@ function StatusBadge({ stage }) {
     };
 
     return (
-        <span className={`dta-status is-${
-            colors[stage] || "neutral"
-        }`}>
+        <span className={`dta-status is-${colors[stage] || "neutral"}`}>
             <i className="fa-solid fa-circle" />
             {deliveryStageLabel(stage)}
         </span>
@@ -151,20 +131,15 @@ function OrderedItems({ task }) {
     return (
         <div className="dta-detail-section">
             <h3>
-                <i className="fa-solid fa-bag-shopping" />
-                {" "}Ordered Items ({items.length})
+                <i className="fa-solid fa-bag-shopping" /> Ordered Items ({items.length})
             </h3>
 
             <p>
-                Total ordered quantity:{" "}
-                <strong>{task.totalQuantity || 0}</strong>
+                Total ordered quantity: <strong>{task.totalQuantity || 0}</strong>
             </p>
 
             {items.map((item, index) => (
-                <div
-                    className="dta-detail"
-                    key={`${item.id}-${index}`}
-                >
+                <div className="dta-detail" key={`${item.id}-${index}`}>
                     <dt>
                         {item.image ? (
                             <img
@@ -182,27 +157,18 @@ function OrderedItems({ task }) {
                     <dd>
                         <strong>{item.name}</strong>
 
-                        <p>
-                            {item.variantLabel ||
-                                "Standard Variant"}
-                        </p>
+                        <p>{item.variantLabel || "Standard Variant"}</p>
 
-                        {item.brand && (
-                            <small>Brand: {item.brand}</small>
-                        )}
+                        {item.brand && <small>Brand: {item.brand}</small>}
 
-                        {item.sku && (
-                            <small> SKU: {item.sku}</small>
-                        )}
+                        {item.sku && <small> SKU: {item.sku}</small>}
 
                         <strong> Qty: {item.quantity}</strong>
                     </dd>
                 </div>
             ))}
 
-            {!items.length && (
-                <p>Order item details are unavailable.</p>
-            )}
+            {!items.length && <p>Order item details are unavailable.</p>}
         </div>
     );
 }
@@ -215,9 +181,7 @@ function MobileTaskCard({ task, onView }) {
         <article className="dta-mobile-card">
             <div className="dta-mobile-card-top">
                 <span className="dta-task-icon">
-                    <i className={`fa-solid ${
-                        icons[task.taskType] || "fa-box"
-                    }`} />
+                    <i className={`fa-solid ${icons[task.taskType] || "fa-box"}`} />
                 </span>
 
                 <div className="dta-mobile-identity">
@@ -267,15 +231,10 @@ function MobileTaskCard({ task, onView }) {
             <div className="dta-mobile-footer">
                 <span>
                     <i className="fa-regular fa-clock" />
-                    {formatDeliveryDate(
-                        task.assignedAt || task.createdAt
-                    )}
+                    {formatDeliveryDate(task.assignedAt || task.createdAt)}
                 </span>
 
-                <Button
-                    variant="contained"
-                    onClick={() => onView(task.id)}
-                >
+                <Button variant="contained" onClick={() => onView(task.id)}>
                     View Task
                 </Button>
             </div>
@@ -288,13 +247,9 @@ function AssignedTasks({ user }) {
     const navigate = useNavigate();
     const isMobile = useMediaQuery("(max-width:600px)");
 
-    const [agent, setAgent] = useState(() =>
-        getDeliveryAgent(user)
-    );
+    const [agent, setAgent] = useState(() => getDeliveryAgent(user));
 
-    const [tasks, setTasks] = useState(() =>
-        getDeliveryTasks(user)
-    );
+    const [tasks, setTasks] = useState(() => getDeliveryTasks(user));
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -330,20 +285,14 @@ function AssignedTasks({ user }) {
 
         load();
 
-        window.addEventListener(
-            "zupito:delivery-updated",
-            sync
-        );
+        window.addEventListener("zupito:delivery-updated", sync);
 
         return () => {
             active = false;
 
-            window.removeEventListener(
-                "zupito:delivery-updated",
-                sync
-            );
+            window.removeEventListener("zupito:delivery-updated", sync);
         };
-    }, [user?._id, user?.id, user?.role]);
+    }, [user]);
 
     // ================== MANUAL REFRESH ==================
     const refresh = async () => {
@@ -376,31 +325,23 @@ function AssignedTasks({ user }) {
         },
         {
             title: "Pickup Pending",
-            value: tasks.filter((task) =>
-                ["ready_for_pickup", "assigned"].includes(
-                    task.stage
-                )
-            ).length,
+            value: tasks.filter((task) => ["ready_for_pickup", "assigned"].includes(task.stage))
+                .length,
             note: "Parcels to collect",
             icon: "fa-box-open",
             color: "orange",
         },
         {
             title: "In Delivery",
-            value: tasks.filter((task) =>
-                ["picked_up", "out_for_delivery"].includes(
-                    task.stage
-                )
-            ).length,
+            value: tasks.filter((task) => ["picked_up", "out_for_delivery"].includes(task.stage))
+                .length,
             note: "Parcels in your custody",
             icon: "fa-truck-fast",
             color: "green",
         },
         {
             title: "Failed Tasks",
-            value: tasks.filter(
-                (task) => task.stage === "failed"
-            ).length,
+            value: tasks.filter((task) => task.stage === "failed").length,
             note: "Need retry or escalation",
             icon: "fa-triangle-exclamation",
             color: "red",
@@ -419,11 +360,7 @@ function AssignedTasks({ user }) {
                 task.seller,
                 task.customerName,
                 task.product,
-                ...(task.items || []).flatMap((item) => [
-                    item.name,
-                    item.variantLabel,
-                    item.sku,
-                ]),
+                ...(task.items || []).flatMap((item) => [item.name, item.variantLabel, item.sku]),
             ].some((value) =>
                 String(value || "")
                     .toLowerCase()
@@ -438,28 +375,15 @@ function AssignedTasks({ user }) {
         });
     }, [tasks, search, status, type]);
 
-    const pages = Math.max(
-        1,
-        Math.ceil(filtered.length / rowsPerPage)
-    );
+    const pages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
 
-    const currentPage = Math.min(
-        page,
-        pages - 1
-    );
+    const currentPage = Math.min(page, pages - 1);
 
-    const visible = filtered.slice(
-        currentPage * rowsPerPage,
-        (currentPage + 1) * rowsPerPage
-    );
+    const visible = filtered.slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage);
 
-    const selected = tasks.find(
-        (task) => task.id === selectedId
-    );
+    const selected = tasks.find((task) => task.id === selectedId);
 
-    const route = selected
-        ? routeOf(selected)
-        : null;
+    const route = selected ? routeOf(selected) : null;
 
     const resetFilters = () => {
         setSearch("");
@@ -479,9 +403,8 @@ function AssignedTasks({ user }) {
                     </h1>
 
                     <p>
-                        Manage your assigned pickups, customer
-                        deliveries and replacement parcels in one
-                        place.
+                        Manage your assigned pickups, customer deliveries and replacement parcels in
+                        one place.
                     </p>
                 </div>
 
@@ -490,9 +413,7 @@ function AssignedTasks({ user }) {
                     variant="outlined"
                     onClick={refresh}
                     disabled={loading}
-                    startIcon={
-                        <i className="fa-solid fa-arrows-rotate" />
-                    }
+                    startIcon={<i className="fa-solid fa-arrows-rotate" />}
                 >
                     Refresh
                 </Button>
@@ -507,18 +428,14 @@ function AssignedTasks({ user }) {
 
             {!loading && !error && !agent && (
                 <Alert severity="warning" className="dta-alert">
-                    Your login is not linked to a delivery
-                    agent record. Contact Admin.
+                    Your login is not linked to a delivery agent record. Contact Admin.
                 </Alert>
             )}
 
             {/* ================== SUMMARY CARDS ================== */}
             <section className="dta-stats">
                 {stats.map((item) => (
-                    <article
-                        key={item.title}
-                        className={`dta-stat is-${item.color}`}
-                    >
+                    <article key={item.title} className={`dta-stat is-${item.color}`}>
                         <div className="dta-stat-heading">
                             <span>{item.title}</span>
 
@@ -542,15 +459,10 @@ function AssignedTasks({ user }) {
 
                     <div>
                         <h2>My Assigned Parcels</h2>
-                        <p>
-                            Active deliveries and pickups assigned
-                            to you.
-                        </p>
+                        <p>Active deliveries and pickups assigned to you.</p>
                     </div>
 
-                    <span className="dta-record-count">
-                        {filtered.length} Tasks
-                    </span>
+                    <span className="dta-record-count">{filtered.length} Tasks</span>
                 </div>
 
                 {/* ================== FILTERS ================== */}
@@ -588,9 +500,7 @@ function AssignedTasks({ user }) {
                     >
                         {types.map((value) => (
                             <MenuItem key={value} value={value}>
-                                {value === "All"
-                                    ? "All Task Types"
-                                    : value}
+                                {value === "All" ? "All Task Types" : value}
                             </MenuItem>
                         ))}
                     </TextField>
@@ -617,9 +527,7 @@ function AssignedTasks({ user }) {
                         className="dta-reset"
                         variant="outlined"
                         onClick={resetFilters}
-                        startIcon={
-                            <i className="fa-solid fa-rotate-left" />
-                        }
+                        startIcon={<i className="fa-solid fa-rotate-left" />}
                     >
                         Reset
                     </Button>
@@ -636,9 +544,7 @@ function AssignedTasks({ user }) {
                                 <TableCell>Destination</TableCell>
                                 <TableCell>Product</TableCell>
                                 <TableCell>Status</TableCell>
-                                <TableCell align="right">
-                                    Action
-                                </TableCell>
+                                <TableCell align="right">Action</TableCell>
                             </TableRow>
                         </TableHead>
 
@@ -650,16 +556,13 @@ function AssignedTasks({ user }) {
                                     <TableRow key={task.id} hover>
                                         <TableCell>
                                             <div className="dta-cell">
-                                                <strong className="dta-task-code">
-                                                    {task.id}
-                                                </strong>
+                                                <strong className="dta-task-code">{task.id}</strong>
 
                                                 <small>{task.parcelId}</small>
 
                                                 <small>
                                                     {formatDeliveryDate(
-                                                        task.assignedAt ||
-                                                        task.createdAt
+                                                        task.assignedAt || task.createdAt
                                                     )}
                                                 </small>
                                             </div>
@@ -667,10 +570,11 @@ function AssignedTasks({ user }) {
 
                                         <TableCell>
                                             <span className="dta-type">
-                                                <i className={`fa-solid ${
-                                                    icons[task.taskType] ||
-                                                    "fa-box"
-                                                }`} />
+                                                <i
+                                                    className={`fa-solid ${
+                                                        icons[task.taskType] || "fa-box"
+                                                    }`}
+                                                />
                                                 {task.taskType}
                                             </span>
                                         </TableCell>
@@ -696,9 +600,7 @@ function AssignedTasks({ user }) {
                                         </TableCell>
 
                                         <TableCell>
-                                            <span className="dta-product">
-                                                {summaryText(task)}
-                                            </span>
+                                            <span className="dta-product">{summaryText(task)}</span>
                                         </TableCell>
 
                                         <TableCell>
@@ -710,9 +612,7 @@ function AssignedTasks({ user }) {
                                                 className="dta-view-btn"
                                                 variant="outlined"
                                                 size="small"
-                                                onClick={() =>
-                                                    setSelectedId(task.id)
-                                                }
+                                                onClick={() => setSelectedId(task.id)}
                                             >
                                                 View Details
                                             </Button>
@@ -747,11 +647,7 @@ function AssignedTasks({ user }) {
                 {/* ================== MOBILE ================== */}
                 <div className="dta-mobile-list">
                     {visible.map((task) => (
-                        <MobileTaskCard
-                            key={task.id}
-                            task={task}
-                            onView={setSelectedId}
-                        />
+                        <MobileTaskCard key={task.id} task={task} onView={setSelectedId} />
                     ))}
 
                     {!visible.length && (
@@ -847,35 +743,17 @@ function AssignedTasks({ user }) {
                                 </h3>
 
                                 <dl className="dta-details-grid">
-                                    <Detail
-                                        label="Pickup From"
-                                        value={route.from}
-                                    />
-                                    <Detail
-                                        label="Pickup Pincode"
-                                        value={route.fromPin}
-                                    />
+                                    <Detail label="Pickup From" value={route.from} />
+                                    <Detail label="Pickup Pincode" value={route.fromPin} />
                                     <Detail
                                         label="Pickup Address"
-                                        value={addressText(
-                                            route.fromAddress,
-                                            route.fromPin
-                                        )}
+                                        value={addressText(route.fromAddress, route.fromPin)}
                                     />
-                                    <Detail
-                                        label="Deliver To"
-                                        value={route.to}
-                                    />
-                                    <Detail
-                                        label="Destination Pincode"
-                                        value={route.toPin}
-                                    />
+                                    <Detail label="Deliver To" value={route.to} />
+                                    <Detail label="Destination Pincode" value={route.toPin} />
                                     <Detail
                                         label="Delivery Address"
-                                        value={addressText(
-                                            route.toAddress,
-                                            route.toPin
-                                        )}
+                                        value={addressText(route.toAddress, route.toPin)}
                                     />
                                 </dl>
                             </div>
@@ -887,14 +765,8 @@ function AssignedTasks({ user }) {
                                 </h3>
 
                                 <dl className="dta-details-grid">
-                                    <Detail
-                                        label="Order ID"
-                                        value={selected.orderId}
-                                    />
-                                    <Detail
-                                        label="Parcel ID"
-                                        value={selected.parcelId}
-                                    />
+                                    <Detail label="Order ID" value={selected.orderId} />
+                                    <Detail label="Parcel ID" value={selected.parcelId} />
                                     <Detail
                                         label="Total Units"
                                         value={selected.totalQuantity || 0}
@@ -903,15 +775,10 @@ function AssignedTasks({ user }) {
                                         label="Customer Contact"
                                         value={selected.customerPhone}
                                     />
-                                    <Detail
-                                        label="Parcel Custody"
-                                        value={selected.custody}
-                                    />
+                                    <Detail label="Parcel Custody" value={selected.custody} />
                                     <Detail
                                         label="Assigned At"
-                                        value={formatDeliveryDate(
-                                            selected.assignedAt
-                                        )}
+                                        value={formatDeliveryDate(selected.assignedAt)}
                                     />
                                 </dl>
                             </div>
@@ -920,19 +787,13 @@ function AssignedTasks({ user }) {
                 </DialogContent>
 
                 <DialogActions>
-                    <Button onClick={() => setSelectedId(null)}>
-                        Close
-                    </Button>
+                    <Button onClick={() => setSelectedId(null)}>Close</Button>
 
                     <Button
                         variant="contained"
                         disabled={!selected}
                         onClick={() => {
-                            navigate(
-                                `/manage/tasks/${encodeURIComponent(
-                                    selected.id
-                                )}`
-                            );
+                            navigate(`/manage/tasks/${encodeURIComponent(selected.id)}`);
 
                             setSelectedId(null);
                         }}

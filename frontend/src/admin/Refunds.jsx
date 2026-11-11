@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -21,138 +20,41 @@ import {
 } from "@mui/material";
 import { toast } from "react-toastify";
 
-import { demoOrders } from "../data/orderPreview";
-import { normalizeStatus } from "../utils/orderStatus";
+import api from "../services/api";
 
-// ================== REFUND CONFIGURATION ==================
-const STORAGE_KEY = "zupito_admin_refunds";
-const ORDER_KEY = "zupito_admin_orders";
-const PAYMENT_KEY = "zupito_admin_payments";
-
-const HISTORICAL_DEMO_ORDER = "ZUP-20261028-1004";
-
-// ================== DATA HELPERS ==================
-function readList(key) {
-    try {
-        const value = JSON.parse(localStorage.getItem(key));
-        return Array.isArray(value) ? value : null;
-    } catch {
-        return null;
-    }
-}
-
-function loadOrders() {
-    return readList(ORDER_KEY) || demoOrders;
-}
-
-function getOrderId(order) {
-    return String(order.id || order._id || "");
-}
-
-function getRefundOutcome(order) {
-    const value = String(order.refundStatus || "").toLowerCase();
-
-    if (value.startsWith("refunded") || value.startsWith("completed")) {
-        return "Completed (Demo)";
-    }
-
-    if (value.startsWith("failed")) return "Failed";
-
-    return "Pending";
-}
-
-function reconcileRefunds(previous, orders) {
-    const records = [...previous];
-    const existing = new Set(records.map((record) => record.orderId));
-
-    for (const order of orders) {
-        const orderId = getOrderId(order);
-
-        if (!orderId || normalizeStatus(order.orderStatus) !== "cancelled") {
-            continue;
-        }
-
-        const index = records.findIndex((record) => record.orderId === orderId);
-        const outcome = getRefundOutcome(order);
-
-        if (index >= 0) {
-            const record = records[index];
-
-            if (record.status === "Pending" && outcome !== "Pending") {
-                records[index] = {
-                    ...record,
-                    status: outcome,
-                    processedAt: order.refundedAt || record.processedAt,
-                    failureReason: order.refundFailureReason || "",
-                };
-            }
-
-            continue;
-        }
-
-        if (existing.has(orderId)) continue;
-
-        const isHistoricalDemo = orderId === HISTORICAL_DEMO_ORDER &&
-            !order.refundStatus;
-
-        records.push({
-            id: `RF-${orderId}`,
-            orderId,
-            customerName: order.customerName || order.address?.name || "Demo Customer",
-            amount: Number(order.totalAmount ?? order.total ?? 0),
-            reason: order.cancellationReason || "Order cancelled before pickup.",
-            status: isHistoricalDemo ? "Completed (Demo)" : outcome,
-            createdAt: order.cancelledAt || order.createdAt || new Date().toISOString(),
-            processedAt: isHistoricalDemo
-                ? "2026-10-28T11:30:00+05:30"
-                : order.refundedAt || null,
-            internalReference: isHistoricalDemo ? "SIM-REF-1004" : null,
-            failureReason: order.refundFailureReason || "",
-            reviewStatus: "Clear",
-            reviewReason: "",
-            reviewHistory: [],
-        });
-
-        existing.add(orderId);
-    }
-
-    return records;
-}
-
-function formatMoney(value) {
-    return new Intl.NumberFormat("en-IN", {
+// ================== FORMAT HELPERS ==================
+const money = (amount) =>
+    new Intl.NumberFormat("en-IN", {
         style: "currency",
         currency: "INR",
         maximumFractionDigits: 2,
-    }).format(Number(value) || 0);
-}
+    }).format(Number(amount || 0));
 
-function formatDate(value) {
-    if (!value) return "—";
+const date = (value) =>
+    value
+        ? new Date(value).toLocaleString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "Asia/Kolkata",
+          })
+        : "—";
 
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "—";
-
-    return new Intl.DateTimeFormat("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "Asia/Kolkata",
-    }).format(date);
-}
-
+// ================== STATUS BADGE ==================
 function RefundBadge({ value }) {
-    const theme = {
-        Pending: "warning",
-        "Completed (Demo)": "success",
-        Failed: "danger",
-        Clear: "neutral",
-        Open: "danger",
-        Closed: "success",
-    }[value] || "neutral";
+    const theme =
+        {
+            Queued: "warning",
+            Pending: "warning",
+            Completed: "success",
+            Failed: "danger",
+            Review: "danger",
+            Clear: "neutral",
+            Open: "danger",
+            Closed: "success",
+        }[value] || "neutral";
 
     return (
         <span className={`rf-badge rf-badge--${theme}`}>
@@ -173,10 +75,11 @@ function DetailItem({ label, value }) {
 
 // ================== REFUND MANAGEMENT ==================
 function Refunds() {
-    const [refunds, setRefunds] = useState(() =>
-        reconcileRefunds(readList(STORAGE_KEY) || [], loadOrders())
-    );
-    const [payments, setPayments] = useState(() => readList(PAYMENT_KEY) || []);
+    const [retryNote, setRetryNote] = useState("");
+    const [refunds, setRefunds] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState("");
 
     // ================== FILTERS ==================
     const [search, setSearch] = useState("");
@@ -185,96 +88,126 @@ function Refunds() {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
 
-    // ================== DETAILS AND REVIEW ==================
+    // ================== DIALOGS ==================
     const [selectedId, setSelectedId] = useState(null);
-    const [reviewAction, setReviewAction] = useState(null);
+    const [reviewId, setReviewId] = useState(null);
     const [reviewNote, setReviewNote] = useState("");
-    const [reviewError, setReviewError] = useState("");
 
-    const selectedRefund = refunds.find((record) => record.id === selectedId);
-    const actionRefund = refunds.find((record) => record.id === reviewAction?.refundId);
+    // ================== FETCH REFUNDS ==================
+    const refresh = async () => {
+        setError("");
 
-    const findPayment = (orderId) =>
-        payments.find((payment) => payment.orderId === orderId);
-
-    // ================== SAVE REFUND RECORDS ==================
-    useEffect(() => {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(refunds));
-        } catch {
-            // Preserve React state if browser storage is unavailable.
+            const all = [];
+
+            for (let next = 1; ; next++) {
+                const { data } = await api.get("/refunds/admin", {
+                    params: { page: next },
+                });
+
+                all.push(...data.refunds);
+
+                if (!data.hasMore) break;
+            }
+
+            setRefunds(all);
+        } catch (failure) {
+            setError(failure.message || "Unable to load refunds.");
+        } finally {
+            setLoading(false);
         }
-    }, [refunds]);
+    };
+
+    useEffect(() => {
+        refresh();
+    }, []);
+
+    const selected = refunds.find((row) => row.id === selectedId);
+
+    const reviewing = refunds.find((row) => row.id === reviewId);
+
+    const reviewAction = reviewing?.reviewStatus === "Open" ? "Closed" : "Open";
+
+    const retryRefund = async () => {
+        const note = retryNote.trim();
+        if (!note || note.trim().length < 5) return;
+        try {
+            await api.post(`/refunds/admin/${selected.id}/retry`, { note });
+            await refresh();
+            toast.success("Refund reconciliation queued.");
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
 
     // ================== STATISTICS ==================
     const statistics = [
-        {
-            label: "Total Refunds",
-            value: refunds.length,
-            description: "Cancellation refund records",
-            theme: "blue",
-            icon: "fa-money-bill-transfer",
-        },
-        {
-            label: "Pending Refunds",
-            value: refunds.filter((item) => item.status === "Pending").length,
-            description: "Awaiting payment verification",
-            theme: "orange",
-            icon: "fa-clock",
-        },
-        {
-            label: "Completed Refunds",
-            value: refunds.filter((item) => item.status === "Completed (Demo)").length,
-            description: "Completed demo outcomes",
-            theme: "green",
-            icon: "fa-circle-check",
-        },
-        {
-            label: "Failed Refunds",
-            value: refunds.filter((item) => item.status === "Failed").length,
-            description: "Requires refund follow-up",
-            theme: "red",
-            icon: "fa-circle-exclamation",
-        },
+        [
+            "Total Refunds",
+            refunds.length,
+            "Cancellation refund records",
+            "blue",
+            "fa-money-bill-transfer",
+        ],
+        [
+            "Pending Refunds",
+            refunds.filter((row) => ["Queued", "Pending"].includes(row.status)).length,
+            "Awaiting gateway confirmation",
+            "orange",
+            "fa-clock",
+        ],
+        [
+            "Completed Refunds",
+            refunds.filter((row) => row.status === "Completed").length,
+            "Provider-confirmed outcomes",
+            "green",
+            "fa-circle-check",
+        ],
+        [
+            "Needs Review",
+            refunds.filter((row) => row.status === "Review").length,
+            "Gateway exception cases",
+            "red",
+            "fa-circle-exclamation",
+        ],
     ];
 
     const pendingAmount = refunds
-        .filter((record) => record.status === "Pending")
-        .reduce((total, record) => total + record.amount, 0);
+        .filter((row) => ["Queued", "Pending"].includes(row.status))
+        .reduce((total, row) => total + row.amount, 0);
 
-    const openReviews = refunds.filter((record) =>
-        record.reviewStatus === "Open"
-    ).length;
+    // ================== TABLE FILTERS ==================
+    const filtered = refunds
+        .filter((row) => {
+            const query = search.trim().toLowerCase();
 
-    // ================== SEARCH AND FILTERS ==================
-    const filteredRefunds = refunds.filter((record) => {
-        const query = search.trim().toLowerCase();
-        const payment = findPayment(record.orderId);
+            const matchesSearch = [
+                row.id,
+                row.orderId,
+                row.parcelId,
+                row.customerName,
+                row.reason,
+                row.reference,
+            ].some((value) =>
+                String(value || "")
+                    .toLowerCase()
+                    .includes(query)
+            );
 
-        const matchesSearch = [
-            record.id,
-            record.orderId,
-            record.customerName,
-            record.reason,
-            record.internalReference,
-            payment?.id,
-        ].some((value) => String(value || "").toLowerCase().includes(query));
+            return (
+                matchesSearch &&
+                (statusFilter === "All" || row.status === statusFilter) &&
+                (reviewFilter === "All" || row.reviewStatus === reviewFilter)
+            );
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-        return matchesSearch &&
-            (statusFilter === "All" || record.status === statusFilter) &&
-            (reviewFilter === "All" || record.reviewStatus === reviewFilter);
-    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const safePage = Math.min(page, Math.max(0, Math.ceil(filtered.length / rowsPerPage) - 1));
 
-    const visibleRefunds = filteredRefunds.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
-    );
+    const visible = filtered.slice(safePage * rowsPerPage, (safePage + 1) * rowsPerPage);
 
-    const hasFilters = Boolean(search.trim()) ||
-        statusFilter !== "All" ||
-        reviewFilter !== "All";
+    const hasFilters = search.trim() || statusFilter !== "All" || reviewFilter !== "All";
 
-    // ================== FILTER ACTIONS ==================
     const resetFilters = () => {
         setSearch("");
         setStatusFilter("All");
@@ -282,80 +215,32 @@ function Refunds() {
         setPage(0);
     };
 
-    const handleRefresh = () => {
-        setRefunds((previous) =>
-            reconcileRefunds(previous, loadOrders())
-        );
-        setPayments(readList(PAYMENT_KEY) || []);
-        setPage(0);
-        toast.info("Cancellation refund records refreshed.");
-    };
-
-    // ================== REFUND EXCEPTION ACTIONS ==================
-    const openReview = (record) => {
-        setSelectedId(null);
-
-        setReviewAction({
-            refundId: record.id,
-            previousStatus: record.reviewStatus,
-            nextStatus: record.reviewStatus === "Open" ? "Closed" : "Open",
-        });
-
-        setReviewNote("");
-        setReviewError("");
-    };
-
-    const closeReview = () => {
-        setReviewAction(null);
-        setReviewNote("");
-        setReviewError("");
-    };
-
-    const handleReview = () => {
-        if (!actionRefund || actionRefund.reviewStatus !== reviewAction.previousStatus) {
-            toast.error("Refund review record has changed. Please refresh.");
-            closeReview();
+    // ================== EXCEPTION REVIEW ==================
+    const saveReview = async () => {
+        if (!reviewing || reviewNote.trim().length < 5) {
+            toast.error("Enter a review note of at least 5 characters.");
             return;
         }
 
-        const note = reviewNote.trim();
+        setBusy(true);
 
-        if (note.length < 5 || note.length > 300) {
-            setReviewError("Enter a note containing 5–300 characters.");
-            return;
+        try {
+            await api.patch(`/refunds/admin/${reviewing.id}/review`, {
+                status: reviewAction,
+                note: reviewNote.trim(),
+            });
+
+            setReviewId(null);
+            setReviewNote("");
+
+            await refresh();
+
+            toast.success("Refund exception note updated.");
+        } catch (failure) {
+            toast.error(failure.message || "Unable to save review.");
+        } finally {
+            setBusy(false);
         }
-
-        const now = new Date().toISOString();
-
-        setRefunds((previous) =>
-            previous.map((record) =>
-                record.id === reviewAction.refundId
-                    ? {
-                          ...record,
-                          reviewStatus: reviewAction.nextStatus,
-                          reviewReason: reviewAction.nextStatus === "Open"
-                              ? note
-                              : record.reviewReason,
-                          reviewHistory: [
-                              ...(record.reviewHistory || []),
-                              {
-                                  status: reviewAction.nextStatus,
-                                  note,
-                                  date: now,
-                              },
-                          ],
-                      }
-                    : record
-            )
-        );
-
-        toast.success(
-            reviewAction.nextStatus === "Open"
-                ? "Refund exception recorded."
-                : "Refund review closed. Refund outcome remains unchanged."
-        );
-
-        closeReview();
     };
 
     return (
@@ -364,40 +249,47 @@ function Refunds() {
             <section className="rf-hero">
                 <div className="rf-hero-content">
                     <span className="zs-eyebrow">
-                        <i className="fa-solid fa-money-bill-transfer" aria-hidden="true" />
+                        <i className="fa-solid fa-money-bill-transfer" />
                         REFUND MANAGEMENT
                     </span>
 
                     <p>
-                        Track cancellation refunds, payment verification,
-                        adjustment status and unresolved refund exceptions.
+                        Monitor cancellation refunds, gateway outcomes and administrative
+                        exceptions.
                     </p>
                 </div>
 
                 <Button
-                    variant="outlined"
                     className="rf-refresh-button"
-                    onClick={handleRefresh}
+                    variant="outlined"
+                    onClick={refresh}
                     startIcon={<i className="fa-solid fa-arrows-rotate" />}
                 >
                     Refresh
                 </Button>
             </section>
 
-            {/* ================== STATISTICS ================== */}
+            {error && (
+                <Alert severity="error" className="rf-alert">
+                    {error}
+                </Alert>
+            )}
+
+            {/* ================== OVERVIEW ================== */}
             <section className="rf-stats" aria-label="Refund overview">
-                {statistics.map((item) => (
-                    <article key={item.label} className={`rf-stat rf-stat--${item.theme}`}>
+                {statistics.map(([label, value, description, theme, icon]) => (
+                    <article key={label} className={`rf-stat rf-stat--${theme}`}>
                         <div className="rf-stat-heading">
-                            <span>{item.label}</span>
+                            <span>{label}</span>
 
                             <span className="rf-stat-icon">
-                                <i className={`fa-solid ${item.icon}`} aria-hidden="true" />
+                                <i className={`fa-solid ${icon}`} />
                             </span>
                         </div>
 
-                        <strong className="rf-stat-value">{item.value}</strong>
-                        <p>{item.description}</p>
+                        <strong className="rf-stat-value">{value}</strong>
+
+                        <p>{description}</p>
                     </article>
                 ))}
             </section>
@@ -405,53 +297,56 @@ function Refunds() {
             {/* ================== REFUND SUMMARY ================== */}
             <section className="rf-summary">
                 <span className="rf-summary-icon">
-                    <i className="fa-solid fa-wallet" aria-hidden="true" />
+                    <i className="fa-solid fa-wallet" />
                 </span>
 
                 <div className="rf-summary-main">
                     <span>Pending Refund Value</span>
-                    <strong>{formatMoney(pendingAmount)}</strong>
-                    <small>Cancellation amounts awaiting confirmation.</small>
+
+                    <strong>{money(pendingAmount)}</strong>
+
+                    <small>Provider confirmation pending; not yet refunded.</small>
                 </div>
 
                 <div className="rf-summary-review">
                     <span>Open Exceptions</span>
-                    <strong>{openReviews}</strong>
+
+                    <strong>{refunds.filter((row) => row.reviewStatus === "Open").length}</strong>
+
                     <small>Require administrative attention</small>
                 </div>
             </section>
 
-            {/* ================== REFUNDS TABLE ================== */}
+            {/* ================== REFUND TABLE ================== */}
             <section className="rf-card">
                 <div className="rf-section-header">
                     <div className="rf-section-heading">
                         <span className="rf-section-icon">
-                            <i className="fa-solid fa-receipt" aria-hidden="true" />
+                            <i className="fa-solid fa-receipt" />
                         </span>
 
                         <div>
                             <h2>Cancellation Refunds</h2>
-                            <p>Review refund outcomes, order references and exceptions.</p>
+
+                            <p>Customer cancellation and Razorpay refund records.</p>
                         </div>
                     </div>
 
-                    <span className="rf-record-count">
-                        {filteredRefunds.length} Records
-                    </span>
+                    <span className="rf-record-count">{filtered.length} Records</span>
                 </div>
 
-                {/* ================== SEARCH AND FILTERS ================== */}
+                {/* ================== SEARCH / FILTERS ================== */}
                 <div className="rf-toolbar">
                     <div className="rf-search">
                         <TextField
+                            size="small"
+                            fullWidth
                             label="Search Refunds"
-                            placeholder="Refund ID, order ID, customer or payment reference"
                             value={search}
                             onChange={(event) => {
                                 setSearch(event.target.value);
                                 setPage(0);
                             }}
-                            size="small"
                             slotProps={{
                                 input: {
                                     startAdornment: (
@@ -459,52 +354,51 @@ function Refunds() {
                                             <i className="fa-solid fa-magnifying-glass" />
                                         </InputAdornment>
                                     ),
-                                    htmlInput: { maxLength: 100 },
                                 },
                             }}
-                            fullWidth
                         />
                     </div>
 
                     <TextField
                         select
+                        size="small"
+                        className="rf-filter"
                         label="Refund Status"
                         value={statusFilter}
                         onChange={(event) => {
                             setStatusFilter(event.target.value);
                             setPage(0);
                         }}
-                        className="rf-filter"
-                        size="small"
                     >
-                        <MenuItem value="All">All Statuses</MenuItem>
-                        <MenuItem value="Pending">Pending</MenuItem>
-                        <MenuItem value="Completed (Demo)">Completed (Demo)</MenuItem>
-                        <MenuItem value="Failed">Failed</MenuItem>
+                        {["All", "Queued", "Pending", "Completed", "Review"].map((value) => (
+                            <MenuItem key={value} value={value}>
+                                {value === "All" ? "All Statuses" : value}
+                            </MenuItem>
+                        ))}
                     </TextField>
 
                     <TextField
                         select
+                        size="small"
+                        className="rf-filter"
                         label="Review Status"
                         value={reviewFilter}
                         onChange={(event) => {
                             setReviewFilter(event.target.value);
                             setPage(0);
                         }}
-                        className="rf-filter"
-                        size="small"
                     >
-                        <MenuItem value="All">All Reviews</MenuItem>
-                        <MenuItem value="Clear">No Exception</MenuItem>
-                        <MenuItem value="Open">Open</MenuItem>
-                        <MenuItem value="Closed">Closed</MenuItem>
+                        {["All", "Clear", "Open", "Closed"].map((value) => (
+                            <MenuItem key={value} value={value}>
+                                {value === "All" ? "All Reviews" : value}
+                            </MenuItem>
+                        ))}
                     </TextField>
 
                     <Button
                         variant="outlined"
-                        className="rf-reset-button"
-                        onClick={resetFilters}
                         disabled={!hasFilters}
+                        onClick={resetFilters}
                         startIcon={<i className="fa-solid fa-rotate-left" />}
                     >
                         Reset
@@ -517,83 +411,85 @@ function Refunds() {
                         <TableHead>
                             <TableRow>
                                 <TableCell>Refund Reference</TableCell>
+
                                 <TableCell>Order / Customer</TableCell>
+
                                 <TableCell>Refund Amount</TableCell>
+
                                 <TableCell>Cancellation Date</TableCell>
+
                                 <TableCell>Refund Status</TableCell>
+
                                 <TableCell>Review Status</TableCell>
+
                                 <TableCell align="right">Actions</TableCell>
                             </TableRow>
                         </TableHead>
 
                         <TableBody>
-                            {visibleRefunds.map((record) => (
-                                <TableRow key={record.id} hover>
+                            {visible.map((row) => (
+                                <TableRow key={row.id} hover>
                                     <TableCell>
                                         <div className="rf-cell">
-                                            <strong className="rf-ref">{record.id}</strong>
-                                            <small>Cancellation refund</small>
+                                            <strong className="rf-ref">
+                                                {row.reference || row.id}
+                                            </strong>
+
+                                            <small>Parcel: {row.parcelId}</small>
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
                                         <div className="rf-cell">
-                                            <strong>{record.orderId}</strong>
-                                            <small>{record.customerName}</small>
+                                            <strong>{row.orderId}</strong>
+
+                                            <small>{row.customerName}</small>
                                         </div>
                                     </TableCell>
 
                                     <TableCell>
-                                        <strong className="rf-amount">
-                                            {formatMoney(record.amount)}
-                                        </strong>
+                                        <strong className="rf-amount">{money(row.amount)}</strong>
                                     </TableCell>
 
                                     <TableCell>
-                                        <span className="rf-date">
-                                            {formatDate(record.createdAt)}
-                                        </span>
+                                        <span className="rf-date">{date(row.cancelledAt)}</span>
                                     </TableCell>
 
                                     <TableCell>
-                                        <RefundBadge value={record.status} />
+                                        <RefundBadge value={row.status} />
                                     </TableCell>
 
                                     <TableCell>
-                                        <RefundBadge value={record.reviewStatus} />
+                                        <RefundBadge value={row.reviewStatus} />
                                     </TableCell>
 
                                     <TableCell align="right">
                                         <Button
-                                            variant="outlined"
                                             size="small"
+                                            variant="outlined"
                                             className="rf-view-button"
-                                            onClick={() => setSelectedId(record.id)}
+                                            onClick={() => setSelectedId(row.id)}
                                         >
-                                            View Details
+                                            View Details{" "}
                                             <i className="fa-solid fa-arrow-up-right-from-square" />
                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
 
-                            {visibleRefunds.length === 0 && (
+                            {!visible.length && (
                                 <TableRow>
                                     <TableCell colSpan={7}>
                                         <div className="rf-empty">
                                             <span>
                                                 <i className="fa-solid fa-money-bill-transfer" />
                                             </span>
-                                            <h3>No Refunds Found</h3>
-                                            <p>
-                                                Refund records appear when an order is cancelled.
-                                            </p>
 
-                                            {hasFilters && (
-                                                <Button variant="outlined" onClick={resetFilters}>
-                                                    Clear Filters
-                                                </Button>
-                                            )}
+                                            <h3>
+                                                {loading ? "Loading Refunds" : "No Refunds Found"}
+                                            </h3>
+
+                                            <p>Cancelled paid parcels will appear here.</p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -602,15 +498,14 @@ function Refunds() {
                     </Table>
                 </TableContainer>
 
-                {/* ================== PAGINATION ================== */}
                 <TablePagination
                     component="div"
                     className="rf-pagination"
-                    count={filteredRefunds.length}
-                    page={page}
+                    count={filtered.length}
+                    page={safePage}
                     rowsPerPage={rowsPerPage}
                     rowsPerPageOptions={[10, 20, 50]}
-                    onPageChange={(_, nextPage) => setPage(nextPage)}
+                    onPageChange={(_, value) => setPage(value)}
                     onRowsPerPageChange={(event) => {
                         setRowsPerPage(Number(event.target.value));
                         setPage(0);
@@ -620,13 +515,17 @@ function Refunds() {
 
             {/* ================== REFUND DETAILS ================== */}
             <Dialog
-                open={Boolean(selectedRefund)}
+                open={Boolean(selected)}
                 onClose={() => setSelectedId(null)}
                 fullWidth
                 maxWidth="sm"
-                slotProps={{ paper: { className: "rf-dialog" } }}
+                slotProps={{
+                    paper: {
+                        className: "rf-dialog",
+                    },
+                }}
             >
-                {selectedRefund && (
+                {selected && (
                     <>
                         <DialogTitle>Refund Details</DialogTitle>
 
@@ -634,94 +533,151 @@ function Refunds() {
                             <div className="rf-detail-banner">
                                 <div>
                                     <span>REFUND REFERENCE</span>
-                                    <h3>{selectedRefund.id}</h3>
-                                    <p>{formatDate(selectedRefund.createdAt)}</p>
+
+                                    <h3>{selected.reference || selected.id}</h3>
+
+                                    <p>{date(selected.createdAt)}</p>
                                 </div>
 
-                                <RefundBadge value={selectedRefund.status} />
+                                <RefundBadge value={selected.status} />
                             </div>
 
+                            {/* ================== DETAILS ================== */}
                             <div className="rf-detail-section">
                                 <h4>Refund Information</h4>
 
                                 <dl className="rf-detail-grid">
-                                    <DetailItem label="Order Reference" value={selectedRefund.orderId} />
-                                    <DetailItem label="Customer" value={selectedRefund.customerName} />
-                                    <DetailItem label="Refund Amount" value={formatMoney(selectedRefund.amount)} />
-                                    <DetailItem label="Refund Outcome" value={selectedRefund.status} />
-                                    <DetailItem label="Payment Attempt" value={findPayment(selectedRefund.orderId)?.id || "Not linked"} />
-                                    <DetailItem label="Payment Status" value={findPayment(selectedRefund.orderId)?.status ? `${findPayment(selectedRefund.orderId).status} (Preview)` : "Not verified"} />
-                                    <DetailItem label="Internal Refund Reference" value={selectedRefund.internalReference || "Not available"} />
-                                    <DetailItem label="Gateway Refund ID" value="Not available" />
-                                    <DetailItem label="Processed On" value={formatDate(selectedRefund.processedAt)} />
-                                    <DetailItem label="Payment Method" value="Online Payment" />
+                                    <DetailItem label="Order ID" value={selected.orderId} />
+
+                                    <DetailItem label="Parcel ID" value={selected.parcelId} />
+
+                                    <DetailItem label="Customer" value={selected.customerName} />
+
+                                    <DetailItem
+                                        label="Refund Amount"
+                                        value={money(selected.amount)}
+                                    />
+
+                                    <DetailItem
+                                        label="Gateway Refund ID"
+                                        value={selected.reference || "Pending"}
+                                    />
+
+                                    <DetailItem label="Refund Status" value={selected.status} />
+
+                                    <DetailItem label="Created" value={date(selected.createdAt)} />
+
+                                    <DetailItem
+                                        label="Processed"
+                                        value={date(selected.completedAt)}
+                                    />
+
+                                    <DetailItem label="Retry Attempts" value={selected.attempts} />
                                 </dl>
                             </div>
 
+                            {/* ================== CANCELLATION ================== */}
                             <div className="rf-detail-section">
                                 <h4>Cancellation & Adjustments</h4>
 
                                 <div className="rf-reason">
                                     <strong>Cancellation Reason</strong>
-                                    <p>{selectedRefund.reason}</p>
+
+                                    <p>
+                                        {selected.reason}
+
+                                        {selected.details ? ` — ${selected.details}` : ""}
+                                    </p>
                                 </div>
 
                                 <div className="rf-adjustments">
                                     <div>
                                         <i className="fa-solid fa-boxes-stacked" />
-                                        <span>Inventory Release</span>
-                                        <strong>Pending Integration</strong>
+                                        <span>Paid-order inventory</span>
+                                        <strong>Restored once</strong>
                                     </div>
 
                                     <div>
                                         <i className="fa-solid fa-wallet" />
-                                        <span>Seller Earnings Adjustment</span>
-                                        <strong>Pending Integration</strong>
+                                        <span>Refund Amount</span>
+                                        <strong>{money(selected.amount)}</strong>
                                     </div>
                                 </div>
+
+                                <dl className="rf-detail-grid">
+                                    <DetailItem
+                                        label="Product Subtotal"
+                                        value={money(selected.breakdown.products)}
+                                    />
+
+                                    <DetailItem
+                                        label="Allocated Coupon"
+                                        value={money(selected.breakdown.coupon)}
+                                    />
+
+                                    <DetailItem
+                                        label="Allocated Delivery"
+                                        value={money(selected.breakdown.shipping)}
+                                    />
+                                </dl>
                             </div>
 
-                            {selectedRefund.failureReason && (
-                                <Alert severity="error" className="rf-alert">
-                                    {selectedRefund.failureReason}
+                            {selected.failureReason && (
+                                <Alert severity="warning" className="rf-alert">
+                                    {selected.failureReason}
                                 </Alert>
                             )}
 
+                            {/* ================== EXCEPTION REVIEW ================== */}
                             <div className="rf-detail-section">
                                 <h4>Exception Review</h4>
 
                                 <div className="rf-review-status">
                                     <span>Current Review</span>
-                                    <RefundBadge value={selectedRefund.reviewStatus} />
+
+                                    <RefundBadge value={selected.reviewStatus} />
                                 </div>
 
-                                {selectedRefund.reviewReason && (
-                                    <Alert severity="warning" className="rf-alert">
-                                        <strong>Reason:</strong> {selectedRefund.reviewReason}
-                                    </Alert>
+                                {selected.reviewReason && (
+                                    <Alert severity="info">{selected.reviewReason}</Alert>
                                 )}
 
-                                {(selectedRefund.reviewHistory || []).length > 0 && (
-                                    <div className="rf-history">
-                                        {selectedRefund.reviewHistory.map((event, index) => (
-                                            <div key={index}>
-                                                <strong>{event.status}</strong>
-                                                <small>{formatDate(event.date)}</small>
-                                                <p>{event.note}</p>
-                                            </div>
-                                        ))}
+                                {(selected.reviewHistory || []).map((event, index) => (
+                                    <div className="rf-history" key={index}>
+                                        <strong>{event.status}</strong>
+
+                                        <small>{date(event.date)}</small>
+
+                                        <p>{event.note}</p>
                                     </div>
-                                )}
+                                ))}
                             </div>
 
                             <Alert severity="info" className="rf-alert">
-                                Refund outcomes are read-only. Closing an exception
-                                does not verify payment, transfer money or complete
-                                inventory and seller earnings adjustments.
+                                Review notes do not change gateway refund status. Only confirmed
+                                provider results mark a refund Completed.
                             </Alert>
                         </DialogContent>
 
                         <DialogActions className="rf-dialog-actions">
+                            {selected.status === "Review" && (
+                                <>
+                                    <TextField
+                                        size="small"
+                                        label="Reconciliation reason"
+                                        value={retryNote}
+                                        onChange={(e) => setRetryNote(e.target.value)}
+                                        slotProps={{ htmlInput: { maxLength: 300 } }}
+                                    />
+                                    <Button
+                                        disabled={retryNote.trim().length < 5}
+                                        onClick={retryRefund}
+                                    >
+                                        Retry confirmation
+                                    </Button>
+                                </>
+                            )}
+
                             <Button
                                 component={Link}
                                 to="/manage/orders"
@@ -736,9 +692,12 @@ function Refunds() {
 
                             <Button
                                 variant="contained"
-                                onClick={() => openReview(selectedRefund)}
+                                onClick={() => {
+                                    setReviewId(selected.id);
+                                    setSelectedId(null);
+                                }}
                             >
-                                {selectedRefund.reviewStatus === "Open"
+                                {selected.reviewStatus === "Open"
                                     ? "Close Exception"
                                     : "Flag Exception"}
                             </Button>
@@ -747,57 +706,50 @@ function Refunds() {
                 )}
             </Dialog>
 
-            {/* ================== REVIEW CONFIRMATION ================== */}
+            {/* ================== REVIEW NOTE ================== */}
             <Dialog
-                open={Boolean(reviewAction)}
-                onClose={closeReview}
+                open={Boolean(reviewing)}
+                onClose={() => setReviewId(null)}
                 fullWidth
                 maxWidth="xs"
-                slotProps={{ paper: { className: "rf-dialog" } }}
+                slotProps={{
+                    paper: {
+                        className: "rf-dialog",
+                    },
+                }}
             >
                 <DialogTitle>
-                    {reviewAction?.nextStatus === "Open"
-                        ? "Flag Refund Exception"
-                        : "Close Refund Exception"}
+                    {reviewAction === "Open" ? "Flag Exception" : "Close Exception"}
                 </DialogTitle>
 
                 <DialogContent dividers>
-                    <p className="rf-confirm-text">
-                        Refund: <strong>{actionRefund?.id}</strong>
+                    <p>
+                        Refund: <strong>{reviewing?.reference || reviewing?.id}</strong>
                     </p>
 
-                    {reviewAction?.nextStatus === "Closed" && (
-                        <Alert severity="warning" className="rf-alert">
-                            Closing an exception records an admin note only.
-                            Refund processing status will remain unchanged.
-                        </Alert>
-                    )}
-
                     <TextField
-                        label={reviewAction?.nextStatus === "Open"
-                            ? "Exception Reason"
-                            : "Resolution Note"}
-                        value={reviewNote}
-                        onChange={(event) => {
-                            setReviewNote(event.target.value);
-                            setReviewError("");
-                        }}
-                        error={Boolean(reviewError)}
-                        helperText={reviewError || "Enter 5–300 characters."}
-                        slotProps={{ htmlInput: { maxLength: 300 } }}
+                        fullWidth
                         multiline
                         minRows={3}
-                        fullWidth
                         required
+                        label="Review Note"
+                        value={reviewNote}
+                        onChange={(event) => setReviewNote(event.target.value)}
+                        slotProps={{
+                            htmlInput: {
+                                maxLength: 300,
+                            },
+                        }}
+                        helperText="Enter 5–300 characters"
                     />
                 </DialogContent>
 
                 <DialogActions className="rf-dialog-actions">
-                    <Button color="inherit" onClick={closeReview}>
+                    <Button color="inherit" onClick={() => setReviewId(null)}>
                         Cancel
                     </Button>
 
-                    <Button variant="contained" onClick={handleReview}>
+                    <Button variant="contained" disabled={busy} onClick={saveReview}>
                         Confirm
                     </Button>
                 </DialogActions>

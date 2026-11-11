@@ -149,7 +149,8 @@ function StoreProfile() {
         setLoading(true);
         setError("");
 
-        storeService.getStoreProfile(controller.signal)
+        storeService
+            .getStoreProfile(controller.signal)
             .then((result) => {
                 if (!active) return;
 
@@ -299,10 +300,7 @@ function StoreProfile() {
                 <Alert
                     severity="error"
                     action={
-                        <Button
-                            color="inherit"
-                            onClick={() => setRevision((value) => value + 1)}
-                        >
+                        <Button color="inherit" onClick={() => setRevision((value) => value + 1)}>
                             Retry
                         </Button>
                     }
@@ -323,12 +321,10 @@ function StoreProfile() {
         .join("");
 
     const requiredFields = allFields.filter((field) => field.required !== false);
-    const completed = requiredFields.filter((field) =>
-        form[field.name]?.trim()
-    ).length;
+    const completed = requiredFields.filter((field) => form[field.name]?.trim()).length;
 
     const completion = Math.round(
-        (completed + Number(Boolean(logo))) / (requiredFields.length + 1) * 100
+        ((completed + Number(Boolean(logo))) / (requiredFields.length + 1)) * 100
     );
 
     return (
@@ -339,7 +335,10 @@ function StoreProfile() {
                         <i className="fa-solid fa-store" aria-hidden="true" />
                         STORE PROFILE
                     </h1>
-                    <p>Manage your store information, business contact details and parcel pickup address.</p>
+                    <p>
+                        Manage your store information, business contact details and parcel pickup
+                        address.
+                    </p>
                 </div>
 
                 {!editing && (
@@ -362,7 +361,11 @@ function StoreProfile() {
                             color="inherit"
                             disabled={saving}
                             onClick={() => {
-                                if (window.confirm("Reload saved details? Unsaved changes will be discarded.")) {
+                                if (
+                                    window.confirm(
+                                        "Reload saved details? Unsaved changes will be discarded."
+                                    )
+                                ) {
                                     setRevision((value) => value + 1);
                                 }
                             }}
@@ -445,7 +448,11 @@ function StoreProfile() {
                             <span>Profile Completeness</span>
                             <strong>{completion}%</strong>
                         </div>
-                        <progress value={completion} max="100" aria-label="Store profile completeness" />
+                        <progress
+                            value={completion}
+                            max="100"
+                            aria-label="Store profile completeness"
+                        />
                         <small>Logo: JPG, PNG or WebP · Max 3 MB</small>
                     </div>
                 </div>
@@ -455,7 +462,9 @@ function StoreProfile() {
                 <div className="ssp-grid">
                     <section className="ssp-card">
                         <div className="ssp-card-head">
-                            <span><i className="fa-solid fa-shop" aria-hidden="true" /></span>
+                            <span>
+                                <i className="fa-solid fa-shop" aria-hidden="true" />
+                            </span>
                             <div>
                                 <h2>Store Information</h2>
                                 <p>Storefront and customer contact details.</p>
@@ -478,7 +487,9 @@ function StoreProfile() {
 
                     <section className="ssp-card">
                         <div className="ssp-card-head">
-                            <span><i className="fa-solid fa-location-dot" aria-hidden="true" /></span>
+                            <span>
+                                <i className="fa-solid fa-location-dot" aria-hidden="true" />
+                            </span>
                             <div>
                                 <h2>Pickup Address</h2>
                                 <p>Location used for delivery agent pickups.</p>

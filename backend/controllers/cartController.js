@@ -15,8 +15,7 @@ const itemsSchema = Joi.array()
     .max(50)
     .unique(
         (first, second) =>
-            first.productId === second.productId &&
-            first.variantId === second.variantId
+            first.productId === second.productId && first.variantId === second.variantId
     )
     .required();
 
@@ -25,9 +24,7 @@ const keyOf = (item) => `${item.productId}::${item.variantId}`;
 function validate(body, saving = false) {
     const schema = Joi.object({
         items: itemsSchema,
-        ...(saving
-            ? { version: Joi.number().integer().min(0).required() }
-            : {}),
+        ...(saving ? { version: Joi.number().integer().min(0).required() } : {}),
     });
 
     const { value, error } = schema.validate(body, {
@@ -76,7 +73,7 @@ exports.getCart = async (req, res, next) => {
         res.json({
             success: true,
             cart: {
-                ...await buildCart(saved.items),
+                ...(await buildCart(saved.items)),
                 version: saved.__v,
             },
         });
@@ -91,27 +88,16 @@ exports.saveCart = async (req, res, next) => {
         const saved = await getOrCreateCart(req.user._id);
 
         if (saved.__v !== version) {
-            throw new ExpressError(
-                409,
-                "Your cart changed in another tab. Refresh and try again."
-            );
+            throw new ExpressError(409, "Your cart changed in another tab. Refresh and try again.");
         }
 
         const quote = await buildCart(items);
 
-        const previous = new Map(
-            saved.items.map((item) => [keyOf(item), item.quantity])
-        );
+        const previous = new Map(saved.items.map((item) => [keyOf(item), item.quantity]));
 
         for (const item of quote.items) {
-            if (
-                item.quantity > (previous.get(item.product._id) || 0) &&
-                !item.available
-            ) {
-                throw new ExpressError(
-                    409,
-                    item.product.issue || "This item is unavailable."
-                );
+            if (item.quantity > (previous.get(item.product._id) || 0) && !item.available) {
+                throw new ExpressError(409, item.product.issue || "This item is unavailable.");
             }
         }
 
@@ -126,17 +112,14 @@ exports.saveCart = async (req, res, next) => {
                 $set: { items },
                 $inc: { __v: 1 },
             },
-            { 
-                returnDocument: "after", 
-                runValidators: true 
+            {
+                returnDocument: "after",
+                runValidators: true,
             }
         ).lean();
 
         if (!updated) {
-            throw new ExpressError(
-                409,
-                "Your cart changed. Refresh and try again."
-            );
+            throw new ExpressError(409, "Your cart changed. Refresh and try again.");
         }
 
         res.json({

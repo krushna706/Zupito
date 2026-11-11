@@ -1,4 +1,3 @@
-
 import api from "./api";
 
 // ================== DELIVERY STATUS ==================
@@ -20,18 +19,13 @@ let cache = {
 
 let pending = null;
 
-const accountId = (user) =>
-    String(user?._id || user?.id || "");
+const accountId = (user) => String(user?._id || user?.id || "");
 
 const ownsCache = (user) =>
-    user?.role === "delivery" &&
-    Boolean(accountId(user)) &&
-    cache.userId === accountId(user);
+    user?.role === "delivery" && Boolean(accountId(user)) && cache.userId === accountId(user);
 
 function notify() {
-    window.dispatchEvent(
-        new Event("zupito:delivery-updated")
-    );
+    window.dispatchEvent(new Event("zupito:delivery-updated"));
 }
 
 function reset(id = "") {
@@ -64,17 +58,11 @@ export async function refreshDeliveryData(user) {
     }
 
     const promise = (async () => {
-        const { data: profile } = await api.get(
-            "/delivery/me"
-        );
+        const { data: profile } = await api.get("/delivery/me");
 
         const agent = profile.agent || null;
 
-        const tasks = agent
-            ? (
-                await api.get("/delivery/tasks")
-            ).data.tasks || []
-            : [];
+        const tasks = agent ? (await api.get("/delivery/tasks")).data.tasks || [] : [];
 
         // Ignore stale responses after an account switch.
         if (cache.userId !== id) return;
@@ -108,9 +96,7 @@ export async function fetchDeliveryTask(user, taskId) {
         return null;
     }
 
-    const { data } = await api.get(
-        `/delivery/tasks/${encodeURIComponent(taskId)}`
-    );
+    const { data } = await api.get(`/delivery/tasks/${encodeURIComponent(taskId)}`);
 
     const task = data.task;
 
@@ -120,12 +106,7 @@ export async function fetchDeliveryTask(user, taskId) {
 
     cache = {
         ...cache,
-        tasks: [
-            task,
-            ...cache.tasks.filter(
-                (item) => item.id !== task.id
-            ),
-        ],
+        tasks: [task, ...cache.tasks.filter((item) => item.id !== task.id)],
     };
 
     notify();
@@ -135,41 +116,27 @@ export async function fetchDeliveryTask(user, taskId) {
 
 // ================== CACHED AGENT / TASKS ==================
 export function getDeliveryAgent(user) {
-    return ownsCache(user)
-        ? cache.agent
-        : null;
+    return ownsCache(user) ? cache.agent : null;
 }
 
-export function getDeliveryTasks(
-    user,
-    includeHistory = false
-) {
+export function getDeliveryTasks(user, includeHistory = false) {
     if (!ownsCache(user)) return [];
 
     return cache.tasks.filter(
-        (task) =>
-            includeHistory ||
-            !["delivered", "cancelled"].includes(
-                task.stage
-            )
+        (task) => includeHistory || !["delivered", "cancelled"].includes(task.stage)
     );
 }
 
 export function getDeliveryTask(user, taskId) {
-    return getDeliveryTasks(user, true).find(
-        (task) => task.id === taskId
-    ) || null;
+    return getDeliveryTasks(user, true).find((task) => task.id === taskId) || null;
 }
 
 // ================== DISPLAY HELPERS ==================
-export const deliveryTaskType = (task) =>
-    task.taskType || "Customer Delivery";
+export const deliveryTaskType = (task) => task.taskType || "Customer Delivery";
 
-export const deliveryStageLabel = (stage) =>
-    labels[stage] || "Unknown";
+export const deliveryStageLabel = (stage) => labels[stage] || "Unknown";
 
-export const isCompletedDeliveryTask = (task) =>
-    ["delivered", "cancelled"].includes(task.stage);
+export const isCompletedDeliveryTask = (task) => ["delivered", "cancelled"].includes(task.stage);
 
 export function formatDeliveryDate(value) {
     const date = value ? new Date(value) : null;
@@ -223,28 +190,18 @@ function actionPayload(action, options = {}) {
 }
 
 // ================== UPDATE TASK ==================
-export async function updateDeliveryTask(
-    user,
-    taskId,
-    action,
-    options = {}
-) {
+export async function updateDeliveryTask(user, taskId, action, options = {}) {
     const { data } = await api.patch(
         `/delivery/tasks/${encodeURIComponent(taskId)}`,
         actionPayload(action, options)
     );
 
     // Fetch the complete updated record, including order items.
-    return (
-        await fetchDeliveryTask(user, taskId)
-    ) || data.task;
+    return (await fetchDeliveryTask(user, taskId)) || data.task;
 }
 
 // ================== AGENT AVAILABILITY ==================
-export async function setDeliveryAvailability(
-    user,
-    availability
-) {
+export async function setDeliveryAvailability(user, availability) {
     await api.patch("/delivery/availability", {
         availability,
     });

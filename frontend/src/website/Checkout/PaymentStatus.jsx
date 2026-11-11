@@ -65,7 +65,7 @@ function PaymentStatus() {
         let attempts = 0;
 
         async function check() {
-            let terminal = false;
+            let terminal;
 
             try {
                 const data = await getPaymentStatus(id);
@@ -75,12 +75,9 @@ function PaymentStatus() {
                 setResult(data);
                 setError("");
 
-                terminal = [
-                    "Confirmed",
-                    "Expired",
-                    "Refunded",
-                    "PaymentReview",
-                ].includes(data.order.status);
+                terminal = ["Confirmed", "Expired", "Refunded", "PaymentReview"].includes(
+                    data.order.status
+                );
 
                 if (terminal) {
                     forgetCheckoutAttempt(user._id || user.id);
@@ -161,8 +158,7 @@ function PaymentStatus() {
                   ? {
                         ...statusConfig.cancelled,
                         title: "Payment Reversed",
-                        description:
-                            "The late payment was refunded. No order was placed.",
+                        description: "The late payment was refunded. No order was placed.",
                     }
                   : statusConfig[status];
 
@@ -220,8 +216,8 @@ function PaymentStatus() {
 
                         {order?.status === "Confirmed" && !order.cartCleared && (
                             <p>
-                                Your cart changed during payment and was retained.
-                                Review it before ordering again.
+                                Your cart changed during payment and was retained. Review it before
+                                ordering again.
                             </p>
                         )}
 
@@ -276,11 +272,11 @@ function PaymentStatus() {
                                     {busy ? "Opening Payment…" : "Resume Payment"}
                                 </button>
                             ) : (
-                                <Link
-                                    to="/checkout"
-                                    className="payment-status-primary"
-                                >
-                                    <i className="fa-solid fa-arrow-rotate-right" aria-hidden="true" />
+                                <Link to="/checkout" className="payment-status-primary">
+                                    <i
+                                        className="fa-solid fa-arrow-rotate-right"
+                                        aria-hidden="true"
+                                    />
                                     Back to Checkout
                                 </Link>
                             )}
@@ -296,10 +292,7 @@ function PaymentStatus() {
                                 </button>
                             )}
 
-                            <Link
-                                to="/products"
-                                className="payment-status-secondary"
-                            >
+                            <Link to="/products" className="payment-status-secondary">
                                 <i className="fa-solid fa-bag-shopping" aria-hidden="true" />
                                 Continue Shopping
                             </Link>
@@ -309,10 +302,7 @@ function PaymentStatus() {
                     <div className="payment-status-footer">
                         <i className="fa-solid fa-headset" aria-hidden="true" />
 
-                        <Link
-                            to="/account/complaints"
-                            className="payment-status-help-link"
-                        >
+                        <Link to="/account/complaints" className="payment-status-help-link">
                             Need help? Our support team is here to assist you.
                         </Link>
                     </div>

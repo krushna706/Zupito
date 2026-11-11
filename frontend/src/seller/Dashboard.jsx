@@ -1,23 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import {
-    formatMoney,
-    getStoreName,
-    inventoryRows,
-    ownProducts,
-    readRows,
-    sellerKey,
-} from "../services/sellerService";
-
+import api from "../services/api";
+import { toast } from "react-toastify";
+import { formatMoney } from "../services/sellerService";
 import { useOrderResource } from "../services/orderService";
-import { getSellerReplacements } from "../services/replacementService";
-
-// ================== CONFIGURATION ==================
-const SETTLEMENT_KEY = "zupito_admin_settlements";
-const REVIEW_KEY = "zupito_admin_reviews";
-const PROFILE_KEY = "zupito_seller_store_profiles";
-const SELLERS_KEY = "zupito_admin_sellers";
 
 const PERIODS = [7, 30, 90];
 
@@ -32,25 +19,21 @@ const ORDER_GROUPS = [
 ];
 
 const STORE_FIELDS = [
-    "storeName", "storeEmail", "storePhone", "address",
-    "locality", "city", "state", "pincode",
+    "storeName",
+    "storeEmail",
+    "storePhone",
+    "address",
+    "locality",
+    "city",
+    "state",
+    "pincode",
 ];
 
 // ================== DATA HELPERS ==================
-function readObject(key) {
-    try {
-        const data = JSON.parse(localStorage.getItem(key));
-
-        return data && !Array.isArray(data) && typeof data === "object"
-            ? data
-            : {};
-    } catch {
-        return {};
-    }
-}
-
 function normalize(value) {
-    return String(value || "").trim().toLowerCase();
+    return String(value || "")
+        .trim()
+        .toLowerCase();
 }
 
 function formatCount(value) {
@@ -63,10 +46,10 @@ function formatDate(value) {
     return Number.isNaN(date.getTime())
         ? "—"
         : date.toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-        });
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+          });
 }
 
 function formatCompact(value) {
@@ -79,94 +62,65 @@ function formatCompact(value) {
     return formatMoney(amount);
 }
 
-function matchesSeller(record, user, storeNames) {
-    if (record.sellerId || record.sellerEmail) {
-        const sameId = user?.id &&
-            String(record.sellerId) === String(user.id);
-
-        const sameEmail = user?.email &&
-            normalize(record.sellerEmail) === normalize(user.email);
-
-        return Boolean(sameId || sameEmail);
-    }
-
-    return storeNames.has(normalize(record.seller));
+const emptyDashboard = () => ({
+    products: [],
+    inventory: [],
+    orders: [],
+    replacements: [],
+    reviews: [],
+    batches: [],
+    allocations: [],
+    threshold: 5,
+    storeName: "Your Store",
+    storeCompletion: 0,
+    refreshedAt: new Date(),
+});
+async function loadAllRows(path, key) {
+    const rows = [];
+    let total;
+    do {
+        const { data } = await api.get(path, {
+            params: { limit: 50, page: Math.floor(rows.length / 50) + 1 },
+        });
+        const next = data[key] || [];
+        rows.push(...next);
+        total = data.total || 0;
+        if (!next.length) break;
+    } while (rows.length < total);
+    return rows;
 }
 
-function loadDashboard(user, liveOrders = []) {
-    const products = ownProducts(user);
-    const inventory = inventoryRows(user);
-    const orders = liveOrders;
-    const replacements = getSellerReplacements(user);
-    const storeName = getStoreName(user);
-    const stores = readObject(PROFILE_KEY);
-    const savedStore = stores[sellerKey(user)] || {};
-
-    const seller = readRows(SELLERS_KEY).find((item) =>
-        (user?.id && String(item.id) === String(user.id)) ||
-        (user?.email && normalize(item.email) === normalize(user.email))
-    );
-
-    const storeProfile = {
-        ...(seller || {}),
-        ...savedStore,
+async function loadDashboard() {
+    const [catalog, stock, store, replacements, reviews, settlements] = await Promise.all([
+        loadAllRows("/seller/products", "products"),
+        loadAllRows("/seller/inventory", "rows"),
+        api.get("/seller/store"),
+        api.get("/replacements"),
+        api.get("/reviews/manage"),
+        api.get("/settlements"),
+    ]);
+    const profile = store.data.store;
+    const fields = {
+        ...profile,
+        ...profile.pickupAddress,
+        address: profile.pickupAddress?.house,
+        locality: profile.pickupAddress?.area,
     };
-
-    const storeComplete = STORE_FIELDS.filter((field) =>
-        String(storeProfile[field] || "").trim().length > 0
-    ).length;
-
-    const storeCompletion = Math.round(
-        (storeComplete / STORE_FIELDS.length) * 100
-    );
-
-    const productIds = new Set(
-        products.map((product) => String(product.id || product._id))
-    );
-
-    const reviews = readRows(REVIEW_KEY).filter((review) =>
-        productIds.has(String(review.productId)) &&
-        review.status === "Published"
-    );
-
-    const settlementData = readObject(SETTLEMENT_KEY);
-    const storeNames = new Set([
-        normalize(storeName),
-        normalize(user?.storeName),
-        normalize(seller?.storeName),
-    ].filter(Boolean));
-
-    const batches = (settlementData.batches || []).filter((batch) =>
-        matchesSeller(batch, user, storeNames)
-    );
-
-    const allocations = (settlementData.ledger || []).filter((line) =>
-        matchesSeller(line, user, storeNames)
-    );
-
-    const savedThreshold = Number(
-        localStorage.getItem(
-            `zupito_seller_stock_alert_${sellerKey(user)}`
-        )
-    );
-
-    const threshold = Number.isInteger(savedThreshold) &&
-        savedThreshold >= 1 && savedThreshold <= 100
-        ? savedThreshold
-        : 5;
-
     return {
-        products,
-        inventory,
-        orders,
-        replacements,
-        reviews,
-        batches,
-        allocations,
-        threshold,
-        storeName,
-        storeCompletion,
-        refreshedAt: new Date(),
+        ...emptyDashboard(),
+        products: catalog,
+        inventory: stock,
+        replacements: replacements.data.replacements,
+        reviews: reviews.data.reviews.filter((row) => row.status === "Published"),
+        batches: settlements.data.settlements.map((row) => ({
+            ...row,
+            payable: row.payablePaise / 100,
+        })),
+        allocations: settlements.data.earnings,
+        storeName: profile.storeName,
+        storeCompletion: Math.round(
+            (STORE_FIELDS.filter((key) => fields[key]).length / STORE_FIELDS.length) * 100
+        ),
     };
 }
 
@@ -231,9 +185,7 @@ function buildTrend(orders, days, now) {
         const amount = orders.reduce((total, order) => {
             const date = new Date(order.createdAt);
 
-            return date >= from && date < to
-                ? total + Number(order.amount || 0)
-                : total;
+            return date >= from && date < to ? total + Number(order.amount || 0) : total;
         }, 0);
 
         return {
@@ -248,101 +200,84 @@ function buildTrend(orders, days, now) {
 
 function getSummary(data, period) {
     const {
-        products, inventory, orders, replacements, reviews,
-        batches, allocations, threshold, refreshedAt,
+        products,
+        inventory,
+        orders,
+        replacements,
+        reviews,
+        batches,
+        allocations,
+        threshold,
+        refreshedAt,
     } = data;
 
-    const selectedOrders = orders.filter((order) =>
-        inPeriod(order.createdAt, period, refreshedAt)
+    const selectedOrders = orders.filter((order) => inPeriod(order.createdAt, period, refreshedAt));
+
+    const grossValue = selectedOrders.reduce(
+        (total, order) => total + Number(order.amount || 0),
+        0
     );
 
-    const grossValue = selectedOrders.reduce((total, order) =>
-        total + Number(order.amount || 0),
-    0);
-
-    const deliveredOrders = selectedOrders.filter((order) =>
-        orderGroup(order.status) === "delivered"
+    const deliveredOrders = selectedOrders.filter(
+        (order) => orderGroup(order.status) === "delivered"
     );
-
 
     const openOrders = orders.filter((order) =>
-        ["new", "packing", "ready", "issue"].includes(
-            orderGroup(order.status)
-        )
+        ["new", "packing", "ready", "issue"].includes(orderGroup(order.status))
     );
 
-    const stockAlerts = inventory.filter((item) =>
-        item.available <= threshold
+    const stockAlerts = inventory.filter((item) => item.available <= threshold);
+
+    const pendingApproval = products.filter((product) => product.status === "Pending");
+
+    const approvedProducts = products.filter((product) => product.status === "Approved");
+
+    const needsReply = reviews.filter(
+        (review) =>
+            !(typeof review.sellerReply === "string"
+                ? review.sellerReply.trim()
+                : review.sellerReply?.text?.trim())
     );
 
-    const pendingApproval = products.filter((product) =>
-        product.status === "Pending"
+    const replacementActions = replacements.filter(
+        (request) =>
+            (request.status === "Pending" &&
+                (request.sellerDecision || "Awaiting") === "Awaiting") ||
+            (request.status === "Inspection" &&
+                request.pickupTask?.stage === "delivered" &&
+                !request.inspectedAt) ||
+            (request.status === "Inspection" && request.inspectedAt && !request.deliveryTask)
     );
 
-    const approvedProducts = products.filter((product) =>
-        product.status === "Approved"
-    );
+    const preparedBatches = batches.filter((batch) => batch.status === "Pending");
 
-    const needsReply = reviews.filter((review) =>
-        !(typeof review.sellerReply === "string"
-            ? review.sellerReply.trim()
-            : review.sellerReply?.text?.trim())
-    );
+    const confirmedBatches = batches.filter((batch) => batch.status === "Paid");
 
-    const replacementActions = replacements.filter((request) =>
-        (
-            request.status === "Pending" &&
-            (request.sellerDecision || "Awaiting") === "Awaiting"
-        ) || (
-            request.status === "Inspection" &&
-            request.pickupTask?.stage === "delivered" &&
-            !request.inspectedAt
-        ) || (
-            request.status === "Inspection" &&
-            request.inspectedAt &&
-            !request.deliveryTask
-        )
-    );
+    const preparedAmount =
+        preparedBatches.reduce((total, batch) => total + Number(batch.payable || 0), 0) / 100;
 
-    const preparedBatches = batches.filter((batch) =>
-        batch.status === "Prepared"
-    );
-
-    const confirmedBatches = batches.filter((batch) =>
-        batch.status === "Confirmed (Demo)"
-    );
-
-    const preparedAmount = preparedBatches.reduce((total, batch) =>
-        total + Number(batch.payable || 0),
-    0) / 100;
-
-    const confirmedAmount = confirmedBatches.reduce((total, batch) =>
-        total + Number(batch.payable || 0),
-    0) / 100;
+    const confirmedAmount =
+        confirmedBatches.reduce((total, batch) => total + Number(batch.payable || 0), 0) / 100;
 
     const averageRating = reviews.length
-        ? reviews.reduce((total, review) =>
-            total + Number(review.rating || 0),
-        0) / reviews.length
+        ? reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length
         : null;
 
     const orderDistribution = ORDER_GROUPS.map((group) => ({
         ...group,
-        count: selectedOrders.filter((order) =>
-            orderGroup(order.status) === group.key
-        ).length,
+        count: selectedOrders.filter((order) => orderGroup(order.status) === group.key).length,
     }));
 
-    const totalOnHand = inventory.reduce((total, item) =>
-        total + Number(item.onHand || 0),
-    0);
+    const totalOnHand = inventory.reduce((total, item) => total + Number(item.onHand || 0), 0);
 
-    const totalReserved = inventory.reduce((total, item) =>
-        total + Number(item.reserved || 0),
-    0);
+    const totalReserved = inventory.reduce((total, item) => total + Number(item.reserved || 0), 0);
 
-    const attention = openOrders.length + stockAlerts.length +
-        pendingApproval.length + replacementActions.length + needsReply.length;
+    const attention =
+        openOrders.length +
+        stockAlerts.length +
+        pendingApproval.length +
+        replacementActions.length +
+        needsReply.length;
 
     return {
         selectedOrders,
@@ -366,9 +301,7 @@ function getSummary(data, period) {
         totalAllocations: allocations.length,
         trend: buildTrend(selectedOrders, period, refreshedAt),
         recentOrders: [...orders]
-            .sort((first, second) =>
-                new Date(second.createdAt) - new Date(first.createdAt)
-            )
+            .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt))
             .slice(0, 5),
         stockWatch: [...inventory]
             .sort((first, second) => first.available - second.available)
@@ -385,7 +318,9 @@ function SectionHeading({ icon, title, subtitle, to, linkText = "View All" }) {
     return (
         <div className="zd-heading">
             <div>
-                <h2><Icon name={icon} /> {title}</h2>
+                <h2>
+                    <Icon name={icon} /> {title}
+                </h2>
                 <p>{subtitle}</p>
             </div>
 
@@ -410,25 +345,27 @@ function TrendChart({ points }) {
 
     const positions = points.map((point, index) => ({
         ...point,
-        x: left + index * (width - left - right) /
-            Math.max(points.length - 1, 1),
-        y: bottom - point.amount / ceiling * (bottom - top),
+        x: left + (index * (width - left - right)) / Math.max(points.length - 1, 1),
+        y: bottom - (point.amount / ceiling) * (bottom - top),
     }));
 
-    const line = positions.map((point, index) =>
-        `${index ? "L" : "M"}${point.x},${point.y}`
-    ).join(" ");
+    const line = positions
+        .map((point, index) => `${index ? "L" : "M"}${point.x},${point.y}`)
+        .join(" ");
 
     const area = positions.length
-        ? `${line} L${positions.at(-1).x},${bottom} ` +
-          `L${positions[0].x},${bottom} Z`
+        ? `${line} L${positions.at(-1).x},${bottom} ` + `L${positions[0].x},${bottom} Z`
         : "";
 
     return (
         <div className="zd-chart-wrap">
             {!max && <span className="zd-chart-empty">No parcel value in this period</span>}
 
-            <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Paid parcel value by order date">
+            <svg
+                viewBox={`0 0 ${width} ${height}`}
+                role="img"
+                aria-label="Paid parcel value by order date"
+            >
                 <defs>
                     <linearGradient id="sdb-trend-gradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#285cf5" stopOpacity="0.24" />
@@ -482,12 +419,7 @@ function TrendChart({ points }) {
                             <title>{`${point.label}: ${formatMoney(point.amount)}`}</title>
                         </circle>
 
-                        <text
-                            x={point.x}
-                            y="231"
-                            textAnchor="middle"
-                            className="zd-axis-text"
-                        >
+                        <text x={point.x} y="231" textAnchor="middle" className="zd-axis-text">
                             {point.label}
                         </text>
                     </g>
@@ -500,20 +432,20 @@ function TrendChart({ points }) {
 function OrderDonut({ segments, total }) {
     const radius = 44;
     const length = 2 * Math.PI * radius;
-    let offset = 0;
 
     return (
         <div className="zd-donut">
             <svg viewBox="0 0 128 128" role="img" aria-label="Parcel status distribution">
                 <circle cx="64" cy="64" r={radius} fill="none" stroke="#eef2f7" strokeWidth="13" />
 
-                {segments.map((segment) => {
-                    const amount = total
-                        ? segment.count / total * length
-                        : 0;
+                {segments.map((segment, index) => {
+                    const amount = total ? (segment.count / total) * length : 0;
 
-                    const start = offset;
-                    offset += amount;
+                    const start = total
+                        ? (segments.slice(0, index).reduce((sum, entry) => sum + entry.count, 0) /
+                              total) *
+                          length
+                        : 0;
 
                     return (
                         <circle
@@ -548,7 +480,9 @@ function ProgressRing({ label, value, detail, icon, color, hasData }) {
     return (
         <div className="zd-ring-card">
             <div>
-                <span className="zd-ring-icon"><Icon name={icon} /></span>
+                <span className="zd-ring-icon">
+                    <Icon name={icon} />
+                </span>
                 <strong>{label}</strong>
                 <small>{detail}</small>
             </div>
@@ -581,33 +515,36 @@ function OrderBadge({ status }) {
     const group = orderGroup(status);
     const label = ORDER_GROUPS.find((item) => item.key === group)?.label || "In Transit";
 
-    return (
-        <span className={`zd-order-status sd-order-status-${group}`}>
-            {label}
-        </span>
-    );
+    return <span className={`zd-order-status sd-order-status-${group}`}>{label}</span>;
 }
 
 // ================== SELLER DASHBOARD ==================
 function Dashboard({ user }) {
-    const {
-        data: liveOrders,
-        error: orderError,
-        refresh: refreshOrders,
-    } = useOrderResource("staff-list");
+    const { data: liveOrders, refresh: refreshOrders } = useOrderResource("staff-list");
 
-    const data = loadDashboard(user, liveOrders || []);
+    const [snapshot, setSnapshot] = useState(emptyDashboard);
+    const data = useMemo(() => ({ ...snapshot, orders: liveOrders || [] }), [snapshot, liveOrders]);
+    useEffect(() => {
+        loadDashboard()
+            .then(setSnapshot)
+            .catch((error) => toast.error(error.message));
+    }, []);
     const [period, setPeriod] = useState(30);
 
-    const refresh = refreshOrders;
+    const refresh = async () => {
+        try {
+            setSnapshot(await loadDashboard());
+            await refreshOrders();
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
 
-    const summary = useMemo(() =>
-        getSummary(data, period),
-    [data, period]);
+    const summary = useMemo(() => getSummary(data, period), [data, period]);
 
-    const firstName = String(
-        user?.name || user?.fullName || "Seller"
-    ).trim().split(/\s+/)[0];
+    const firstName = String(user?.name || user?.fullName || "Seller")
+        .trim()
+        .split(/\s+/)[0];
 
     const kpis = [
         {
@@ -648,7 +585,7 @@ function Dashboard({ user }) {
         {
             label: "Prepared Payout",
             value: formatCompact(summary.preparedAmount),
-            note: "Awaiting Admin confirmation · demo",
+            note: "Awaiting Admin confirmation",
             icon: "fa-wallet",
             path: "earnings",
         },
@@ -661,9 +598,7 @@ function Dashboard({ user }) {
         },
         {
             label: "Customer Rating",
-            value: summary.averageRating === null
-                ? "—"
-                : `${summary.averageRating.toFixed(1)}/5`,
+            value: summary.averageRating === null ? "—" : `${summary.averageRating.toFixed(1)}/5`,
             note: `${data.reviews.length} genuine published review(s)`,
             icon: "fa-star",
             path: "reviews",
@@ -673,33 +608,25 @@ function Dashboard({ user }) {
     const actions = [
         {
             label: "Orders to Pack",
-            count: data.orders.filter((item) =>
-                orderGroup(item.status) === "new"
-            ).length,
+            count: data.orders.filter((item) => orderGroup(item.status) === "new").length,
             icon: "fa-box",
             path: "orders",
         },
         {
             label: "Packing in Progress",
-            count: data.orders.filter((item) =>
-                orderGroup(item.status) === "packing"
-            ).length,
+            count: data.orders.filter((item) => orderGroup(item.status) === "packing").length,
             icon: "fa-box-open",
             path: "orders",
         },
         {
             label: "Ready for Pickup",
-            count: data.orders.filter((item) =>
-                orderGroup(item.status) === "ready"
-            ).length,
+            count: data.orders.filter((item) => orderGroup(item.status) === "ready").length,
             icon: "fa-truck-ramp-box",
             path: "orders",
         },
         {
             label: "Delivery Issues",
-            count: data.orders.filter((item) =>
-                orderGroup(item.status) === "issue"
-            ).length,
+            count: data.orders.filter((item) => orderGroup(item.status) === "issue").length,
             icon: "fa-triangle-exclamation",
             path: "orders",
         },
@@ -787,15 +714,15 @@ function Dashboard({ user }) {
     ];
 
     const deliveryRate = summary.selectedOrders.length
-        ? summary.deliveredOrders.length / summary.selectedOrders.length * 100
+        ? (summary.deliveredOrders.length / summary.selectedOrders.length) * 100
         : 0;
 
     const approvalRate = data.products.length
-        ? summary.approvedProducts.length / data.products.length * 100
+        ? (summary.approvedProducts.length / data.products.length) * 100
         : 0;
 
     const replyRate = data.reviews.length
-        ? (data.reviews.length - summary.needsReply.length) / data.reviews.length * 100
+        ? ((data.reviews.length - summary.needsReply.length) / data.reviews.length) * 100
         : 0;
 
     return (
@@ -803,7 +730,9 @@ function Dashboard({ user }) {
             {/* ================== PAGE HEADER ================== */}
             <header className="zd-topbar">
                 <div>
-                    <h1 className="zd-page-title"><Icon name="fa-gauge-high" /> DASHBOARD</h1>
+                    <h1 className="zd-page-title">
+                        <Icon name="fa-gauge-high" /> DASHBOARD
+                    </h1>
                     <p>Your store performance and daily operations in one place.</p>
                 </div>
 
@@ -816,7 +745,9 @@ function Dashboard({ user }) {
                             aria-label="Dashboard reporting period"
                         >
                             {PERIODS.map((days) => (
-                                <option value={days} key={days}>Last {days} Days</option>
+                                <option value={days} key={days}>
+                                    Last {days} Days
+                                </option>
                             ))}
                         </select>
                     </label>
@@ -830,11 +761,12 @@ function Dashboard({ user }) {
             {/* ================== WELCOME BANNER ================== */}
             <section className="zd-welcome">
                 <div className="zd-welcome-copy">
-
-                    <h2>Welcome back, <span>{firstName}.</span></h2>
+                    <h2>
+                        Welcome back, <span>{firstName}.</span>
+                    </h2>
                     <p>
-                        Manage {data.storeName}, stay ahead of new orders,
-                        monitor inventory and follow your store's growth.
+                        Manage {data.storeName}, stay ahead of new orders, monitor inventory and
+                        follow your store's growth.
                     </p>
 
                     <a href="#sdb-actions" className="zd-welcome-link">
@@ -843,7 +775,9 @@ function Dashboard({ user }) {
                 </div>
 
                 <div className="zd-welcome-stat">
-                    <span><Icon name="fa-bell" /> Pending Actions</span>
+                    <span>
+                        <Icon name="fa-bell" /> Pending Actions
+                    </span>
                     <strong>{formatCount(summary.attention)}</strong>
                     <small>Items needing your attention</small>
                 </div>
@@ -852,17 +786,17 @@ function Dashboard({ user }) {
             {/* ================== KPI OVERVIEW ================== */}
             <section className="zd-cards" aria-label="Seller dashboard statistics">
                 {kpis.map(({ label, value, note, icon, path }, index) => (
-                    <Link
-                        key={label}
-                        to={`/manage/${path}`}
-                        className={`zd-kpi zd-kpi-${index}`}
-                    >
+                    <Link key={label} to={`/manage/${path}`} className={`zd-kpi zd-kpi-${index}`}>
                         <div className="zd-kpi-head">
                             <span>{label}</span>
-                            <span className="zd-kpi-icon"><Icon name={icon} /></span>
+                            <span className="zd-kpi-icon">
+                                <Icon name={icon} />
+                            </span>
                         </div>
 
-                        <strong title={String(value)}>{typeof value === "number" ? formatCount(value) : value}</strong>
+                        <strong title={String(value)}>
+                            {typeof value === "number" ? formatCount(value) : value}
+                        </strong>
                         <small>{note}</small>
                     </Link>
                 ))}
@@ -960,14 +894,14 @@ function Dashboard({ user }) {
 
                     <div className="zd-action-list">
                         {actions.map(({ label, count, icon, path }) => (
-                            <Link
-                                key={label}
-                                to={`/manage/${path}`}
-                                className="zd-list-row"
-                            >
-                                <span className="zd-row-icon"><Icon name={icon} /></span>
+                            <Link key={label} to={`/manage/${path}`} className="zd-list-row">
+                                <span className="zd-row-icon">
+                                    <Icon name={icon} />
+                                </span>
                                 <span>{label}</span>
-                                <strong className={count ? "zd-count-active" : ""}>{formatCount(count)}</strong>
+                                <strong className={count ? "zd-count-active" : ""}>
+                                    {formatCount(count)}
+                                </strong>
                                 <Icon name="fa-chevron-right" />
                             </Link>
                         ))}
@@ -983,12 +917,10 @@ function Dashboard({ user }) {
 
                     <div className="zd-action-list">
                         {moduleOverview.map(({ label, value, icon, path }) => (
-                            <Link
-                                key={path}
-                                to={`/manage/${path}`}
-                                className="zd-list-row"
-                            >
-                                <span className="zd-row-icon"><Icon name={icon} /></span>
+                            <Link key={path} to={`/manage/${path}`} className="zd-list-row">
+                                <span className="zd-row-icon">
+                                    <Icon name={icon} />
+                                </span>
                                 <span>{label}</span>
                                 <strong>{value}</strong>
                                 <Icon name="fa-chevron-right" />
@@ -1011,20 +943,20 @@ function Dashboard({ user }) {
 
                     <div className="sd-stock-list">
                         {summary.stockWatch.map((item) => (
-                            <Link
-                                key={item.key}
-                                to="/manage/inventory"
-                                className="sd-stock-row"
-                            >
+                            <Link key={item.key} to="/manage/inventory" className="sd-stock-row">
                                 {item.image ? (
                                     <img src={item.image} alt="" />
                                 ) : (
-                                    <span className="sd-stock-placeholder"><Icon name="fa-image" /></span>
+                                    <span className="sd-stock-placeholder">
+                                        <Icon name="fa-image" />
+                                    </span>
                                 )}
 
                                 <div>
                                     <strong>{item.name}</strong>
-                                    <small>{item.sku} · {item.variant}</small>
+                                    <small>
+                                        {item.sku} · {item.variant}
+                                    </small>
                                 </div>
 
                                 <span className={item.available <= data.threshold ? "is-low" : ""}>
@@ -1039,8 +971,12 @@ function Dashboard({ user }) {
                     </div>
 
                     <div className="sd-stock-summary">
-                        <span>On Hand: <strong>{formatCount(summary.totalOnHand)}</strong></span>
-                        <span>Reserved: <strong>{formatCount(summary.totalReserved)}</strong></span>
+                        <span>
+                            On Hand: <strong>{formatCount(summary.totalOnHand)}</strong>
+                        </span>
+                        <span>
+                            Reserved: <strong>{formatCount(summary.totalReserved)}</strong>
+                        </span>
                     </div>
                 </section>
 
@@ -1048,7 +984,7 @@ function Dashboard({ user }) {
                     <SectionHeading
                         icon="fa-wallet"
                         title="Earnings & Settlements"
-                        subtitle="Admin-managed financial allocations · Frontend demo"
+                        subtitle="Admin-managed financial allocations"
                         to="/manage/earnings"
                         linkText="View Earnings"
                     />
@@ -1057,19 +993,24 @@ function Dashboard({ user }) {
                         <div>
                             <span>Prepared Payout</span>
                             <strong>{formatMoney(summary.preparedAmount)}</strong>
-                            <small>{summary.preparedBatches.length} batch(es) awaiting confirmation</small>
+                            <small>
+                                {summary.preparedBatches.length} batch(es) awaiting confirmation
+                            </small>
                         </div>
 
                         <div>
-                            <span>Confirmed (Demo)</span>
+                            <span>Recorded Payout</span>
                             <strong>{formatMoney(summary.confirmedAmount)}</strong>
                             <small>{summary.confirmedBatches.length} recorded settlement(s)</small>
                         </div>
                     </div>
 
                     <div className="sd-finance-footer">
-                        <span><Icon name="fa-receipt" /> {formatCount(summary.totalAllocations)} financial allocation(s)</span>
-                        <span>Confirmed (Demo) is not a real transfer.</span>
+                        <span>
+                            <Icon name="fa-receipt" /> {formatCount(summary.totalAllocations)}{" "}
+                            financial allocation(s)
+                        </span>
+                        <span>Payouts are recorded by Admin after settlement.</span>
                     </div>
                 </section>
             </div>
@@ -1106,8 +1047,12 @@ function Dashboard({ user }) {
 
                                     <td>{order.customerName || "Customer"}</td>
                                     <td>{formatDate(order.createdAt)}</td>
-                                    <td><strong>{formatMoney(order.amount)}</strong></td>
-                                    <td><OrderBadge status={order.status} /></td>
+                                    <td>
+                                        <strong>{formatMoney(order.amount)}</strong>
+                                    </td>
+                                    <td>
+                                        <OrderBadge status={order.status} />
+                                    </td>
                                     <td>
                                         <Link
                                             className="zd-view-all"
@@ -1132,11 +1077,12 @@ function Dashboard({ user }) {
             </section>
 
             <p className="sd-footnote">
-                Figures use existing frontend records. Demo orders and settlements are
-                simulations, not real payments. Last refreshed: {data.refreshedAt.toLocaleTimeString("en-IN", {
+                Figures reflect your current store records. Last refreshed:{" "}
+                {data.refreshedAt.toLocaleTimeString("en-IN", {
                     hour: "2-digit",
                     minute: "2-digit",
-                })}.
+                })}
+                .
             </p>
         </main>
     );

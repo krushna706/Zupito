@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -20,45 +19,18 @@ import {
 } from "@mui/material";
 import { toast } from "react-toastify";
 
-// ================== CUSTOMER CONFIGURATION ==================
-const STORAGE_KEY = "zupito_admin_customers";
-
-const initialCustomers = [
-    { id: "ZC1001", name: "Ananya Sharma", email: "ananya@example.com", phone: "9000000011", city: "Bhubaneswar", state: "Odisha", joinedAt: "2026-09-14", status: "Active" },
-    { id: "ZC1002", name: "Rohit Das", email: "rohit@example.com", phone: "9000000012", city: "Cuttack", state: "Odisha", joinedAt: "2026-09-20", status: "Active" },
-    { id: "ZC1003", name: "Priya Patel", email: "priya@example.com", phone: "9000000013", city: "Pune", state: "Maharashtra", joinedAt: "2026-09-25", status: "Active" },
-    { id: "ZC1004", name: "Amit Kumar", email: "amit@example.com", phone: "9000000014", city: "Bengaluru", state: "Karnataka", joinedAt: "2026-10-02", status: "Restricted", remarks: "Account activity requires review." },
-    { id: "ZC1005", name: "Sneha Singh", email: "sneha@example.com", phone: "9000000015", city: "Hyderabad", state: "Telangana", joinedAt: "2026-10-07", status: "Active" },
-    { id: "ZC1006", name: "Rahul Mohanty", email: "rahul@example.com", phone: "9000000016", city: "Bhubaneswar", state: "Odisha", joinedAt: "2026-10-12", status: "Active" },
-    { id: "ZC1007", name: "Neha Gupta", email: "neha@example.com", phone: "9000000017", city: "Kolkata", state: "West Bengal", joinedAt: "2026-10-18", status: "Active" },
-    { id: "ZC1008", name: "Karan Shah", email: "karan@example.com", phone: "9000000018", city: "Mumbai", state: "Maharashtra", joinedAt: "2026-10-22", status: "Restricted", remarks: "Account verification pending." },
-    { id: "ZC1009", name: "Pooja Sahu", email: "pooja@example.com", phone: "9000000019", city: "Rourkela", state: "Odisha", joinedAt: "2026-10-27", status: "Active" },
-    { id: "ZC1010", name: "Vikram Rao", email: "vikram@example.com", phone: "9000000020", city: "Chennai", state: "Tamil Nadu", joinedAt: "2026-10-30", status: "Active" },
-    { id: "ZC1011", name: "Meera Nair", email: "meera@example.com", phone: "9000000021", city: "Kochi", state: "Kerala", joinedAt: "2026-11-02", status: "Active" },
-    { id: "ZC1012", name: "Arjun Verma", email: "arjun@example.com", phone: "9000000022", city: "Delhi", state: "Delhi", joinedAt: "2026-11-04", status: "Active" },
-];
-
-// ================== CUSTOMER HELPERS ==================
-function loadCustomers() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-
-        if (Array.isArray(saved)) return saved;
-    } catch {
-        // Use demo records when local storage is unavailable.
-    }
-
-    return initialCustomers;
-}
+import api from "../services/api";
 
 function getInitials(name) {
-    return String(name || "")
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((word) => word.charAt(0))
-        .join("")
-        .toUpperCase() || "ZC";
+    return (
+        String(name || "")
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((word) => word.charAt(0))
+            .join("")
+            .toUpperCase() || "ZC"
+    );
 }
 
 function formatDate(value) {
@@ -95,7 +67,7 @@ function CustomerDetail({ label, value }) {
 
 // ================== MANAGE CUSTOMERS ==================
 function Customers() {
-    const [customers, setCustomers] = useState(loadCustomers);
+    const [customers, setCustomers] = useState([]);
 
     // ================== SEARCH AND FILTERS ==================
     const [search, setSearch] = useState("");
@@ -112,14 +84,14 @@ function Customers() {
     const selectedCustomer = customers.find((customer) => customer.id === selectedId);
     const actionCustomer = customers.find((customer) => customer.id === statusAction?.customerId);
 
-    // ================== SAVE CHANGES ==================
+    const loadCustomers = async () => {
+        const { data } = await api.get("/admin/customers");
+        setCustomers(data.customers);
+    };
     useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(customers));
-        } catch {
-            // Keep changes in React state when storage fails.
-        }
-    }, [customers]);
+        loadCustomers().catch((error) => toast.error(error.message));
+    }, []);
+    const [now] = useState(() => Date.now());
 
     // ================== CUSTOMER STATISTICS ==================
     const counts = {
@@ -128,7 +100,7 @@ function Customers() {
         restricted: customers.filter((customer) => customer.status === "Restricted").length,
         recent: customers.filter((customer) => {
             const joined = new Date(customer.joinedAt).getTime();
-            const days = Date.now() - joined;
+            const days = now - joined;
 
             return days >= 0 && days <= 30 * 24 * 60 * 60 * 1000;
         }).length,
@@ -176,25 +148,20 @@ function Customers() {
             customer.phone,
             customer.city,
         ].some((value) =>
-            String(value || "").toLowerCase().includes(query)
+            String(value || "")
+                .toLowerCase()
+                .includes(query)
         );
 
-        return matchesSearch &&
-            (statusFilter === "All" || customer.status === statusFilter);
+        return matchesSearch && (statusFilter === "All" || customer.status === statusFilter);
     });
 
-    const visibleCustomers = filteredCustomers.slice(
-        page * rowsPerPage,
-        (page + 1) * rowsPerPage
-    );
+    const visibleCustomers = filteredCustomers.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
     const hasFilters = Boolean(search) || statusFilter !== "All";
 
     // ================== REFRESH AND FILTERS ==================
-    const handleRefresh = () => {
-        setCustomers(loadCustomers());
-        toast.info("Customer records refreshed from local data.");
-    };
+    const handleRefresh = () => loadCustomers().catch((error) => toast.error(error.message));
 
     const resetFilters = () => {
         setSearch("");
@@ -222,50 +189,23 @@ function Customers() {
         setError("");
     };
 
-    const handleStatusUpdate = () => {
-        if (!actionCustomer || actionCustomer.status !== statusAction.expectedStatus) {
-            toast.error("Customer status has changed. Please refresh and try again.");
+    const handleStatusUpdate = async () => {
+        if (!actionCustomer) return;
+        if (statusAction.nextStatus !== "Active" && reason.trim().length < 5) {
+            setError("Enter a restriction reason of at least 5 characters.");
+            return;
+        }
+        try {
+            await api.patch(`/admin/customers/${actionCustomer.id}/status`, {
+                status: statusAction.nextStatus,
+                reason: reason.trim() || "Customer access restored by administrator.",
+            });
+            await loadCustomers();
             closeStatusAction();
-            return;
+            toast.success("Customer status updated.");
+        } catch (error) {
+            setError(error.message);
         }
-
-        if (statusAction.nextStatus === "Restricted" && reason.trim().length < 5) {
-            setError("Enter a reason containing at least 5 characters.");
-            return;
-        }
-
-        const updatedAt = new Date().toISOString();
-        const nextStatus = statusAction.nextStatus;
-
-        setCustomers((previous) =>
-            previous.map((customer) =>
-                customer.id === statusAction.customerId
-                    ? {
-                          ...customer,
-                          status: nextStatus,
-                          remarks: nextStatus === "Restricted" ? reason.trim() : "",
-                          updatedAt,
-                          history: [
-                              ...(customer.history || []),
-                              {
-                                  status: nextStatus,
-                                  reason: nextStatus === "Restricted" ? reason.trim() : "",
-                                  updatedAt,
-                              },
-                          ],
-                      }
-                    : customer
-            )
-        );
-
-        setPage(0);
-        toast.success(
-            nextStatus === "Active"
-                ? "Customer access restored successfully."
-                : "Customer access restricted successfully."
-        );
-
-        closeStatusAction();
     };
 
     return (
@@ -277,10 +217,10 @@ function Customers() {
                         <i className="fa-solid fa-users-gear" aria-hidden="true" />
                         CUSTOMER MANAGEMENT
                     </span>
-                    
+
                     <p>
-                        View registered customers, review account details
-                        and manage access securely.
+                        View registered customers, review account details and manage access
+                        securely.
                     </p>
                 </div>
 
@@ -329,9 +269,7 @@ function Customers() {
                         </div>
                     </div>
 
-                    <span className="mc-record-count">
-                        {filteredCustomers.length} Records
-                    </span>
+                    <span className="mc-record-count">{filteredCustomers.length} Records</span>
                 </div>
 
                 {/* ================== SEARCH AND FILTERS ================== */}
@@ -350,7 +288,10 @@ function Customers() {
                             input: {
                                 startAdornment: (
                                     <InputAdornment position="start">
-                                        <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
+                                        <i
+                                            className="fa-solid fa-magnifying-glass"
+                                            aria-hidden="true"
+                                        />
                                     </InputAdornment>
                                 ),
                             },
@@ -426,7 +367,10 @@ function Customers() {
 
                                     <TableCell>
                                         <div className="mc-location">
-                                            <i className="fa-solid fa-location-dot" aria-hidden="true" />
+                                            <i
+                                                className="fa-solid fa-location-dot"
+                                                aria-hidden="true"
+                                            />
 
                                             <span>
                                                 {customer.city}
@@ -462,7 +406,10 @@ function Customers() {
                                 <TableRow>
                                     <TableCell colSpan={6} align="center">
                                         <div className="panel-empty-state">
-                                            <i className="fa-solid fa-user-slash" aria-hidden="true" />
+                                            <i
+                                                className="fa-solid fa-user-slash"
+                                                aria-hidden="true"
+                                            />
                                             <h3>No Customers Found</h3>
                                             <p>Try another search or account status.</p>
 
@@ -525,17 +472,25 @@ function Customers() {
 
                             <dl className="mc-details">
                                 <CustomerDetail label="Full Name" value={selectedCustomer.name} />
-                                <CustomerDetail label="Email Address" value={selectedCustomer.email} />
-                                <CustomerDetail label="Mobile Number" value={selectedCustomer.phone} />
-                                <CustomerDetail label="Registered On" value={formatDate(selectedCustomer.joinedAt)} />
+                                <CustomerDetail
+                                    label="Email Address"
+                                    value={selectedCustomer.email}
+                                />
+                                <CustomerDetail
+                                    label="Mobile Number"
+                                    value={selectedCustomer.phone}
+                                />
+                                <CustomerDetail
+                                    label="Registered On"
+                                    value={formatDate(selectedCustomer.joinedAt)}
+                                />
                                 <CustomerDetail label="City" value={selectedCustomer.city} />
                                 <CustomerDetail label="State" value={selectedCustomer.state} />
                             </dl>
 
                             {selectedCustomer.remarks && (
                                 <Alert severity="warning" className="mc-detail-alert">
-                                    <strong>Restriction Reason:</strong>{" "}
-                                    {selectedCustomer.remarks}
+                                    <strong>Restriction Reason:</strong> {selectedCustomer.remarks}
                                 </Alert>
                             )}
 
@@ -600,7 +555,9 @@ function Customers() {
                                     setError("");
                                 }}
                                 error={Boolean(error)}
-                                helperText={error || "Explain why this account is being restricted."}
+                                helperText={
+                                    error || "Explain why this account is being restricted."
+                                }
                                 slotProps={{ htmlInput: { maxLength: 300 } }}
                                 multiline
                                 minRows={3}

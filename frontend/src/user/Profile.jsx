@@ -10,12 +10,14 @@ const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function getInitials(name) {
-    return String(name || "")
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((word) => word.charAt(0).toUpperCase())
-        .join("") || "U";
+    return (
+        String(name || "")
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((word) => word.charAt(0).toUpperCase())
+            .join("") || "U"
+    );
 }
 
 function Profile() {
@@ -35,8 +37,7 @@ function Profile() {
     const currentImage = imagePreview || user?.avatar?.url || "";
 
     const hasChanges =
-        normalizedName !== savedName.trim().replace(/\s+/g, " ") ||
-        Boolean(selectedImage);
+        normalizedName !== savedName.trim().replace(/\s+/g, " ") || Boolean(selectedImage);
 
     useEffect(() => {
         setName(user?.name || "");
@@ -250,7 +251,10 @@ function Profile() {
                                         input: {
                                             readOnly: true,
                                             endAdornment: (
-                                                <i className="fa-solid fa-lock customer-profile-field-lock" aria-hidden="true" />
+                                                <i
+                                                    className="fa-solid fa-lock customer-profile-field-lock"
+                                                    aria-hidden="true"
+                                                />
                                             ),
                                         },
                                     }}
@@ -265,7 +269,10 @@ function Profile() {
                                         input: {
                                             readOnly: true,
                                             endAdornment: (
-                                                <i className="fa-solid fa-lock customer-profile-field-lock" aria-hidden="true" />
+                                                <i
+                                                    className="fa-solid fa-lock customer-profile-field-lock"
+                                                    aria-hidden="true"
+                                                />
                                             ),
                                         },
                                     }}
@@ -275,7 +282,10 @@ function Profile() {
 
                         <div className="customer-profile-readonly-note">
                             <i className="fa-solid fa-circle-info" aria-hidden="true" />
-                            <p>Email address and mobile number are linked to your account and cannot be changed here.</p>
+                            <p>
+                                Email address and mobile number are linked to your account and
+                                cannot be changed here.
+                            </p>
                         </div>
 
                         <div className="customer-profile-actions">
@@ -311,7 +321,10 @@ function Profile() {
 
                 <div>
                     <h3>Password & Security</h3>
-                    <p>Want to change your password? Use the secure Forgot Password process to verify your account.</p>
+                    <p>
+                        Want to change your password? Use the secure Forgot Password process to
+                        verify your account.
+                    </p>
                 </div>
 
                 <Link to="/manage/forgot-password" className="customer-profile-security-link">

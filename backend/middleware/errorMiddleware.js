@@ -8,11 +8,11 @@ module.exports = (error, req, res, next) => {
 
     if (error.code === 11000) {
         status = 409;
-        message = "An account with this email or phone number already exists.";
-    } else if (
-        error.name === "ValidationError" ||
-        error.name === "CastError"
-    ) {
+        message =
+            error.keyPattern?.email || error.keyPattern?.phone
+                ? "An account with this email or phone number already exists."
+                : "This record already exists. Refresh and try again.";
+    } else if (error.name === "ValidationError" || error.name === "CastError") {
         status = 400;
         message = "Please check the submitted details.";
     } else if (error.type === "entity.parse.failed") {
@@ -24,7 +24,7 @@ module.exports = (error, req, res, next) => {
     }
 
     if (status >= 500 && !error.statusCode) {
-       console.error("Request failed:", error.stack || error.message);
+        console.error("Request failed:", error.stack || error.message);
         message = "Unable to complete your request. Please try again.";
     }
 

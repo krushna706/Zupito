@@ -1,9 +1,23 @@
 import { useEffect, useState } from "react";
 import {
-    Alert, Button, Checkbox, FormControlLabel,
-    Dialog, DialogActions, DialogContent, DialogTitle,
-    InputAdornment, MenuItem, Table, TableBody, TableCell,
-    TableContainer, TableHead, TablePagination, TableRow, TextField,
+    Alert,
+    Button,
+    Checkbox,
+    FormControlLabel,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    InputAdornment,
+    MenuItem,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TablePagination,
+    TableRow,
+    TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
 
@@ -31,9 +45,8 @@ const emptyStats = {
 };
 
 function CategoryBadge({ status }) {
-    const theme = status === "Active"
-        ? "success"
-        : status === "Parent Disabled" ? "warning" : "danger";
+    const theme =
+        status === "Active" ? "success" : status === "Parent Disabled" ? "warning" : "danger";
 
     return (
         <span className={`zc-badge zc-badge--${theme}`}>
@@ -109,10 +122,7 @@ function Categories() {
                 setStatistics(result.statistics);
                 setTotal(result.total);
 
-                const lastPage = Math.max(
-                    0,
-                    Math.ceil(result.total / rowsPerPage) - 1
-                );
+                const lastPage = Math.max(0, Math.ceil(result.total / rowsPerPage) - 1);
 
                 if (page > lastPage) setPage(lastPage);
             } catch (error) {
@@ -147,16 +157,31 @@ function Categories() {
         return () => URL.revokeObjectURL(url);
     }, [categoryImage]);
 
-    const hasFilters =
-        Boolean(search.trim()) ||
-        typeFilter !== "All" ||
-        statusFilter !== "All";
+    const hasFilters = Boolean(search.trim()) || typeFilter !== "All" || statusFilter !== "All";
 
     const stats = [
-        ["Total Categories", statistics.total, "Main categories and subcategories", "blue", "fa-layer-group"],
+        [
+            "Total Categories",
+            statistics.total,
+            "Main categories and subcategories",
+            "blue",
+            "fa-layer-group",
+        ],
         ["Main Categories", statistics.main, "Top-level departments", "green", "fa-folder-tree"],
-        ["Subcategories", statistics.subcategories, "Product classification groups", "orange", "fa-tags"],
-        ["Disabled Categories", statistics.disabled, "Includes disabled parent categories", "red", "fa-ban"],
+        [
+            "Subcategories",
+            statistics.subcategories,
+            "Product classification groups",
+            "orange",
+            "fa-tags",
+        ],
+        [
+            "Disabled Categories",
+            statistics.disabled,
+            "Includes disabled parent categories",
+            "red",
+            "fa-ban",
+        ],
     ];
 
     const attributeOptions = [
@@ -184,19 +209,23 @@ function Categories() {
         setCategoryImage(null);
         setFormError("");
 
-        setForm(category ? {
-            name: category.name,
-            type: category.parentId ? "Subcategory" : "Main",
-            parentId: category.parentId || "",
-            description: category.description || "",
-            sortOrder: String(category.sortOrder),
-            attributes: category.attributes.join(", "),
-            showOnHome: Boolean(category.showOnHome),
-            filterBrand: category.filterBrand !== false,
-            filterAttributes: category.filterAttributes || [],
-            replacementAllowed: category.replacementAllowed ? "Yes" : "No",
-            replacementDays: String(category.replacementDays || 7),
-        } : { ...emptyForm });
+        setForm(
+            category
+                ? {
+                      name: category.name,
+                      type: category.parentId ? "Subcategory" : "Main",
+                      parentId: category.parentId || "",
+                      description: category.description || "",
+                      sortOrder: String(category.sortOrder),
+                      attributes: category.attributes.join(", "),
+                      showOnHome: Boolean(category.showOnHome),
+                      filterBrand: category.filterBrand !== false,
+                      filterAttributes: category.filterAttributes || [],
+                      replacementAllowed: category.replacementAllowed ? "Yes" : "No",
+                      replacementDays: String(category.replacementDays || 7),
+                  }
+                : { ...emptyForm }
+        );
 
         setShowForm(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -237,8 +266,7 @@ function Categories() {
             return;
         }
 
-        const replacementAllowed =
-            isSubcategory && form.replacementAllowed === "Yes";
+        const replacementAllowed = isSubcategory && form.replacementAllowed === "Yes";
 
         const values = {
             name: form.name.trim().replace(/\s+/g, " "),
@@ -252,16 +280,14 @@ function Categories() {
 
             filterAttributes: isSubcategory
                 ? form.filterAttributes.filter((name) =>
-                    attributeOptions.some((attribute) =>
-                        attribute.toLowerCase() === name.toLowerCase()
-                    )
-                )
+                      attributeOptions.some(
+                          (attribute) => attribute.toLowerCase() === name.toLowerCase()
+                      )
+                  )
                 : [],
 
             replacementAllowed,
-            replacementDays: replacementAllowed
-                ? Number(form.replacementDays)
-                : 0,
+            replacementDays: replacementAllowed ? Number(form.replacementDays) : 0,
         };
 
         if (values.name.length < 2 || values.name.length > 70) {
@@ -269,11 +295,7 @@ function Categories() {
             return;
         }
 
-        if (
-            values.showOnHome &&
-            !categoryImage &&
-            !editing?.image?.url
-        ) {
+        if (values.showOnHome && !categoryImage && !editing?.image?.url) {
             setFormError("Upload a category image before showing it on Home.");
             return;
         }
@@ -284,10 +306,13 @@ function Categories() {
         try {
             const body = new FormData();
 
-            body.append("data", JSON.stringify({
-                ...values,
-                ...(editing ? { version: editing.version } : {}),
-            }));
+            body.append(
+                "data",
+                JSON.stringify({
+                    ...values,
+                    ...(editing ? { version: editing.version } : {}),
+                })
+            );
 
             if (!isSubcategory && categoryImage) {
                 body.append("images", categoryImage);
@@ -332,10 +357,7 @@ function Categories() {
     const handleStatusUpdate = async () => {
         if (busy || !statusAction) return;
 
-        if (
-            statusAction.nextStatus === "Disabled" &&
-            reason.trim().length < 5
-        ) {
+        if (statusAction.nextStatus === "Disabled" && reason.trim().length < 5) {
             setActionError("Enter a reason containing at least 5 characters.");
             return;
         }
@@ -344,16 +366,11 @@ function Categories() {
         setActionError("");
 
         try {
-            const result = await adminService.updateCategoryStatus(
-                statusAction._id,
-                {
-                    status: statusAction.nextStatus,
-                    reason: statusAction.nextStatus === "Disabled"
-                        ? reason.trim()
-                        : "",
-                    version: statusAction.version,
-                }
-            );
+            const result = await adminService.updateCategoryStatus(statusAction._id, {
+                status: statusAction.nextStatus,
+                reason: statusAction.nextStatus === "Disabled" ? reason.trim() : "",
+                version: statusAction.version,
+            });
 
             toast.success(result.message);
             setStatusAction(null);
@@ -373,7 +390,10 @@ function Categories() {
                         <i className="fa-solid fa-layer-group" aria-hidden="true" />
                         CATEGORY MANAGEMENT
                     </span>
-                    <p>Organize product categories, attributes and replacement policies across the marketplace.</p>
+                    <p>
+                        Organize product categories, attributes and replacement policies across the
+                        marketplace.
+                    </p>
                 </div>
 
                 <div className="zc-hero-actions">
@@ -390,9 +410,11 @@ function Categories() {
                     <Button
                         variant="contained"
                         className="zc-button zc-button--primary"
-                        onClick={() => showForm ? closeForm() : openForm()}
+                        onClick={() => (showForm ? closeForm() : openForm())}
                         disabled={loading || busy || Boolean(loadError)}
-                        startIcon={<i className={`fa-solid ${showForm ? "fa-xmark" : "fa-plus"}`} />}
+                        startIcon={
+                            <i className={`fa-solid ${showForm ? "fa-xmark" : "fa-plus"}`} />
+                        }
                     >
                         {showForm ? "Close Form" : "Add Category"}
                     </Button>
@@ -402,7 +424,11 @@ function Categories() {
             {loadError && (
                 <Alert
                     severity="error"
-                    action={<Button color="inherit" onClick={refresh}>Retry</Button>}
+                    action={
+                        <Button color="inherit" onClick={refresh}>
+                            Retry
+                        </Button>
+                    }
                 >
                     {loadError}
                 </Alert>
@@ -417,7 +443,10 @@ function Categories() {
                             </span>
                             <div>
                                 <h2>{editing ? "Edit Category" : "Add Category"}</h2>
-                                <p>Configure category details, product attributes and replacement rules.</p>
+                                <p>
+                                    Configure category details, product attributes and replacement
+                                    rules.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -470,7 +499,8 @@ function Categories() {
                                         value={parent._id}
                                         disabled={parent.status !== "Active"}
                                     >
-                                        {parent.name}{parent.status !== "Active" ? " (Disabled)" : ""}
+                                        {parent.name}
+                                        {parent.status !== "Active" ? " (Disabled)" : ""}
                                     </MenuItem>
                                 ))}
                             </TextField>
@@ -543,10 +573,12 @@ function Categories() {
                                         <Checkbox
                                             disabled={busy}
                                             checked={form.showOnHome}
-                                            onChange={(_, checked) => setForm((previous) => ({
-                                                ...previous,
-                                                showOnHome: checked,
-                                            }))}
+                                            onChange={(_, checked) =>
+                                                setForm((previous) => ({
+                                                    ...previous,
+                                                    showOnHome: checked,
+                                                }))
+                                            }
                                         />
                                     }
                                 />
@@ -557,7 +589,9 @@ function Categories() {
                             <>
                                 <div className="zc-form-heading zc-form-heading--policy">
                                     <h3>Product Attributes & Replacement Policy</h3>
-                                    <p>Configure the product fields and replacement request window.</p>
+                                    <p>
+                                        Configure the product fields and replacement request window.
+                                    </p>
                                 </div>
 
                                 <div className="zc-form-grid">
@@ -585,16 +619,25 @@ function Categories() {
                                                     <Checkbox
                                                         disabled={busy}
                                                         checked={form.filterAttributes.some(
-                                                            (name) => name.toLowerCase() === attribute.toLowerCase()
+                                                            (name) =>
+                                                                name.toLowerCase() ===
+                                                                attribute.toLowerCase()
                                                         )}
-                                                        onChange={(_, checked) => setForm((previous) => ({
-                                                            ...previous,
-                                                            filterAttributes: checked
-                                                                ? [...previous.filterAttributes, attribute]
-                                                                : previous.filterAttributes.filter(
-                                                                    (name) => name.toLowerCase() !== attribute.toLowerCase()
-                                                                ),
-                                                        }))}
+                                                        onChange={(_, checked) =>
+                                                            setForm((previous) => ({
+                                                                ...previous,
+                                                                filterAttributes: checked
+                                                                    ? [
+                                                                          ...previous.filterAttributes,
+                                                                          attribute,
+                                                                      ]
+                                                                    : previous.filterAttributes.filter(
+                                                                          (name) =>
+                                                                              name.toLowerCase() !==
+                                                                              attribute.toLowerCase()
+                                                                      ),
+                                                            }))
+                                                        }
                                                     />
                                                 }
                                             />
@@ -606,10 +649,12 @@ function Categories() {
                                                 <Checkbox
                                                     disabled={busy}
                                                     checked={form.filterBrand}
-                                                    onChange={(_, checked) => setForm((previous) => ({
-                                                        ...previous,
-                                                        filterBrand: checked,
-                                                    }))}
+                                                    onChange={(_, checked) =>
+                                                        setForm((previous) => ({
+                                                            ...previous,
+                                                            filterBrand: checked,
+                                                        }))
+                                                    }
                                                 />
                                             }
                                         />
@@ -632,7 +677,11 @@ function Categories() {
                                         label="Request Window (Days)"
                                         name="replacementDays"
                                         type="number"
-                                        value={form.replacementAllowed === "Yes" ? form.replacementDays : ""}
+                                        value={
+                                            form.replacementAllowed === "Yes"
+                                                ? form.replacementDays
+                                                : ""
+                                        }
                                         onChange={handleFormChange}
                                         disabled={busy || form.replacementAllowed !== "Yes"}
                                         slotProps={{ htmlInput: { min: 1, max: 30 } }}
@@ -792,75 +841,98 @@ function Categories() {
                         </TableHead>
 
                         <TableBody>
-                            {!loading && !loadError && categories.map((category) => (
-                                <TableRow key={category._id} hover>
-                                    <TableCell>
-                                        <div className="zc-category">
-                                            <span className={`zc-category-icon ${category.parentId ? "" : "is-main"}`}>
-                                                <i className={`fa-solid ${category.parentId ? "fa-tags" : "fa-folder-tree"}`} />
-                                            </span>
-                                            <div>
-                                                <strong>{category.name}</strong>
-                                                <span>{category.slug}</span>
+                            {!loading &&
+                                !loadError &&
+                                categories.map((category) => (
+                                    <TableRow key={category._id} hover>
+                                        <TableCell>
+                                            <div className="zc-category">
+                                                <span
+                                                    className={`zc-category-icon ${category.parentId ? "" : "is-main"}`}
+                                                >
+                                                    <i
+                                                        className={`fa-solid ${category.parentId ? "fa-tags" : "fa-folder-tree"}`}
+                                                    />
+                                                </span>
+                                                <div>
+                                                    <strong>{category.name}</strong>
+                                                    <span>{category.slug}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
+                                        </TableCell>
 
-                                    <TableCell>
-                                        <div className="zc-parent-info">
-                                            <strong>{category.parentName || "Top-level"}</strong>
-                                            <small>{category.parentId ? "Subcategory" : "Main Category"}</small>
-                                        </div>
-                                    </TableCell>
-
-                                    <TableCell>{category.sortOrder}</TableCell>
-
-                                    <TableCell>
-                                        {!category.parentId ? (
-                                            <span className="zc-muted">Set per subcategory</span>
-                                        ) : category.replacementAllowed ? (
-                                            <div className="zc-policy">
-                                                <span className="zc-policy--eligible">Eligible</span>
-                                                <small>{category.replacementDays} days</small>
+                                        <TableCell>
+                                            <div className="zc-parent-info">
+                                                <strong>
+                                                    {category.parentName || "Top-level"}
+                                                </strong>
+                                                <small>
+                                                    {category.parentId
+                                                        ? "Subcategory"
+                                                        : "Main Category"}
+                                                </small>
                                             </div>
-                                        ) : (
-                                            <span className="zc-policy--excluded">Not Eligible</span>
-                                        )}
-                                    </TableCell>
+                                        </TableCell>
 
-                                    <TableCell>
-                                        <CategoryBadge status={category.effectiveStatus} />
-                                    </TableCell>
+                                        <TableCell>{category.sortOrder}</TableCell>
 
-                                    <TableCell align="right">
-                                        <Button
-                                            size="small"
-                                            variant="outlined"
-                                            className="zc-view-button"
-                                            onClick={() => setSelected(category)}
-                                            disabled={busy}
-                                        >
-                                            View Details
-                                            <i className="fa-solid fa-arrow-up-right-from-square" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                        <TableCell>
+                                            {!category.parentId ? (
+                                                <span className="zc-muted">
+                                                    Set per subcategory
+                                                </span>
+                                            ) : category.replacementAllowed ? (
+                                                <div className="zc-policy">
+                                                    <span className="zc-policy--eligible">
+                                                        Eligible
+                                                    </span>
+                                                    <small>{category.replacementDays} days</small>
+                                                </div>
+                                            ) : (
+                                                <span className="zc-policy--excluded">
+                                                    Not Eligible
+                                                </span>
+                                            )}
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <CategoryBadge status={category.effectiveStatus} />
+                                        </TableCell>
+
+                                        <TableCell align="right">
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                className="zc-view-button"
+                                                onClick={() => setSelected(category)}
+                                                disabled={busy}
+                                            >
+                                                View Details
+                                                <i className="fa-solid fa-arrow-up-right-from-square" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
 
                             {(loading || loadError || !categories.length) && (
                                 <TableRow>
                                     <TableCell colSpan={6}>
                                         <div className="zc-empty">
-                                            <span><i className="fa-solid fa-layer-group" /></span>
+                                            <span>
+                                                <i className="fa-solid fa-layer-group" />
+                                            </span>
                                             <h3>
                                                 {loading
                                                     ? "Loading Categories..."
-                                                    : loadError ? "Unable to Load Categories" : "No Categories Found"}
+                                                    : loadError
+                                                      ? "Unable to Load Categories"
+                                                      : "No Categories Found"}
                                             </h3>
                                             <p>
                                                 {loadError
                                                     ? "Retry to load your category records."
-                                                    : !loading && "Add a category or adjust your filters."}
+                                                    : !loading &&
+                                                      "Add a category or adjust your filters."}
                                             </p>
                                         </div>
                                     </TableCell>
@@ -911,12 +983,21 @@ function Categories() {
                             <div className="zc-detail-section">
                                 <h4>Category Information</h4>
                                 <dl className="zc-detail-grid">
-                                    <DetailItem label="Category Type" value={selected.parentId ? "Subcategory" : "Main Category"} />
-                                    <DetailItem label="Parent Category" value={selected.parentName || "None"} />
+                                    <DetailItem
+                                        label="Category Type"
+                                        value={selected.parentId ? "Subcategory" : "Main Category"}
+                                    />
+                                    <DetailItem
+                                        label="Parent Category"
+                                        value={selected.parentName || "None"}
+                                    />
                                     <DetailItem label="Display Order" value={selected.sortOrder} />
                                     <DetailItem label="Category ID" value={selected._id} />
                                     {!selected.parentId && (
-                                        <DetailItem label="Show on Home" value={selected.showOnHome ? "Yes" : "No"} />
+                                        <DetailItem
+                                            label="Show on Home"
+                                            value={selected.showOnHome ? "Yes" : "No"}
+                                        />
                                     )}
                                 </dl>
 
@@ -939,23 +1020,49 @@ function Categories() {
                                 <div className="zc-detail-section">
                                     <h4>Product & Replacement Rules</h4>
                                     <dl className="zc-detail-grid">
-                                        <DetailItem label="Replacement Eligible" value={selected.replacementAllowed ? "Yes" : "No"} />
+                                        <DetailItem
+                                            label="Replacement Eligible"
+                                            value={selected.replacementAllowed ? "Yes" : "No"}
+                                        />
                                         <DetailItem
                                             label="Request Window"
-                                            value={selected.replacementAllowed ? `${selected.replacementDays} days` : "Not applicable"}
+                                            value={
+                                                selected.replacementAllowed
+                                                    ? `${selected.replacementDays} days`
+                                                    : "Not applicable"
+                                            }
                                         />
-                                        <DetailItem label="Brand Filter" value={selected.filterBrand !== false ? "Enabled" : "Disabled"} />
-                                        <DetailItem label="Attribute Filters" value={(selected.filterAttributes || []).join(", ") || "None"} />
+                                        <DetailItem
+                                            label="Brand Filter"
+                                            value={
+                                                selected.filterBrand !== false
+                                                    ? "Enabled"
+                                                    : "Disabled"
+                                            }
+                                        />
+                                        <DetailItem
+                                            label="Attribute Filters"
+                                            value={
+                                                (selected.filterAttributes || []).join(", ") ||
+                                                "None"
+                                            }
+                                        />
                                     </dl>
 
                                     <div className="zc-attributes">
                                         <span>Product Attributes</span>
                                         <div>
-                                            {selected.attributes.length
-                                                ? selected.attributes.map((attribute) => (
-                                                    <span className="zc-attribute" key={attribute}>{attribute}</span>
+                                            {selected.attributes.length ? (
+                                                selected.attributes.map((attribute) => (
+                                                    <span className="zc-attribute" key={attribute}>
+                                                        {attribute}
+                                                    </span>
                                                 ))
-                                                : <span className="zc-muted">No attributes configured.</span>}
+                                            ) : (
+                                                <span className="zc-muted">
+                                                    No attributes configured.
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -963,7 +1070,8 @@ function Categories() {
 
                             {selected.effectiveStatus === "Parent Disabled" && (
                                 <Alert severity="warning">
-                                    Enable the parent category to make this active subcategory available.
+                                    Enable the parent category to make this active subcategory
+                                    available.
                                 </Alert>
                             )}
 
@@ -975,8 +1083,14 @@ function Categories() {
                         </DialogContent>
 
                         <DialogActions className="zc-dialog-actions">
-                            <Button color="inherit" onClick={() => setSelected(null)}>Close</Button>
-                            <Button variant="outlined" onClick={() => openForm(selected)} disabled={busy}>
+                            <Button color="inherit" onClick={() => setSelected(null)}>
+                                Close
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onClick={() => openForm(selected)}
+                                disabled={busy}
+                            >
                                 Edit Details
                             </Button>
                             <Button
@@ -1000,12 +1114,15 @@ function Categories() {
                 slotProps={{ paper: { className: "zc-dialog-paper" } }}
             >
                 <DialogTitle className="zc-dialog-title">
-                    {statusAction?.nextStatus === "Disabled" ? "Disable Category" : "Enable Category"}
+                    {statusAction?.nextStatus === "Disabled"
+                        ? "Disable Category"
+                        : "Enable Category"}
                 </DialogTitle>
 
                 <DialogContent className="zc-dialog-content">
                     <p className="zc-confirm-text">
-                        {statusAction?.nextStatus === "Disabled" ? "Disable" : "Enable"} {statusAction?.name}?
+                        {statusAction?.nextStatus === "Disabled" ? "Disable" : "Enable"}{" "}
+                        {statusAction?.name}?
                     </p>
 
                     {statusAction?.nextStatus === "Disabled" && (
@@ -1013,8 +1130,8 @@ function Categories() {
                             <Alert severity="warning" className="zc-confirm-alert">
                                 {statusAction.parentId
                                     ? "This subcategory will be unavailable for new listings."
-                                    : "Its subcategories will also be unavailable while this parent is disabled."}
-                                {" "}Existing records are preserved.
+                                    : "Its subcategories will also be unavailable while this parent is disabled."}{" "}
+                                Existing records are preserved.
                             </Alert>
 
                             <TextField

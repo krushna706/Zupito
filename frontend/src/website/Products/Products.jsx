@@ -38,9 +38,7 @@ function readPrice(value) {
 
     const number = Number(value);
 
-    return Number.isFinite(number) &&
-        number >= 0 &&
-        number <= 10000000
+    return Number.isFinite(number) && number >= 0 && number <= 10000000
         ? Math.round(number * 100)
         : undefined;
 }
@@ -65,11 +63,7 @@ function Products() {
     const desktopFilters = useMediaQuery("(min-width:992px)");
     const queryString = searchParams.toString();
 
-    const search = (
-        searchParams.get("search") ||
-        searchParams.get("q") ||
-        ""
-    ).trim();
+    const search = (searchParams.get("search") || searchParams.get("q") || "").trim();
 
     const category = searchParams.get("category") || "";
     const requestedSort = searchParams.get("sort");
@@ -80,11 +74,10 @@ function Products() {
 
     const requestedPage = Number(searchParams.get("page"));
 
-    const currentPage = Number.isInteger(requestedPage) &&
-        requestedPage > 0 &&
-        requestedPage <= 100000
-        ? requestedPage
-        : 1;
+    const currentPage =
+        Number.isInteger(requestedPage) && requestedPage > 0 && requestedPage <= 100000
+            ? requestedPage
+            : 1;
 
     useEffect(() => {
         let active = true;
@@ -99,11 +92,7 @@ function Products() {
 
             try {
                 const result = await getPublicProducts({
-                    search: (
-                        params.get("search") ||
-                        params.get("q") ||
-                        ""
-                    ).trim(),
+                    search: (params.get("search") || params.get("q") || "").trim(),
 
                     category: params.get("category") || "",
                     brands: params.get("brands") || "[]",
@@ -117,11 +106,10 @@ function Products() {
                     maxPricePaise: readPrice(params.get("maxPrice")),
                     inStock: params.get("inStock") === "true",
 
-                    page: Number.isInteger(pageValue) &&
-                        pageValue > 0 &&
-                        pageValue <= 100000
-                        ? pageValue
-                        : 1,
+                    page:
+                        Number.isInteger(pageValue) && pageValue > 0 && pageValue <= 100000
+                            ? pageValue
+                            : 1,
 
                     limit: PAGE_SIZE,
                 });
@@ -131,21 +119,21 @@ function Products() {
                 setData(result);
 
                 if (result.page > result.pages) {
-                    setSearchParams((previous) => {
-                        const next = new URLSearchParams(previous);
-                        next.set("page", String(result.pages));
-                        return next;
-                    }, { replace: true });
+                    setSearchParams(
+                        (previous) => {
+                            const next = new URLSearchParams(previous);
+                            next.set("page", String(result.pages));
+                            return next;
+                        },
+                        { replace: true }
+                    );
                 }
             } catch (requestError) {
                 if (!active) return;
 
                 setData(initialData);
 
-                setError(
-                    requestError.message ||
-                    "Unable to load products. Please try again."
-                );
+                setError(requestError.message || "Unable to load products. Please try again.");
             } finally {
                 if (active) setLoading(false);
             }
@@ -170,15 +158,13 @@ function Products() {
     const filters = {
         categories: selectedSlugs,
 
-        brands: readSelections(searchParams.get("brands"))
-            .filter((item) => typeof item === "string"),
+        brands: readSelections(searchParams.get("brands")).filter(
+            (item) => typeof item === "string"
+        ),
 
-        attributes: readSelections(searchParams.get("attributes"))
-            .filter((item) =>
-                item &&
-                typeof item.key === "string" &&
-                Array.isArray(item.values)
-            ),
+        attributes: readSelections(searchParams.get("attributes")).filter(
+            (item) => item && typeof item.key === "string" && Array.isArray(item.values)
+        ),
 
         priceRange,
         inStockOnly: searchParams.get("inStock") === "true",
@@ -198,27 +184,30 @@ function Products() {
     const pageTitle = search
         ? `Results for “${search}”`
         : selectedCategory
-            ? selectedCategory.name
-            : "All Products";
+          ? selectedCategory.name
+          : "All Products";
 
     const startIndex = (currentPage - 1) * PAGE_SIZE;
 
     function updateParams(values, resetPage = true) {
-        setSearchParams((previous) => {
-            const next = new URLSearchParams(previous);
+        setSearchParams(
+            (previous) => {
+                const next = new URLSearchParams(previous);
 
-            for (const [key, value] of Object.entries(values)) {
-                if (value === null || value === "") {
-                    next.delete(key);
-                } else {
-                    next.set(key, String(value));
+                for (const [key, value] of Object.entries(values)) {
+                    if (value === null || value === "") {
+                        next.delete(key);
+                    } else {
+                        next.set(key, String(value));
+                    }
                 }
-            }
 
-            if (resetPage) next.delete("page");
+                if (resetPage) next.delete("page");
 
-            return next;
-        }, { replace: true });
+                return next;
+            },
+            { replace: true }
+        );
     }
 
     function updateFilters(changes) {
@@ -233,9 +222,7 @@ function Products() {
         }
 
         if (changes.brands !== undefined) {
-            values.brands = changes.brands.length
-                ? JSON.stringify(changes.brands)
-                : null;
+            values.brands = changes.brands.length ? JSON.stringify(changes.brands) : null;
         }
 
         if (changes.attributes !== undefined) {
@@ -305,10 +292,10 @@ function Products() {
                             {loading
                                 ? "Loading products..."
                                 : error
-                                    ? "Products could not be loaded"
-                                    : data.total === 0
-                                        ? "No products found"
-                                        : `Showing ${startIndex + 1}–${startIndex + data.products.length} of ${data.total} products`}
+                                  ? "Products could not be loaded"
+                                  : data.total === 0
+                                    ? "No products found"
+                                    : `Showing ${startIndex + 1}–${startIndex + data.products.length} of ${data.total} products`}
                         </p>
                     </div>
 
@@ -323,9 +310,7 @@ function Products() {
                             >
                                 <i className="fa-solid fa-sliders" aria-hidden="true" />
                                 Filters
-                                {activeFilterCount > 0 && (
-                                    <span>{activeFilterCount}</span>
-                                )}
+                                {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
                             </button>
                         )}
 
@@ -334,9 +319,7 @@ function Products() {
                             size="small"
                             label="Sort by"
                             value={sort}
-                            onChange={(event) =>
-                                updateParams({ sort: event.target.value })
-                            }
+                            onChange={(event) => updateParams({ sort: event.target.value })}
                             className="products-sort"
                         >
                             {sortOptions.map((option) => (
@@ -350,10 +333,7 @@ function Products() {
 
                 <div className="products-layout">
                     {desktopFilters && (
-                        <aside
-                            className="products-sidebar"
-                            aria-label="Product filters"
-                        >
+                        <aside className="products-sidebar" aria-label="Product filters">
                             {filterContent}
                         </aside>
                     )}
@@ -369,9 +349,7 @@ function Products() {
                                 action={
                                     <Button
                                         color="inherit"
-                                        onClick={() =>
-                                            setReload((value) => value + 1)
-                                        }
+                                        onClick={() => setReload((value) => value + 1)}
                                     >
                                         Retry
                                     </Button>
@@ -412,10 +390,7 @@ function Products() {
                             </>
                         ) : (
                             <div className="products-empty">
-                                <i
-                                    className="fa-solid fa-magnifying-glass"
-                                    aria-hidden="true"
-                                />
+                                <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
                                 <h2>No products found</h2>
                                 <p>Try another search or adjust your filters.</p>
 
@@ -430,10 +405,7 @@ function Products() {
                                         </button>
                                     )}
 
-                                    <Link
-                                        to="/products"
-                                        className="home-categories-view-all"
-                                    >
+                                    <Link to="/products" className="home-categories-view-all">
                                         Browse All Products
                                     </Link>
                                 </div>
@@ -474,9 +446,7 @@ function Products() {
                             className="products-drawer-apply"
                             onClick={() => setDrawerOpen(false)}
                         >
-                            {loading
-                                ? "Loading..."
-                                : `Show ${data.total} products`}
+                            {loading ? "Loading..." : `Show ${data.total} products`}
                         </button>
                     </Drawer>
                 )}

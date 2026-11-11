@@ -7,7 +7,7 @@ import {
     DialogTitle,
     IconButton,
     MenuItem,
-    TextField
+    TextField,
 } from "@mui/material";
 import { toast } from "react-toastify";
 
@@ -17,14 +17,7 @@ import { emptyAddress } from "../services/userService";
 const getAddressId = (address) => String(address.id ?? address._id);
 
 const formatAddress = (address) =>
-    [
-        address.house,
-        address.area,
-        address.landmark,
-        address.city,
-        address.state,
-        address.pincode
-    ]
+    [address.house, address.area, address.landmark, address.city, address.state, address.pincode]
         .filter(Boolean)
         .join(", ");
 
@@ -38,25 +31,21 @@ function AddressSelector({
     onClose,
     onSelect,
     onSave,
-    onDelete
+    onDelete,
 }) {
     const initialEditAddress = addresses.find(
         (item) => getAddressId(item) === String(editAddressId)
     );
 
     const [mode, setMode] = useState(
-        initialMode === "add" || initialMode === "edit"
-            ? "form"
-            : "list"
+        initialMode === "add" || initialMode === "edit" ? "form" : "list"
     );
 
-    const [editingId, setEditingId] = useState(
-        initialMode === "edit" ? editAddressId : null
-    );
+    const [editingId, setEditingId] = useState(initialMode === "edit" ? editAddressId : null);
 
     const [draft, setDraft] = useState(() => ({
         ...emptyAddress,
-        ...(initialMode === "edit" ? initialEditAddress : {})
+        ...(initialMode === "edit" ? initialEditAddress : {}),
     }));
 
     const [submitted, setSubmitted] = useState(false);
@@ -97,7 +86,7 @@ function AddressSelector({
         try {
             const result = await onSave({
                 ...draft,
-                id: editingId || undefined
+                id: editingId || undefined,
             });
 
             if (result) onClose();
@@ -257,7 +246,10 @@ function AddressSelector({
                                                 className="is-danger"
                                                 onClick={() => setPendingDeleteId(id)}
                                             >
-                                                <i className="fa-regular fa-trash-can" aria-hidden="true" />
+                                                <i
+                                                    className="fa-regular fa-trash-can"
+                                                    aria-hidden="true"
+                                                />
                                                 Delete
                                             </button>
                                         </div>
@@ -300,7 +292,7 @@ function AddressSelector({
                             onChange={(event) => {
                                 setDraft((current) => ({
                                     ...current,
-                                    type: event.target.value
+                                    type: event.target.value,
                                 }));
                             }}
                             className="checkout-address-type-input"

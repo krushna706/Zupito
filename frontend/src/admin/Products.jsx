@@ -85,17 +85,17 @@ function formatDate(value) {
 }
 
 function errorMessage(error) {
-    return error.response?.data?.message ||
-        "Unable to complete the request. Please try again.";
+    return error.response?.data?.message || "Unable to complete the request. Please try again.";
 }
 
 function StatusBadge({ value }) {
-    const theme = {
-        Pending: "warning",
-        Approved: "success",
-        Rejected: "danger",
-        Suspended: "neutral",
-    }[value] || "neutral";
+    const theme =
+        {
+            Pending: "warning",
+            Approved: "success",
+            Rejected: "danger",
+            Suspended: "neutral",
+        }[value] || "neutral";
 
     return (
         <span className={`mp-badge mp-badge--${theme}`}>
@@ -198,20 +198,15 @@ function Products() {
         };
     }, [detailId]);
 
-    const pendingProducts = data.products.filter(
-        (product) => product.status === "Pending"
-    );
+    const pendingProducts = data.products.filter((product) => product.status === "Pending");
 
-    const selectedProducts = pendingProducts.filter(
-        (product) => selectedIds.includes(product.id)
-    );
+    const selectedProducts = pendingProducts.filter((product) => selectedIds.includes(product.id));
 
-    const allSelected = pendingProducts.length > 0 &&
+    const allSelected =
+        pendingProducts.length > 0 &&
         pendingProducts.every((product) => selectedIds.includes(product.id));
 
-    const hasFilters = Boolean(search.trim()) ||
-        status !== "All" ||
-        Boolean(categoryId);
+    const hasFilters = Boolean(search.trim()) || status !== "All" || Boolean(categoryId);
 
     const reasonRequired = ["Reject", "Suspend"].includes(action?.type);
 
@@ -305,9 +300,9 @@ function Products() {
 
                 const results = result.results.map((item) => ({
                     ...item,
-                    name: action.items.find(
-                        (target) => target.productId === item.productId
-                    )?.name || item.productId,
+                    name:
+                        action.items.find((target) => target.productId === item.productId)?.name ||
+                        item.productId,
                 }));
 
                 setBulkResults(results);
@@ -339,9 +334,7 @@ function Products() {
                         <i className="fa-solid fa-box-open" aria-hidden="true" />
                         PRODUCT MANAGEMENT
                     </span>
-                    <p>
-                        Review seller listings, product content and marketplace restrictions.
-                    </p>
+                    <p>Review seller listings, product content and marketplace restrictions.</p>
                 </div>
 
                 <Button
@@ -364,9 +357,7 @@ function Products() {
                                 <i className={`fa-solid ${item.icon}`} aria-hidden="true" />
                             </span>
                         </div>
-                        <strong className="mp-stat-value">
-                            {data.statistics[item.key] || 0}
-                        </strong>
+                        <strong className="mp-stat-value">{data.statistics[item.key] || 0}</strong>
                         <p>{item.description}</p>
                     </article>
                 ))}
@@ -504,12 +495,16 @@ function Products() {
                                         checked={allSelected}
                                         indeterminate={selectedProducts.length > 0 && !allSelected}
                                         disabled={loading || saving || !pendingProducts.length}
-                                        onChange={() => setSelectedIds(
-                                            allSelected
-                                                ? []
-                                                : pendingProducts.map((product) => product.id)
-                                        )}
-                                        inputProps={{ "aria-label": "Select visible pending products" }}
+                                        onChange={() =>
+                                            setSelectedIds(
+                                                allSelected
+                                                    ? []
+                                                    : pendingProducts.map((product) => product.id)
+                                            )
+                                        }
+                                        inputProps={{
+                                            "aria-label": "Select visible pending products",
+                                        }}
                                     />
                                 </TableCell>
                                 <TableCell>Product Details</TableCell>
@@ -523,86 +518,98 @@ function Products() {
                         </TableHead>
 
                         <TableBody>
-                            {!loading && data.products.map((product) => (
-                                <TableRow key={product.id} hover>
-                                    <TableCell padding="checkbox">
-                                        <Checkbox
-                                            size="small"
-                                            checked={selectedIds.includes(product.id)}
-                                            disabled={saving || product.status !== "Pending"}
-                                            onChange={() => toggleProduct(product.id)}
-                                            inputProps={{ "aria-label": `Select ${product.name}` }}
-                                        />
-                                    </TableCell>
+                            {!loading &&
+                                data.products.map((product) => (
+                                    <TableRow key={product.id} hover>
+                                        <TableCell padding="checkbox">
+                                            <Checkbox
+                                                size="small"
+                                                checked={selectedIds.includes(product.id)}
+                                                disabled={saving || product.status !== "Pending"}
+                                                onChange={() => toggleProduct(product.id)}
+                                                inputProps={{
+                                                    "aria-label": `Select ${product.name}`,
+                                                }}
+                                            />
+                                        </TableCell>
 
-                                    <TableCell>
-                                        <div className="mp-product">
-                                            <span className="mp-product-image">
-                                                {product.image && (
-                                                    <img src={product.image} alt="" loading="lazy" />
-                                                )}
-                                            </span>
-                                            <div>
-                                                <strong>{product.name}</strong>
-                                                <span>{product.brand}</span>
-                                                <small>{product.productCode}</small>
+                                        <TableCell>
+                                            <div className="mp-product">
+                                                <span className="mp-product-image">
+                                                    {product.image && (
+                                                        <img
+                                                            src={product.image}
+                                                            alt=""
+                                                            loading="lazy"
+                                                        />
+                                                    )}
+                                                </span>
+                                                <div>
+                                                    <strong>{product.name}</strong>
+                                                    <span>{product.brand}</span>
+                                                    <small>{product.productCode}</small>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
+                                        </TableCell>
 
-                                    <TableCell>
-                                        <div className="mp-cell-stack">
-                                            <strong>{product.sellerName}</strong>
-                                            <small>Seller: {product.sellerStatus}</small>
-                                        </div>
-                                    </TableCell>
+                                        <TableCell>
+                                            <div className="mp-cell-stack">
+                                                <strong>{product.sellerName}</strong>
+                                                <small>Seller: {product.sellerStatus}</small>
+                                            </div>
+                                        </TableCell>
 
-                                    <TableCell>
-                                        <div className="mp-cell-stack">
-                                            <strong>{product.categoryName}</strong>
-                                            <small>{product.parentCategoryName}</small>
-                                        </div>
-                                    </TableCell>
+                                        <TableCell>
+                                            <div className="mp-cell-stack">
+                                                <strong>{product.categoryName}</strong>
+                                                <small>{product.parentCategoryName}</small>
+                                            </div>
+                                        </TableCell>
 
-                                    <TableCell>
-                                        <div className="mp-cell-stack">
-                                            <strong>{formatPrice(product.pricePaise)}</strong>
-                                            <small>
-                                                {product.stock} on hand · {product.reservedQuantity} reserved
-                                            </small>
-                                        </div>
-                                    </TableCell>
+                                        <TableCell>
+                                            <div className="mp-cell-stack">
+                                                <strong>{formatPrice(product.pricePaise)}</strong>
+                                                <small>
+                                                    {product.stock} on hand ·{" "}
+                                                    {product.reservedQuantity} reserved
+                                                </small>
+                                            </div>
+                                        </TableCell>
 
-                                    <TableCell>
-                                        <div className="mp-cell-stack">
-                                            <strong>{product.reviewType}</strong>
-                                            <small>{formatDate(product.submittedAt)}</small>
-                                        </div>
-                                    </TableCell>
+                                        <TableCell>
+                                            <div className="mp-cell-stack">
+                                                <strong>{product.reviewType}</strong>
+                                                <small>{formatDate(product.submittedAt)}</small>
+                                            </div>
+                                        </TableCell>
 
-                                    <TableCell>
-                                        <StatusBadge value={product.status} />
-                                    </TableCell>
+                                        <TableCell>
+                                            <StatusBadge value={product.status} />
+                                        </TableCell>
 
-                                    <TableCell align="right">
-                                        <Button
-                                            size="small"
-                                            variant="outlined"
-                                            className="mp-view-button"
-                                            disabled={saving}
-                                            onClick={() => openDetails(product.id)}
-                                        >
-                                            View Details
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                        <TableCell align="right">
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                className="mp-view-button"
+                                                disabled={saving}
+                                                onClick={() => openDetails(product.id)}
+                                            >
+                                                View Details
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
 
                             {(loading || data.products.length === 0) && (
                                 <TableRow>
                                     <TableCell colSpan={8}>
                                         <div className="mp-empty">
-                                            <h3>{loading ? "Loading Products..." : "No Products Found"}</h3>
+                                            <h3>
+                                                {loading
+                                                    ? "Loading Products..."
+                                                    : "No Products Found"}
+                                            </h3>
                                             {!loading && <p>Try a different search or filter.</p>}
                                         </div>
                                     </TableCell>
@@ -637,9 +644,7 @@ function Products() {
                 maxWidth="md"
                 slotProps={{ paper: { className: "mp-dialog-paper" } }}
             >
-                <DialogTitle className="mp-dialog-title">
-                    Product Review Details
-                </DialogTitle>
+                <DialogTitle className="mp-dialog-title">Product Review Details</DialogTitle>
 
                 <DialogContent dividers className="mp-dialog-content">
                     {!detail && <p>Loading product details...</p>}
@@ -652,7 +657,9 @@ function Products() {
                                 </span>
                                 <div>
                                     <h3>{detail.name}</h3>
-                                    <p>{detail.brand} · {detail.productCode}</p>
+                                    <p>
+                                        {detail.brand} · {detail.productCode}
+                                    </p>
                                     <span>{detail.sellerName}</span>
                                 </div>
                                 <StatusBadge value={detail.status} />
@@ -663,17 +670,38 @@ function Products() {
                                 <dl className="mp-detail-grid">
                                     <DetailItem label="Product ID" value={detail.id} />
                                     <DetailItem label="Product Code" value={detail.productCode} />
-                                    <DetailItem label="Seller Profile ID" value={detail.sellerProfileId} />
-                                    <DetailItem label="Seller User Account ID" value={detail.sellerUserId} />
+                                    <DetailItem
+                                        label="Seller Profile ID"
+                                        value={detail.sellerProfileId}
+                                    />
+                                    <DetailItem
+                                        label="Seller User Account ID"
+                                        value={detail.sellerUserId}
+                                    />
                                     <DetailItem label="Store Name" value={detail.sellerName} />
                                     <DetailItem label="Seller Status" value={detail.sellerStatus} />
-                                    <DetailItem label="Seller Account Status" value={detail.sellerAccountStatus} />
+                                    <DetailItem
+                                        label="Seller Account Status"
+                                        value={detail.sellerAccountStatus}
+                                    />
                                     <DetailItem label="Category" value={detail.categoryName} />
-                                    <DetailItem label="Parent Category" value={detail.parentCategoryName} />
+                                    <DetailItem
+                                        label="Parent Category"
+                                        value={detail.parentCategoryName}
+                                    />
                                     <DetailItem label="Request Type" value={detail.reviewType} />
-                                    <DetailItem label="Submitted On" value={formatDate(detail.submittedAt)} />
-                                    <DetailItem label="Reviewed On" value={formatDate(detail.reviewedAt)} />
-                                    <DetailItem label="Reviewed By — Admin User Account ID" value={detail.reviewedById} />
+                                    <DetailItem
+                                        label="Submitted On"
+                                        value={formatDate(detail.submittedAt)}
+                                    />
+                                    <DetailItem
+                                        label="Reviewed On"
+                                        value={formatDate(detail.reviewedAt)}
+                                    />
+                                    <DetailItem
+                                        label="Reviewed By — Admin User Account ID"
+                                        value={detail.reviewedById}
+                                    />
                                 </dl>
                             </div>
 
@@ -746,13 +774,16 @@ function Products() {
                                                 <strong>{variant.label}</strong>
                                                 <small>SKU: {variant.sku}</small>
                                                 <small>Variant ID: {variant.variantId}</small>
-                                                <small>Product Image: {variant.imageIndex + 1}</small>
+                                                <small>
+                                                    Product Image: {variant.imageIndex + 1}
+                                                </small>
                                             </div>
                                             <div>
                                                 <strong>{formatPrice(variant.pricePaise)}</strong>
                                                 <small>MRP: {formatPrice(variant.mrpPaise)}</small>
                                                 <small>
-                                                    {variant.stock} on hand · {variant.reservedQuantity} reserved
+                                                    {variant.stock} on hand ·{" "}
+                                                    {variant.reservedQuantity} reserved
                                                 </small>
                                             </div>
                                         </div>
@@ -767,9 +798,13 @@ function Products() {
                                         {detail.moderationHistory.map((item, index) => (
                                             <div key={index} className="mp-variant-row">
                                                 <div>
-                                                    <strong>{item.fromStatus} → {item.toStatus}</strong>
+                                                    <strong>
+                                                        {item.fromStatus} → {item.toStatus}
+                                                    </strong>
                                                     {item.reason && <small>{item.reason}</small>}
-                                                    <small>Admin User Account ID: {item.changedById}</small>
+                                                    <small>
+                                                        Admin User Account ID: {item.changedById}
+                                                    </small>
                                                 </div>
                                                 <div>
                                                     <strong>{item.action}</strong>
@@ -789,20 +824,21 @@ function Products() {
                         Close
                     </Button>
 
-                    {detail && (availableActions[detail.status] || []).map((type) => (
-                        <Button
-                            key={type}
-                            variant="contained"
-                            color={["Reject", "Suspend"].includes(type) ? "error" : "success"}
-                            disabled={
-                                ["Approve", "Reactivate"].includes(type) &&
-                                Boolean(detail.approvalIssue)
-                            }
-                            onClick={() => openAction(type, [detail])}
-                        >
-                            {type}
-                        </Button>
-                    ))}
+                    {detail &&
+                        (availableActions[detail.status] || []).map((type) => (
+                            <Button
+                                key={type}
+                                variant="contained"
+                                color={["Reject", "Suspend"].includes(type) ? "error" : "success"}
+                                disabled={
+                                    ["Approve", "Reactivate"].includes(type) &&
+                                    Boolean(detail.approvalIssue)
+                                }
+                                onClick={() => openAction(type, [detail])}
+                            >
+                                {type}
+                            </Button>
+                        ))}
                 </DialogActions>
             </Dialog>
 
@@ -824,14 +860,16 @@ function Products() {
 
                     {action?.items.length > 1 && (
                         <Alert severity="info" className="mp-dialog-alert">
-                            Each listing is checked separately. Results will show any
-                            listings that could not be updated.
+                            Each listing is checked separately. Results will show any listings that
+                            could not be updated.
                         </Alert>
                     )}
 
                     {reasonRequired && (
                         <TextField
-                            label={action?.type === "Reject" ? "Rejection Reason" : "Suspension Reason"}
+                            label={
+                                action?.type === "Reject" ? "Rejection Reason" : "Suspension Reason"
+                            }
                             value={reason}
                             onChange={(event) => {
                                 setReason(event.target.value);

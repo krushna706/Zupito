@@ -1537,3 +1537,7 @@ module.exports = {
     syncExistingCatalogue,
     buildProductRecords,
 };
+
+// APPLY IN BACKEND TERMINAL FOR DEMO DATA
+// STEP 1 - node seedShowcase.js
+// STEP 2 - node seedShowcase.js --apply

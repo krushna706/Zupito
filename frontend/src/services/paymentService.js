@@ -1,3 +1,4 @@
+
 import api from "./api";
 
 export const quoteCheckout = async (addressId, couponCode) =>
@@ -111,6 +112,19 @@ export async function openPayment(data) {
                     if (!verifying) resolve();
                 },
             },
+        });
+
+        // Capture the provider failure reason without interrupting retries.
+        checkout.on("payment.failed", (response) => {
+            const error = response.error || {};
+
+            console.error("Razorpay Payment Failed:", {
+                code: error.code,
+                description: error.description,
+                source: error.source,
+                step: error.step,
+                reason: error.reason,
+            });
         });
 
         try {

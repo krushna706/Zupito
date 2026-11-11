@@ -36,6 +36,14 @@ app.disable("x-powered-by");
 
 app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 0));
 
+
+const razorpayOrigins = [
+    "https://checkout.razorpay.com",
+    "https://api.razorpay.com",
+    "https://cdn.razorpay.com",
+    "https://checkout-static-next.razorpay.com",
+];
+
 // ================== SECURITY HEADERS ==================
 app.use(
     helmet({
@@ -43,24 +51,36 @@ app.use(
             process.env.NODE_ENV === "production"
                 ? {
                       directives: {
-                          "script-src": ["'self'", "https://checkout.razorpay.com"],
+                          "script-src": [
+                              "'self'",
+                              ...razorpayOrigins,
+                          ],
                           "frame-src": [
                               "'self'",
-                              "https://api.razorpay.com",
-                              "https://checkout.razorpay.com",
+                              ...razorpayOrigins,
                           ],
                           "connect-src": [
                               "'self'",
-                              "https://api.razorpay.com",
+                              ...razorpayOrigins,
                               "https://lumberjack.razorpay.com",
                           ],
-                          "img-src": ["'self'", "data:", "blob:", "https:"],
-                          "style-src": ["'self'", "'unsafe-inline'", "https:"],
+                          "img-src": [
+                              "'self'",
+                              "data:",
+                              "blob:",
+                              "https:",
+                          ],
+                          "style-src": [
+                              "'self'",
+                              "'unsafe-inline'",
+                              "https:",
+                          ],
                       },
                   }
                 : false,
     })
 );
+
 
 // ================== CORS ==================
 app.use(

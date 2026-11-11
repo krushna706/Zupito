@@ -38,49 +38,33 @@ app.disable("x-powered-by");
 app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 0));
 
 // ================== SECURITY HEADERS ==================
-const razorpayOrigins = [
+// Allow Razorpay checkout resources and bank-redirect popups in production.
+const razorpaySources = [
     "https://razorpay.com",
     "https://*.razorpay.com",
+    "https://razorpay.in",
+    "https://*.razorpay.in",
+    "https://*.razorpaycdn.com",
 ];
 
 app.use(
     helmet({
-        // Keep popup communication available for payment checkout.
-        crossOriginOpenerPolicy: {
-            policy: "same-origin-allow-popups",
-        },
+        // Payment popups need to communicate with the checkout window.
+        crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
 
         contentSecurityPolicy:
             process.env.NODE_ENV === "production"
                 ? {
                       directives: {
-                          "script-src": [
-                              "'self'",
-                              ...razorpayOrigins,
-                          ],
-                          "frame-src": [
-                              "'self'",
-                              ...razorpayOrigins,
-                          ],
-                          "connect-src": [
-                              "'self'",
-                              ...razorpayOrigins,
-                          ],
-                          "form-action": [
-                              "'self'",
-                              ...razorpayOrigins,
-                          ],
-                          "img-src": [
-                              "'self'",
-                              "data:",
-                              "blob:",
-                              "https:",
-                          ],
-                          "style-src": [
-                              "'self'",
-                              "'unsafe-inline'",
-                              "https:",
-                          ],
+                          "script-src": ["'self'", ...razorpaySources],
+                          "frame-src": ["'self'", ...razorpaySources],
+                          "connect-src": ["'self'", ...razorpaySources],
+
+                          // External netbanking redirects may use different bank domains.
+                          "form-action": ["'self'", "https:"],
+
+                          "img-src": ["'self'", "data:", "blob:", "https:"],
+                          "style-src": ["'self'", "'unsafe-inline'", "https:"],
                       },
                   }
                 : false,

@@ -1,160 +1,179 @@
 
-import api from "./api";
+const express = require("express");
+const path = require("path");
+const helmet = require("helmet");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
-export const quoteCheckout = async (addressId, couponCode) =>
-    (
-        await api.post("/checkout/quote", {
-            addressId,
-            couponCode,
-        })
-    ).data;
+const csrfMiddleware = require("./middleware/csrfMiddleware");
+const errorMiddleware = require("./middleware/errorMiddleware");
+const ExpressError = require("./utils/ExpressError");
 
-export const startCheckout = async (values) =>
-    (
-        await api.post("/checkout", values, {
-            timeout: 45000,
-        })
-    ).data;
+const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const sellerRoutes = require("./routes/sellerRoutes");
+const productRoutes = require("./routes/productRoutes");
+const cartRoutes = require("./routes/cartRoutes");
+const checkoutRoutes = require("./routes/checkoutRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const orderRoutes = require("./routes/orderRoutes");
+const refundRoutes = require("./routes/refundRoutes");
+const deliveryRoutes = require("./routes/deliveryRoutes");
 
-export async function getActiveCheckout(accountId) {
-    let attemptId;
+const reportRoutes = require("./routes/reportRoutes");
+const settlementRoutes = require("./routes/settlementRoutes");
+const replacementRoutes = require("./routes/replacementRoutes");
+const complaintRoutes = require("./routes/complaintRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
+const couponRoutes = require("./routes/couponRoutes");
 
-    try {
-        attemptId = JSON.parse(
-            sessionStorage.getItem(`zupito:checkout-attempt:${accountId}`) || "null"
-        )?.attemptId;
-    } catch {
-        // The backend can still recover an active checkout.
-    }
+const paymentController = require("./controllers/paymentController");
 
-    return (
-        await api.get("/checkout/active", {
-            params: { attemptId },
-        })
-    ).data;
-}
+const app = express();
 
-export function forgetCheckoutAttempt(accountId) {
-    try {
-        sessionStorage.removeItem(`zupito:checkout-attempt:${accountId}`);
-    } catch {
-        // Orders remain available from the backend.
-    }
-}
+app.disable("x-powered-by");
 
-export const getPaymentStatus = async (id) =>
-    (await api.get(`/payments/${encodeURIComponent(id)}`, { timeout: 45000 })).data;
+app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 0));
 
-let scriptPromise;
+// ================== SECURITY HEADERS ==================
+const razorpayOrigins = [
+    "https://razorpay.com",
+    "https://*.razorpay.com",
+];
 
-function loadRazorpay() {
-    if (window.Razorpay) {
-        return Promise.resolve();
-    }
+app.use(
+    helmet({
+        // Keep popup communication available for payment checkout.
+        crossOriginOpenerPolicy: {
+            policy: "same-origin-allow-popups",
+        },
 
-    if (scriptPromise) return scriptPromise;
+        contentSecurityPolicy:
+            process.env.NODE_ENV === "production"
+                ? {
+                      directives: {
+                          "script-src": [
+                              "'self'",
+                              ...razorpayOrigins,
+                          ],
+                          "frame-src": [
+                              "'self'",
+                              ...razorpayOrigins,
+                          ],
+                          "connect-src": [
+                              "'self'",
+                              ...razorpayOrigins,
+                          ],
+                          "form-action": [
+                              "'self'",
+                              ...razorpayOrigins,
+                          ],
+                          "img-src": [
+                              "'self'",
+                              "data:",
+                              "blob:",
+                              "https:",
+                          ],
+                          "style-src": [
+                              "'self'",
+                              "'unsafe-inline'",
+                              "https:",
+                          ],
+                      },
+                  }
+                : false,
+    })
+);
 
-    scriptPromise = new Promise((resolve, reject) => {
-        const script = document.createElement("script");
+// ================== CORS ==================
+app.use(
+    cors({
+        origin: process.env.CLIENT_ORIGIN,
+        credentials: true,
+        exposedHeaders: ["Retry-After"],
+    })
+);
 
-        const fail = () => {
-            clearTimeout(timer);
-            script.remove();
-            scriptPromise = null;
+// Razorpay webhook needs the original request body.
+app.post(
+    "/api/payments/webhook",
+    express.raw({
+        type: "application/json",
+        limit: "100kb",
+    }),
+    paymentController.webhook
+);
 
-            reject(new Error("Unable to load Razorpay. Please retry."));
-        };
+app.use("/api", csrfMiddleware);
 
-        const timer = setTimeout(fail, 15000);
+app.use(
+    express.json({
+        limit: "100kb",
+    })
+);
 
-        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+app.use(cookieParser());
 
-        script.onload = () => {
-            clearTimeout(timer);
-            window.Razorpay ? resolve() : fail();
-        };
-
-        script.onerror = fail;
-
-        document.head.appendChild(script);
+// ================== HEALTH ==================
+app.get("/api/health", (req, res) => {
+    res.json({
+        success: true,
+        message: "Zupito API is running.",
     });
+});
 
-    return scriptPromise;
-}
+app.use("/api", (req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    next();
+});
 
-export async function openPayment(data) {
-    if (!data.checkout) return;
+// ================== API ROUTES ==================
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/seller", sellerRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/checkout", checkoutRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/refunds", refundRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/settlements", settlementRoutes);
+app.use("/api/replacements", replacementRoutes);
+app.use("/api/complaints", complaintRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/coupons", couponRoutes);
+app.use("/api/delivery", deliveryRoutes);
 
-    await loadRazorpay();
+// ================== API NOT FOUND ==================
+app.use("/api", (req, res, next) => {
+    next(new ExpressError(404, "API route not found."));
+});
 
-    return new Promise((resolve, reject) => {
-        let verifying = false;
+// ================== FRONTEND DEPLOYMENT ==================
+if (process.env.SERVE_FRONTEND === "true") {
+    const dist = path.join(__dirname, "../frontend/dist");
 
-        const checkout = new window.Razorpay({
-            ...data.checkout,
+    app.use(express.static(dist));
 
-            handler: async (response) => {
-                verifying = true;
-
-                try {
-                    await api.post(`/payments/${data.order.orderId}/verify`, response, {
-                        timeout: 45000,
-                    });
-                } catch {
-                    // Status page and backend worker recover uncertain results.
-                }
-
-                resolve();
-            },
-
-            modal: {
-                ondismiss: () => {
-                    if (!verifying) resolve();
-                },
-            },
-        });
-
-        // Capture the provider failure reason without interrupting retries.
-        checkout.on("payment.failed", (response) => {
-            const error = response.error || {};
-
-            console.error("Razorpay Payment Failed:", {
-                code: error.code,
-                description: error.description,
-                source: error.source,
-                step: error.step,
-                reason: error.reason,
-            });
-        });
-
-        try {
-            checkout.open();
-        } catch {
-            reject(new Error("Unable to open payment. You can resume this checkout."));
+    app.get("/{*path}", (req, res, next) => {
+        if (path.extname(req.path)) {
+            return next();
         }
+
+        res.sendFile(path.join(dist, "index.html"));
     });
 }
 
-export function getCheckoutAttempt(accountId, quoteToken) {
-    const key = `zupito:checkout-attempt:${accountId}`;
+// ================== NOT FOUND ==================
+app.use((req, res, next) => {
+    next(new ExpressError(404, "Route not found."));
+});
 
-    try {
-        const saved = JSON.parse(sessionStorage.getItem(key) || "null");
+app.use(errorMiddleware);
 
-        if (saved?.quoteToken === quoteToken) {
-            return saved.attemptId;
-        }
-    } catch {
-        // A server-side active checkout also prevents duplicates.
-    }
-
-    const attemptId = crypto.randomUUID();
-
-    try {
-        sessionStorage.setItem(key, JSON.stringify({ quoteToken, attemptId }));
-    } catch {
-        // Continue with this attempt in memory.
-    }
-
-    return attemptId;
-}
+module.exports = app;

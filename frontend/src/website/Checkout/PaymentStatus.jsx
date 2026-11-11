@@ -171,7 +171,7 @@ function PaymentStatus() {
     if (!user) {
         return (
             <Navigate
-                to="/login"
+                to="/manage"
                 replace
                 state={{
                     returnTo: location.pathname + location.search,

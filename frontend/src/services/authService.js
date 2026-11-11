@@ -37,7 +37,7 @@ export function getLoginDestination(user, returnTo) {
 
     if (
         typeof returnTo === "string" &&
-        /^\/(?:account(?:[/?#]|$)|checkout(?:[/?#]|$)|order-confirmation\/|products(?:[/?#]|$)|cart(?:[/?#]|$))/.test(
+        /^\/(?:account(?:[/?#]|$)|checkout(?:[/?#]|$)|payment-status(?:[/?#]|$)|order-confirmation\/|products(?:[/?#]|$)|cart(?:[/?#]|$))/.test(
             returnTo
         )
     ) {

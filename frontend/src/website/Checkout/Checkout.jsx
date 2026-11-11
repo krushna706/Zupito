@@ -469,7 +469,7 @@ function Checkout() {
     };
 
     if (!user) {
-        return <Navigate to="/login" replace state={{ returnTo: location.pathname }} />;
+        return <Navigate to="/manage" replace state={{ returnTo: location.pathname }} />;
     }
 
     if (!ready || !addressesReady) {
